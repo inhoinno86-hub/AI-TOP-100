@@ -50,6 +50,7 @@ def inspect_records(
     status_field: str | None = None,
     version_field: str | None = None,
     timestamp_field: str | None = None,
+    entity_field: str | None = None,
     expected_count: int | None = None,
     pagination_complete: bool | None = None,
 ) -> InspectionReport:
@@ -104,7 +105,12 @@ def inspect_records(
         refs = [str(i) for i in idxs]
         statuses = {r.get(status_field) for r in rows} if status_field else set()
         vers = {r.get(version_field) for r in rows} if version_field else set()
-        if version_field and len(vers) > 1:
+        entities = {r.get(entity_field) for r in rows} if entity_field else set()
+        if entity_field and len(entities) > 1:
+            dup_key += 1
+            issues.append(DataIssue(DataIssueType.KEY_COLLISION,
+                                    f"key {key} refers to different entities {sorted(map(str, entities))}", refs))
+        elif version_field and len(vers) > 1:
             versions += 1
             issues.append(DataIssue(DataIssueType.EVENT_VERSION, f"key {key} has versions {sorted(map(str, vers))}",
                                     refs))
