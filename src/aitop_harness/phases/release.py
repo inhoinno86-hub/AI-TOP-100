@@ -28,7 +28,7 @@ from ..core.events import EventType
 from ..core.scope import ScopeItem
 from ..engine.context import HarnessContext
 from ..supervision.monitoring import SignalKind
-from .verify import VerifyReport
+from .verify import VerifyReport, relied_on
 
 # Layer-1 checks whose failure cannot be covered by a known limitation.
 _UNCOVERABLE_CHECKS = {
@@ -61,8 +61,9 @@ class ReleaseGateResult:
     minimum_useful: MinimumUsefulAssessment | None = None
 
 
-def assess_minimum_useful_release(ctx: HarnessContext, release_scope: list[ScopeItem],
-                                  report: VerifyReport) -> MinimumUsefulAssessment:
+def assess_minimum_useful_release(
+    ctx: HarnessContext, release_scope: list[ScopeItem], report: VerifyReport
+) -> MinimumUsefulAssessment:
     """Root Problem alignment + operational value + safety + verification + explicit unfinished scope.
 
     Detects panic scope collapse (trivial demo unrelated to the root problem).
@@ -70,7 +71,8 @@ def assess_minimum_useful_release(ctx: HarnessContext, release_scope: list[Scope
     reasons: list[str] = []
     plan = ctx.runtime.current_plan
     aligned = [
-        w for w in (plan.work_items if plan else [])
+        w
+        for w in (plan.work_items if plan else [])
         if w.root_problem_aligned and w.status != "DROPPED" and any(i in release_scope for i in w.scope_items)
     ]
     sd = ctx.problem.solution_design
@@ -145,20 +147,20 @@ def evaluate_release_gate(
             limits.append(f"{v.id} intersects release scope (non-critical): {v.unresolved_question}")
 
     # unresolved critical conflict / constraint / mapping / handoff within release scope
-    for c in ps.conflicts.values():
-        if c.status is ConflictStatus.OPEN and c.decision_impact is Criticality.CRITICAL:
-            if c.affects_scope.entire_solution or c.affects_scope.intersect(scope):
-                hold.append(f"unresolved critical conflict {c.id}")
+    for conflict in ps.conflicts.values():
+        if conflict.status is ConflictStatus.OPEN and conflict.decision_impact is Criticality.CRITICAL:
+            if conflict.affects_scope.entire_solution or conflict.affects_scope.intersect(scope):
+                hold.append(f"unresolved critical conflict {conflict.id}")
             else:
-                limits.append(f"conflict {c.id} open outside release scope")
-    targets = {i.target for i in scope}
+                limits.append(f"conflict {conflict.id} open outside release scope")
+    reliance = relied_on(ctx, scope)
     for mid, m in ps.canonical_mappings.items():
-        if mid in targets and (m.confidence is MappingConfidence.UNRESOLVED):
+        if mid in reliance and (m.confidence is MappingConfidence.UNRESOLVED):
             hold.append(f"unresolved mapping {mid} in release scope")
         elif m.confidence is MappingConfidence.UNRESOLVED:
             limits.append(f"mapping {mid} unresolved; excluded from release scope")
     for hid, h in ps.process_handoffs.items():
-        if hid in targets and h.semantic_validity is SemanticValidity.BROKEN:
+        if hid in reliance and h.semantic_validity is SemanticValidity.BROKEN:
             hold.append(f"handoff {hid} semantic mismatch in release scope")
 
     # tool health / fallback, recovery history
@@ -169,6 +171,10 @@ def evaluate_release_gate(
         limits.append("fallback data used within allowed usage (non-authoritative)")
     for w in rt.release_runtime.dropped_scope:
         limits.append(f"dropped for budget: {w}")
+    if ps.solution_design is not None:  # unfinished scope stays explicit (Minimum Useful Release)
+        limits += [
+            f"unfinished: {u}" for u in ps.solution_design.unfinished_scope if "dropped for budget" not in u
+        ]
 
     # time / reserve / packaging feasibility
     br, rr = rt.budget_runtime, rt.release_runtime
@@ -189,10 +195,11 @@ def evaluate_release_gate(
 
     with ctx.commit(f"Release Gate {decision.value}") as p:
         p.validation.release_decisions.append(decision)
-    event = ctx.emit(EventType.RELEASE_GATE_RESULT,
-                     {"decision": decision.value, "hold": hold, "limitations": limits,
-                      "scope": [str(i) for i in scope]},
-                     importance=Importance.CRITICAL)
+    event = ctx.emit(
+        EventType.RELEASE_GATE_RESULT,
+        {"decision": decision.value, "hold": hold, "limitations": limits, "scope": [str(i) for i in scope]},
+        importance=Importance.CRITICAL,
+    )
     ctx.supervision.gate_rationale = [f"RELEASE {decision.value}"] + hold + limits
     ctx.signal(SignalKind.RELEASE_GATE_RESULT, decision.value, event_seq=event.seq)
     if hold and any("VOB" in h for h in hold):

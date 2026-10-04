@@ -18,7 +18,13 @@ from test_phase_hi_supervision_gate import proposal, setup_gate
 from aitop_harness.core.enums import ExecutionStatus, HumanDecisionKind
 from aitop_harness.core.events import EventType
 from aitop_harness.core.serialization import to_dict
-from aitop_harness.phases.human_gate import GateStatus, HumanDecision, decide, interpret_human_input, propose_protected_action
+from aitop_harness.phases.human_gate import (
+    GateStatus,
+    HumanDecision,
+    decide,
+    interpret_human_input,
+    propose_protected_action,
+)
 from aitop_harness.phases.verify import run_verify
 
 QUESTION = "왜 이걸 지금 승인해야 해?"
@@ -90,10 +96,16 @@ def test_insufficient_context_triggers_safe_read_only_reprofile_without_executio
 
     def probe(topics):
         probed.append(topics)
-        return tool_evidence("E-not-yet-collected", "read-only lookup: partner confirmed CM-1/CM-2 effective today")
+        return tool_evidence(
+            "E-not-yet-collected", "read-only lookup: partner confirmed CM-1/CM-2 effective today"
+        )
 
-    out = decide(ctx, HumanDecision(HumanDecisionKind.REQUEST_CONTEXT, "근거 데이터가 뭐야?"), executor,
-                 context_probe=probe)
+    out = decide(
+        ctx,
+        HumanDecision(HumanDecisionKind.REQUEST_CONTEXT, "근거 데이터가 뭐야?"),
+        executor,
+        context_probe=probe,
+    )
     assert probed, "targeted read-only reprofile should run when context is insufficient"
     assert ctx.events.last(EventType.APPROVAL_CONTEXT_INSUFFICIENT) is not None
     assert "E-not-yet-collected" in ctx.problem.evidence  # evidence added, read-only
@@ -125,8 +137,13 @@ def test_request_context_revealing_scope_mismatch_is_critical_and_still_blocks()
     propose_protected_action(ctx, proposal(), executor)
     with ctx.commit("authorization narrowed by owner") as ps:
         from aitop_harness.core.scope import Scope
+
         ps.domain_authorizations["DA-pub"].authorized_scope = Scope.of(("publish_mapping", "CM-1"))
-    decide(ctx, HumanDecision(HumanDecisionKind.REQUEST_CONTEXT, "이 범위가 원래 승인된 범위와 같은가?"), executor)
+    decide(
+        ctx,
+        HumanDecision(HumanDecisionKind.REQUEST_CONTEXT, "이 범위가 원래 승인된 범위와 같은가?"),
+        executor,
+    )
     assert any("[CRITICAL] REQUEST_CONTEXT_SCOPE_MISMATCH" in s for s in ctx.supervision.live_summary)
     assert executor.calls == []
     assert ctx.runtime.execution_status is ExecutionStatus.WAITING_APPROVAL

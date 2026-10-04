@@ -86,8 +86,13 @@ def compute_diff(
             if item_id not in old:
                 diff.entries.append(
                     StateDiffEntry(
-                        DiffKind.NEW, name, item_id, f"new {name} {item_id}",
-                        _importance(name, item, DiffKind.NEW), None, p.status,
+                        DiffKind.NEW,
+                        name,
+                        item_id,
+                        f"new {name} {item_id}",
+                        _importance(name, item, DiffKind.NEW),
+                        None,
+                        p.status,
                     )
                 )
                 continue
@@ -102,15 +107,23 @@ def compute_diff(
                     kind = DiffKind.DEFERRED
             diff.entries.append(
                 StateDiffEntry(
-                    kind, name, item_id, f"{kind.value.lower()} {name} {item_id}",
-                    _importance(name, item, kind), o.status, p.status,
+                    kind,
+                    name,
+                    item_id,
+                    f"{kind.value.lower()} {name} {item_id}",
+                    _importance(name, item, kind),
+                    o.status,
+                    p.status,
                 )
             )
     for work_id in dropped_for_budget or []:
         diff.entries.append(
             StateDiffEntry(
-                DiffKind.DROPPED_FOR_BUDGET, "work_items", work_id,
-                f"dropped for budget: {work_id}", Importance.NORMAL,
+                DiffKind.DROPPED_FOR_BUDGET,
+                "work_items",
+                work_id,
+                f"dropped for budget: {work_id}",
+                Importance.NORMAL,
             )
         )
     return diff

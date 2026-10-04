@@ -21,7 +21,8 @@ def refresh(ctx: HarnessContext) -> None:
     sv.critical_unknowns = [
         f"{u.id}: {u.question} [{u.status.value}]"
         for u in ps.unknowns.values()
-        if u.criticality in (Criticality.CRITICAL, Criticality.HIGH) and u.status is not UnknownStatus.RESOLVED
+        if u.criticality in (Criticality.CRITICAL, Criticality.HIGH)
+        and u.status is not UnknownStatus.RESOLVED
     ]
     sv.critical_conflicts = [
         f"{c.id}: {c.assertion} ({c.side_a} vs {c.side_b})"
@@ -30,7 +31,8 @@ def refresh(ctx: HarnessContext) -> None:
     ]
     sv.key_evidence = list(pd.evidence_refs) if pd else []
     sv.evidence_revisions = [
-        f"{r.id}: {r.evidence_id} revised by {r.revised_by}" + (" (invalidates problem)" if r.invalidates_problem else "")
+        f"{r.id}: {r.evidence_id} revised by {r.revised_by}"
+        + (" (invalidates problem)" if r.invalidates_problem else "")
         for r in ps.evidence_revisions.values()
     ]
     sv.pending_verification_obligations = [

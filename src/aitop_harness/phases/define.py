@@ -108,12 +108,20 @@ def evaluate_define_gate(ctx: HarnessContext, registry: ToolRegistry | None = No
         add("problem", Severity.BLOCKING, "root problem not stated")
     committed = [e for e in pd.evidence_refs if e in ps.evidence]
     if len(committed) != len(pd.evidence_refs) or not committed:
-        add("evidence", Severity.BLOCKING, "problem definition cites missing or no evidence", pd.evidence_refs)
+        add(
+            "evidence", Severity.BLOCKING, "problem definition cites missing or no evidence", pd.evidence_refs
+        )
     else:
-        independent = [e for e in committed if ps.evidence[e].source_type is not EvidenceSourceType.STAKEHOLDER]
+        independent = [
+            e for e in committed if ps.evidence[e].source_type is not EvidenceSourceType.STAKEHOLDER
+        ]
         if not independent:
-            add("evidence", Severity.BLOCKING,
-                "root problem rests only on stakeholder statements (initial-request anchoring risk)", committed)
+            add(
+                "evidence",
+                Severity.BLOCKING,
+                "root problem rests only on stakeholder statements (initial-request anchoring risk)",
+                committed,
+            )
         stale = [e for e in committed if ps.evidence[e].status is not EvidenceStatus.ACTIVE]
         if stale:
             add("evidence", Severity.BLOCKING, "problem definition cites revised/superseded evidence", stale)
@@ -130,24 +138,36 @@ def evaluate_define_gate(ctx: HarnessContext, registry: ToolRegistry | None = No
     for asset_id in pd.depends_on_exports:
         auth = ps.authorization_for("export", asset_id)
         if auth is None or auth.status is AuthorizationStatus.UNKNOWN:
-            add("data", Severity.BLOCKING, f"solution depends on exporting {asset_id}; export permission unknown",
-                [asset_id])
+            add(
+                "data",
+                Severity.BLOCKING,
+                f"solution depends on exporting {asset_id}; export permission unknown",
+                [asset_id],
+            )
 
     # --- Identity / CanonicalMapping (only if the solution depends on it)
     open_vobs = ps.open_vobs()
     for mid in pd.depends_on_mappings:
         m = ps.canonical_mappings.get(mid)
         if m is None or m.confidence is MappingConfidence.UNRESOLVED:
-            covered = any(v.blocking_scope.intersect([ScopeItem(a.action, mid) for a in intended]) for v in open_vobs)
-            add("mapping", Severity.CONDITIONAL if covered else Severity.BLOCKING,
-                f"critical mapping {mid} UNRESOLVED" + (" (scoped out by VOB)" if covered else ""), [mid])
+            covered = any(
+                v.blocking_scope.intersect([ScopeItem(a.action, mid) for a in intended]) for v in open_vobs
+            )
+            add(
+                "mapping",
+                Severity.CONDITIONAL if covered else Severity.BLOCKING,
+                f"critical mapping {mid} UNRESOLVED" + (" (scoped out by VOB)" if covered else ""),
+                [mid],
+            )
 
     # --- Unknown (critical ∩ intended scope)
     for u in ps.unknowns.values():
         if u.status is not UnknownStatus.OPEN or u.criticality not in _CRITICAL:
             continue
         scope = u.affects_scope if not u.affects_scope.is_empty() else Scope.entire()
-        overlap = scope.intersect(intended) if intended else ([ScopeItem("*")] if scope.entire_solution else [])
+        overlap = (
+            scope.intersect(intended) if intended else ([ScopeItem("*")] if scope.entire_solution else [])
+        )
         if not overlap:
             add("unknown", Severity.INFO, f"critical unknown {u.id} outside intended scope", [u.id])
             continue
@@ -162,8 +182,11 @@ def evaluate_define_gate(ctx: HarnessContext, registry: ToolRegistry | None = No
                     reason_deferred=f"deferred at DEFINE Gate; safe placeholder: {u.safe_placeholder}",
                     decision_impact=u.criticality,
                     validation_method=u.resolution_path,
-                    required_before=(RequiredBefore.BEFORE_PROTECTED_ACTION if touches_protected
-                                     else RequiredBefore.BEFORE_RELEASE),
+                    required_before=(
+                        RequiredBefore.BEFORE_PROTECTED_ACTION
+                        if touches_protected
+                        else RequiredBefore.BEFORE_RELEASE
+                    ),
                     blocking_scope=scope,
                     linked_unknown=u.id,
                 )
@@ -171,16 +194,24 @@ def evaluate_define_gate(ctx: HarnessContext, registry: ToolRegistry | None = No
             defer[u.id] = vob_id
             add("unknown", Severity.CONDITIONAL, f"critical unknown {u.id} deferred to {vob_id}", [u.id])
         else:
-            add("unknown", Severity.BLOCKING,
-                f"critical unknown {u.id} overlaps intended scope without resolution path / safe placeholder", [u.id])
+            add(
+                "unknown",
+                Severity.BLOCKING,
+                f"critical unknown {u.id} overlaps intended scope without resolution path / safe placeholder",
+                [u.id],
+            )
 
     # --- Conflict
     for c in ps.conflicts.values():
         if c.status is not ConflictStatus.OPEN:
             continue
         if c.gate_blocking or c.decision_impact is Criticality.CRITICAL:
-            add("conflict", Severity.CONDITIONAL if c.resolution_strategy else Severity.BLOCKING,
-                f"critical conflict {c.id} on {c.assertion}", [c.id])
+            add(
+                "conflict",
+                Severity.CONDITIONAL if c.resolution_strategy else Severity.BLOCKING,
+                f"critical conflict {c.id} on {c.assertion}",
+                [c.id],
+            )
         elif c.decision_impact is Criticality.HIGH:
             add("conflict", Severity.CONDITIONAL, f"high-impact conflict {c.id} open", [c.id])
 
@@ -189,32 +220,54 @@ def evaluate_define_gate(ctx: HarnessContext, registry: ToolRegistry | None = No
         sc.metric_id for sid in pd.success_criteria if (sc := ps.success_criteria.get(sid)) and sc.metric_id
     }
     for mid in sorted(linked_metrics):
-        m = ps.metrics.get(mid)
-        if m is None:
+        metric = ps.metrics.get(mid)
+        if metric is None:
             add("metric", Severity.BLOCKING, f"metric {mid} not defined", [mid])
-        elif m.profile is not MetricProfile.EXTENDED or m.missing_type_semantics():
-            add("metric", Severity.BLOCKING,
-                f"metric {mid} must be EXTENDED with {m.missing_type_semantics() or 'semantics'}", [mid])
-        elif m.current_value_is_speculative:
+        elif metric.profile is not MetricProfile.EXTENDED or metric.missing_type_semantics():
+            add(
+                "metric",
+                Severity.BLOCKING,
+                f"metric {mid} must be EXTENDED with {metric.missing_type_semantics() or 'semantics'}",
+                [mid],
+            )
+        elif metric.current_value_is_speculative:
             add("metric", Severity.CONDITIONAL, f"metric {mid} current value speculative", [mid])
 
     # --- Constraint / Authority
     for action in pd.protected_actions:
         auth = ps.authorization_for(action)
         if auth is None or auth.status is AuthorizationStatus.UNKNOWN or auth.authority_holder is None:
-            add("authority", Severity.BLOCKING, f"protected action {action}: authority owner / authorization unknown",
-                [action])
+            add(
+                "authority",
+                Severity.BLOCKING,
+                f"protected action {action}: authority owner / authorization unknown",
+                [action],
+            )
         approval_unknown = [
-            c.id for c in ps.constraints.values()
-            if c.protected_action == action and c.status in (ConstraintStatus.UNKNOWN, ConstraintStatus.SUSPECTED)
+            c.id
+            for c in ps.constraints.values()
+            if c.protected_action == action
+            and c.status in (ConstraintStatus.UNKNOWN, ConstraintStatus.SUSPECTED)
         ]
         if approval_unknown:
-            add("authority", Severity.BLOCKING, f"protected action {action}: approval requirement unknown",
-                approval_unknown)
-    for c in ps.constraints.values():
-        if (c.type in (ConstraintType.SAFETY, ConstraintType.PRIVACY) and c.status in
-                (ConstraintStatus.UNKNOWN, ConstraintStatus.SUSPECTED) and c.criticality in _CRITICAL):
-            add("constraint", Severity.BLOCKING, f"{c.type.value} constraint {c.id} may change solution path", [c.id])
+            add(
+                "authority",
+                Severity.BLOCKING,
+                f"protected action {action}: approval requirement unknown",
+                approval_unknown,
+            )
+    for k in ps.constraints.values():
+        if (
+            k.type in (ConstraintType.SAFETY, ConstraintType.PRIVACY)
+            and k.status in (ConstraintStatus.UNKNOWN, ConstraintStatus.SUSPECTED)
+            and k.criticality in _CRITICAL
+        ):
+            add(
+                "constraint",
+                Severity.BLOCKING,
+                f"{k.type.value} constraint {k.id} may change solution path",
+                [k.id],
+            )
 
     # --- Success criteria / verification readiness
     if not pd.success_criteria:
@@ -225,7 +278,12 @@ def evaluate_define_gate(ctx: HarnessContext, registry: ToolRegistry | None = No
             add("verification", Severity.BLOCKING, f"success criterion {sid} has no validation method", [sid])
     for v in open_vobs:
         if v.blocking_scope.intersect(intended) and not v.validation_method:
-            add("vob", Severity.BLOCKING, f"open {v.id} overlaps intended scope without resolution path", [v.id])
+            add(
+                "vob",
+                Severity.BLOCKING,
+                f"open {v.id} overlaps intended scope without resolution path",
+                [v.id],
+            )
 
     # --- Tool dependency / fallback readiness
     for tid in pd.required_tools:
@@ -240,8 +298,11 @@ def evaluate_define_gate(ctx: HarnessContext, registry: ToolRegistry | None = No
     br = ctx.runtime.budget_runtime
     floor = ps.budget.verification_floor_minutes + ps.budget.release_reserve_minutes
     if br.remaining < floor:
-        add("budget", Severity.BLOCKING,
-            f"remaining {br.remaining:.0f}m below verification floor + release reserve ({floor:.0f}m)")
+        add(
+            "budget",
+            Severity.BLOCKING,
+            f"remaining {br.remaining:.0f}m below verification floor + release reserve ({floor:.0f}m)",
+        )
 
     if any(f.severity is Severity.BLOCKING for f in findings):
         result = DefineGateResult.FAIL
@@ -270,28 +331,38 @@ def apply_define_gate(ctx: HarnessContext, outcome: DefineGateOutcome) -> Define
                 id=f"D-{len(ps.decision_log) + 1}",
                 phase=Phase.DEFINE,
                 decision=f"DEFINE Gate {outcome.result.value}",
-                rationale="; ".join(f"[{f.severity.value}] {f.message}" for f in outcome.findings
-                                    if f.severity is not Severity.OK),
+                rationale="; ".join(
+                    f"[{f.severity.value}] {f.message}"
+                    for f in outcome.findings
+                    if f.severity is not Severity.OK
+                ),
             )
         )
     event = ctx.emit(
         EventType.DEFINE_GATE_RESULT,
         {
             "result": outcome.result.value,
-            "findings": [{"check": f.check, "severity": f.severity.value, "message": f.message}
-                         for f in outcome.findings],
+            "findings": [
+                {"check": f.check, "severity": f.severity.value, "message": f.message}
+                for f in outcome.findings
+            ],
             "vobs": [v.id for v in outcome.vobs_to_create],
         },
         importance=Importance.CRITICAL if outcome.result is DefineGateResult.FAIL else Importance.HIGH,
     )
     for vob in outcome.vobs_to_create:
-        ctx.emit(EventType.VOB_CREATED, {"vob": vob.id, "required_before": vob.required_before.value},
-                 refs=[vob.id])
+        ctx.emit(
+            EventType.VOB_CREATED,
+            {"vob": vob.id, "required_before": vob.required_before.value},
+            refs=[vob.id],
+        )
     for uid in outcome.unknowns_to_defer:
         ctx.emit(EventType.UNKNOWN_DEFERRED, {"unknown": uid, "vob": outcome.unknowns_to_defer[uid]})
     rationale = [f"{f.check}: {f.message}" for f in outcome.findings if f.severity is not Severity.OK]
     ctx.supervision.gate_rationale = [f"DEFINE {outcome.result.value}"] + rationale
-    ctx.signal(SignalKind.DEFINE_GATE_RESULT, f"{outcome.result.value} ({len(rationale)} findings)",
-               event_seq=event.seq)
+    ctx.signal(
+        SignalKind.DEFINE_GATE_RESULT,
+        f"{outcome.result.value} ({len(rationale)} findings)",
+        event_seq=event.seq,
+    )
     return outcome.result
-

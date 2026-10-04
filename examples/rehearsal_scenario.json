@@ -1,0 +1,72 @@
+{
+  "scenario": {
+    "id": "REHEARSAL-1",
+    "title": "Downstream rejects (rehearsal, not an official contest problem)",
+    "initial_request": "Let an AI agent auto-fix rejected rows and resubmit them",
+    "requested_by": "SH-REQ"
+  },
+  "problem": {
+    "organizations": {
+      "ORG-A": {"id": "ORG-A", "name": "Shipper"},
+      "ORG-B": {"id": "ORG-B", "name": "Carrier"}
+    },
+    "stakeholders": {
+      "SH-REQ": {"id": "SH-REQ", "organization_id": "ORG-A", "role": "operations manager"},
+      "SH-INT": {"id": "SH-INT", "organization_id": "ORG-B", "role": "interface owner", "authority_scope": ["interface contract"]}
+    },
+    "processes": {
+      "P-1": {"id": "P-1", "name": "shipment notice", "organization_ids": ["ORG-A", "ORG-B"], "handoff_ids": ["H-1"]}
+    },
+    "process_handoffs": {
+      "H-1": {"id": "H-1", "process_id": "P-1", "from_org": "ORG-A", "to_org": "ORG-B",
+              "delivery_status": "HEALTHY", "semantic_validity": "BROKEN"}
+    },
+    "metrics": {
+      "M-1": {"id": "M-1", "name": "business reject rate", "metric_type": "RATE", "profile": "EXTENDED",
+              "numerator": "business rejects", "denominator": "transport-accepted notices", "owner": "ORG-A",
+              "target_value": 0.01}
+    },
+    "success_criteria": {
+      "SC-1": {"id": "SC-1", "statement": "reject rate below 1% on replay", "metric_id": "M-1",
+               "validation_method": "replay last week's notices", "test_refs": ["replay"]}
+    }
+  },
+  "tools": [
+    {"tool_id": "reject-log", "dependency": "carrier-api", "authority": "AUTHORITATIVE",
+     "script": {"rejects_by_reason": [{"status": "SUCCESS", "records": [{"reason": "LOC_UNKNOWN"}, {"reason": "LOC_UNKNOWN"}, {"reason": "EVENT_ORDER"}],
+                                       "expected_count": 3, "pagination_complete": true, "source_authority": "AUTHORITATIVE"}]}}
+  ],
+  "discovery_actions": [
+    {"id": "A-log", "kind": "TOOL_QUERY", "target": "reject-log", "question": "rejects_by_reason", "tool_id": "reject-log",
+     "factors": {"decision_impact": 0.9, "uncertainty": 0.8, "discriminative_power": 0.9, "answerability": 0.9, "time_cost_minutes": 3},
+     "evidence": {"id": "E-log", "source_type": "TOOL", "source_id": "reject-log",
+                  "provenance": {"source_type": "TOOL", "source_id": "reject-log", "method": "rejects_by_reason"},
+                  "content": "2/3 rejects are unknown location codes; 1/3 event ordering",
+                  "target_assertion": "reject.cause", "value": "interface_contract"}},
+    {"id": "A-req", "kind": "STAKEHOLDER_INTERVIEW", "target": "SH-REQ", "question": "why are rows rejected?",
+     "factors": {"decision_impact": 0.4, "time_cost_minutes": 8},
+     "evidence": {"id": "E-req", "source_type": "STAKEHOLDER", "source_id": "SH-REQ",
+                  "provenance": {"source_type": "STAKEHOLDER", "source_id": "SH-REQ", "method": "interview"},
+                  "content": "carrier system is flaky", "target_assertion": "reject.cause", "value": "carrier_flaky",
+                  "authority": "NON_AUTHORITATIVE"}}
+  ],
+  "problem_definition": {
+    "id": "PD-1",
+    "requested_solution": "AI auto-fix and resubmit",
+    "symptoms": ["business rejects after transport ACK"],
+    "root_problem": "location identity and event semantics differ across the interface contract",
+    "evidence_refs": ["E-log"],
+    "intended_scope": [{"action": "detect_reject_cause", "target": "H-1"}],
+    "success_criteria": ["SC-1"]
+  },
+  "design_inputs": {
+    "structural_remedies": [{"id": "SR-1", "description": "versioned identity/event contract", "removes_root_cause": true,
+                             "feasible_in_contest_time": false}],
+    "deterministic_rules_cover_cases": true,
+    "llm_reasoning_adds_value": true,
+    "bridge_sunset_condition": "contract v2 adopted",
+    "release_scope": [{"action": "detect_reject_cause", "target": "H-1"}],
+    "minimum_useful_scope": [{"action": "detect_reject_cause", "target": "H-1"}]
+  },
+  "release_scope": [{"action": "detect_reject_cause", "target": "H-1"}]
+}

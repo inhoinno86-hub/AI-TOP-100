@@ -121,11 +121,12 @@ def decide_recovery(
     else:
         ok, reason = retry_budget_ok(ctx, fc.estimated_retry_cost)
         if not ok:
-            stop = RetryStopReason(reason)
+            stop = RetryStopReason(reason or RetryStopReason.BUDGET_THREATENS_VERIFICATION)
     if stop is None:
         return RecoveryDecision(
             RecoveryKind.RETRY,
-            f"transient {fc.error_class}; same path valid; EV {fc.expected_value} > cost {fc.estimated_retry_cost}",
+            f"transient {fc.error_class}; same path valid; "
+            f"EV {fc.expected_value} > cost {fc.estimated_retry_cost}",
             retry_eligible=True,
         )
 
@@ -133,7 +134,8 @@ def decide_recovery(
     if fc.fallbacks:
         return RecoveryDecision(
             RecoveryKind.REPLAN,
-            f"retry stopped ({stop.value}); switch to fallback {fc.fallbacks[0].tool_id} within its authority",
+            f"retry stopped ({stop.value}); "
+            f"switch to fallback {fc.fallbacks[0].tool_id} within its authority",
             stop_reason=stop,
             fallback=fc.fallbacks[0],
             next_action=f"use_fallback:{fc.fallbacks[0].tool_id}",
@@ -145,7 +147,10 @@ def decide_recovery(
             stop_reason=stop,
             next_action=fc.alternate_paths[0],
         )
-    if stop in (RetryStopReason.RELEASE_RESERVE_WOULD_BE_VIOLATED, RetryStopReason.BUDGET_THREATENS_VERIFICATION):
+    if stop in (
+        RetryStopReason.RELEASE_RESERVE_WOULD_BE_VIOLATED,
+        RetryStopReason.BUDGET_THREATENS_VERIFICATION,
+    ):
         return RecoveryDecision(
             RecoveryKind.REDUCE_SCOPE,
             f"retry stopped ({stop.value}); drop dependent scope, protect verification/release",
@@ -177,7 +182,9 @@ def apply_recovery_decision(ctx: HarnessContext, decision: RecoveryDecision, fc:
     transition = _TRANSITION_FOR.get(decision.kind)
     if transition:
         ctx.runtime.transition_candidate = TransitionCandidate(
-            transition[0], transition[1], decision.rationale,
+            transition[0],
+            transition[1],
+            decision.rationale,
             [fc.problem_invalidating_evidence] if fc.problem_invalidating_evidence else [],
         )
     if decision.reprofile_targets:
@@ -186,15 +193,22 @@ def apply_recovery_decision(ctx: HarnessContext, decision: RecoveryDecision, fc:
     strategy_change = decision.kind is not RecoveryKind.RETRY
     event = ctx.emit(
         EventType.RECOVERY_DECISION,
-        {"kind": decision.kind.value, "rationale": decision.rationale,
-         "stop_reason": decision.stop_reason.value if decision.stop_reason else None,
-         "signature": fc.failure_signature, "tool": fc.tool_id},
+        {
+            "kind": decision.kind.value,
+            "rationale": decision.rationale,
+            "stop_reason": decision.stop_reason.value if decision.stop_reason else None,
+            "signature": fc.failure_signature,
+            "tool": fc.tool_id,
+        },
         importance=Importance.HIGH if strategy_change else Importance.LOW,
     )
     ctx.supervision.decision_rationale.append(f"{decision.kind.value}: {decision.rationale}")
     if decision.kind is RecoveryKind.RETRY:
         ctx.signal(SignalKind.RETRY_DETAIL, f"retry {fc.tool_id}.{fc.operation}", event_seq=event.seq)
-    elif decision.kind is RecoveryKind.HOLD and decision.stop_reason is not RetryStopReason.MUTATION_UNCERTAINTY_READ_BACK_FIRST:
+    elif (
+        decision.kind is RecoveryKind.HOLD
+        and decision.stop_reason is not RetryStopReason.MUTATION_UNCERTAINTY_READ_BACK_FIRST
+    ):
         ctx.signal(SignalKind.UNRECOVERABLE_FAILURE, decision.rationale, event_seq=event.seq)
     else:
         ctx.signal(SignalKind.STRATEGY_CHANGING_FAILURE, decision.rationale, event_seq=event.seq)
@@ -218,15 +232,29 @@ def record_retry(ctx: HarnessContext, fc: FailureContext, actual_cost: float, re
         result=result,
     )
     rec.retry_history.append(record)
-    ctx.emit(EventType.RETRY_ATTEMPTED,
-             {"tool": fc.tool_id, "attempt": record.attempt, "signature": record.failure_signature,
-              "cumulative_retry_cost": rec.cumulative_retry_cost, "result": result},
-             importance=Importance.LOW)
+    ctx.emit(
+        EventType.RETRY_ATTEMPTED,
+        {
+            "tool": fc.tool_id,
+            "attempt": record.attempt,
+            "signature": record.failure_signature,
+            "cumulative_retry_cost": rec.cumulative_retry_cost,
+            "result": result,
+        },
+        importance=Importance.LOW,
+    )
     return record
 
 
-def activate_fallback(ctx: HarnessContext, primary_tool: str, fallback: ToolSpec, trigger: str, *,
-                      coverage: str = "", semantic_difference: str = "") -> FallbackRuntime:
+def activate_fallback(
+    ctx: HarnessContext,
+    primary_tool: str,
+    fallback: ToolSpec,
+    trigger: str,
+    *,
+    coverage: str = "",
+    semantic_difference: str = "",
+) -> FallbackRuntime:
     """Fallback is used *within its authority*: it is never promoted to authoritative."""
     fb = FallbackRuntime(
         source=fallback.tool_id,
@@ -239,10 +267,16 @@ def activate_fallback(ctx: HarnessContext, primary_tool: str, fallback: ToolSpec
     rec.fallbacks[primary_tool] = fb
     rec.fallback_status = FallbackStatus.ACTIVE
     rec.fallback_authority = fb.authority
-    ctx.emit(EventType.FALLBACK_ACTIVATED,
-             {"primary": primary_tool, "fallback": fallback.tool_id, "trigger": trigger,
-              "authority": fb.authority.value},
-             importance=Importance.HIGH)
+    ctx.emit(
+        EventType.FALLBACK_ACTIVATED,
+        {
+            "primary": primary_tool,
+            "fallback": fallback.tool_id,
+            "trigger": trigger,
+            "authority": fb.authority.value,
+        },
+        importance=Importance.HIGH,
+    )
     return fb
 
 

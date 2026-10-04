@@ -90,6 +90,9 @@ class SolutionDesign:
     release_scope: list[ScopeItem] = field(default_factory=list)
     minimum_useful_scope: list[ScopeItem] = field(default_factory=list)
     unfinished_scope: list[str] = field(default_factory=list)
+    # action -> ids of handoffs / mappings / data assets whose correctness that action relies on.
+    # "Used by released action" (Design Freeze §33) is evaluated from this, not from mere targeting.
+    scope_dependencies: dict[str, list[str]] = field(default_factory=dict)
 
 
 @dataclass

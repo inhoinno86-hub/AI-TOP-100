@@ -50,6 +50,7 @@ class DesignInputs:
     deterministic_components: list[str] = field(default_factory=list)
     release_scope: list[ScopeItem] = field(default_factory=list)
     minimum_useful_scope: list[ScopeItem] = field(default_factory=list)
+    scope_dependencies: dict[str, list[str]] = field(default_factory=dict)
 
 
 class DesignSession:
@@ -112,7 +113,9 @@ class DesignSession:
         self._record(DesignStage.AGENT_ROLE, ", ".join(r.value for r in roles) or "no agent")
         return roles
 
-    def agentification_gate(self, inputs: DesignInputs, removes: bool, feasible: bool) -> AgentificationGateRecord:
+    def agentification_gate(
+        self, inputs: DesignInputs, removes: bool, feasible: bool
+    ) -> AgentificationGateRecord:
         justified = bool(self.design.agent_roles) and inputs.llm_reasoning_adds_value
         if self.design.agent_roles and not justified:
             # deterministic-first: no LLM value ⇒ no agent
@@ -124,12 +127,16 @@ class DesignSession:
             llm_reasoning_adds_value=inputs.llm_reasoning_adds_value,
             autonomous_iteration_adds_value=inputs.autonomous_iteration_adds_value,
             agent_justified=justified,
-            rationale="single-pass agent" if not inputs.autonomous_iteration_adds_value else "iterative agent",
+            rationale="single-pass agent"
+            if not inputs.autonomous_iteration_adds_value
+            else "iterative agent",
         )
         self.design.agentification = record
         self._record(DesignStage.AGENTIFICATION_GATE, f"agent_justified={justified}")
-        self.ctx.emit(EventType.AGENTIFICATION_GATE_RESULT,
-                      {"agent_justified": justified, "roles": [r.value for r in self.design.agent_roles]})
+        self.ctx.emit(
+            EventType.AGENTIFICATION_GATE_RESULT,
+            {"agent_justified": justified, "roles": [r.value for r in self.design.agent_roles]},
+        )
         return record
 
     def finalize(self, inputs: DesignInputs) -> SolutionDesign:
@@ -138,8 +145,10 @@ class DesignSession:
         self.design.deterministic_components = list(inputs.deterministic_components)
         self.design.release_scope = list(inputs.release_scope)
         self.design.minimum_useful_scope = list(inputs.minimum_useful_scope)
+        self.design.scope_dependencies = {k: list(v) for k, v in inputs.scope_dependencies.items()}
         self.design.unfinished_scope = [
-            c.description for c in self.design.structural_remedies
+            c.description
+            for c in self.design.structural_remedies
             if c.removes_root_cause and not c.feasible_in_contest_time
         ]
         pd = self.ctx.problem.problem_definition
@@ -197,7 +206,9 @@ def design_solution(ctx: HarnessContext, inputs: DesignInputs, design_id: str = 
     return session.finalize(inputs)
 
 
-def refuse_agentic_expansion_on_tool_failure(current: list[AgentRole], proposed: list[AgentRole]) -> list[AgentRole]:
+def refuse_agentic_expansion_on_tool_failure(
+    current: list[AgentRole], proposed: list[AgentRole]
+) -> list[AgentRole]:
     """Tool failure must not make the design more agentic (Design Freeze §17)."""
     cur = max((_AGENTIC_RANK[r] for r in current), default=0)
     new = max((_AGENTIC_RANK[r] for r in proposed), default=0)

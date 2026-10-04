@@ -64,21 +64,30 @@ def update_budget(ctx: HarnessContext) -> None:
         br.verification_budget_remaining = max(0.0, br.remaining - plan.release_reserve_minutes)
     else:
         br.verification_budget_remaining = max(
-            0.0, min(plan.slot(BudgetSlot.VERIFY).minutes, plan.total_minutes - plan.release_reserve_minutes
-                     - max(now, verify_start))
+            0.0,
+            min(
+                plan.slot(BudgetSlot.VERIFY).minutes,
+                plan.total_minutes - plan.release_reserve_minutes - max(now, verify_start),
+            ),
         )
     br.packaging_budget_remaining = min(br.remaining, plan.release_reserve_minutes)
     if variance > 0 and previous_variance <= 0:
         br.variance_reason = f"{slot} exceeded soft budget by {variance:.0f}m"
         br.release_reserve_impact = (
-            "reserve threatened" if br.remaining - plan.release_reserve_minutes < plan.verification_floor_minutes
+            "reserve threatened"
+            if br.remaining - plan.release_reserve_minutes < plan.verification_floor_minutes
             else "reserve intact"
         )
         br.recovery_action = "reduce scope of current phase"
         event = ctx.emit(
             EventType.BUDGET_VARIANCE,
-            {"slot": slot, "variance": variance, "reason": br.variance_reason,
-             "recovery_action": br.recovery_action, "release_reserve_impact": br.release_reserve_impact},
+            {
+                "slot": slot,
+                "variance": variance,
+                "reason": br.variance_reason,
+                "recovery_action": br.recovery_action,
+                "release_reserve_impact": br.release_reserve_impact,
+            },
         )
         ctx.signal(SignalKind.BUDGET_VARIANCE, br.variance_reason, event_seq=event.seq)
 
@@ -87,7 +96,8 @@ def update_budget(ctx: HarnessContext) -> None:
     pending_kept = 0.0
     if ctx.runtime.current_plan:
         pending_kept = sum(
-            w.est_minutes for w in ctx.runtime.current_plan.work_items
+            w.est_minutes
+            for w in ctx.runtime.current_plan.work_items
             if w.status == "PENDING" and (w.work_class in RESERVE_KEEP_CLASSES or w.release_blocking)
         )
     rr.projected_finish = now + pending_kept
@@ -103,8 +113,11 @@ def update_budget(ctx: HarnessContext) -> None:
     rr.reserve_status = new_status
     if new_status in (ReserveStatus.ACTIVE, ReserveStatus.AT_RISK) and rr.reserve_entered_at is None:
         rr.reserve_entered_at = now
-        event = ctx.emit(EventType.RELEASE_RESERVE_ENTERED, {"minute": now, "remaining": br.remaining},
-                         importance=Importance.CRITICAL)
+        event = ctx.emit(
+            EventType.RELEASE_RESERVE_ENTERED,
+            {"minute": now, "remaining": br.remaining},
+            importance=Importance.CRITICAL,
+        )
         ctx.signal(SignalKind.RELEASE_RESERVE_ENTERED, f"remaining {br.remaining:.0f}m", event_seq=event.seq)
     if new_status is ReserveStatus.AT_RISK and old_status is not ReserveStatus.AT_RISK:
         rr.packaging_status = ArtifactStatus.AT_RISK
@@ -166,10 +179,14 @@ def apply_release_reserve(ctx: HarnessContext) -> ScopeReduction:
         with ctx.commit("release reserve scope reduction", dropped_for_budget=reduction.dropped) as ps:
             if ps.solution_design is not None:
                 descs = {w.id: w.description for w in plan.work_items}
-                ps.solution_design.unfinished_scope += [f"{d} (dropped for budget)" for d in
-                                                        (descs[i] for i in reduction.dropped)]
-        ctx.emit(EventType.SCOPE_DROPPED_FOR_BUDGET, {"dropped": reduction.dropped, "kept": reduction.kept},
-                 importance=Importance.HIGH)
+                ps.solution_design.unfinished_scope += [
+                    f"{d} (dropped for budget)" for d in (descs[i] for i in reduction.dropped)
+                ]
+        ctx.emit(
+            EventType.SCOPE_DROPPED_FOR_BUDGET,
+            {"dropped": reduction.dropped, "kept": reduction.kept},
+            importance=Importance.HIGH,
+        )
     return reduction
 
 

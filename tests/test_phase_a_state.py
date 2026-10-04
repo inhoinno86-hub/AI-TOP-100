@@ -159,9 +159,14 @@ def test_vob_required_before_and_blocking_scope_intersection():
         unresolved_question="mappings CM-41..43 ambiguous",
         source_phase=Phase.DEFINE,
         required_before=RequiredBefore.BEFORE_PROTECTED_ACTION,
-        blocking_scope=Scope.of(("publish_canonical_mapping", "CM-41"), ("publish_canonical_mapping", "CM-42")),
+        blocking_scope=Scope.of(
+            ("publish_canonical_mapping", "CM-41"), ("publish_canonical_mapping", "CM-42")
+        ),
     )
-    release = [ScopeItem("publish_canonical_mapping", "CM-1"), ScopeItem("publish_canonical_mapping", "CM-41")]
+    release = [
+        ScopeItem("publish_canonical_mapping", "CM-1"),
+        ScopeItem("publish_canonical_mapping", "CM-41"),
+    ]
     assert vob.blocking_scope.intersect(release) == [ScopeItem("publish_canonical_mapping", "CM-41")]
     assert vob.blocking_scope.intersect([ScopeItem("publish_canonical_mapping", "CM-1")]) == []
 

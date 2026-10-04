@@ -103,8 +103,12 @@ class HarnessContext:
                 "reason": reason,
                 "version": self.problem.meta.version,
                 "diff": [
-                    {"kind": e.kind.value, "collection": e.collection, "id": e.item_id,
-                     "importance": e.importance.value}
+                    {
+                        "kind": e.kind.value,
+                        "collection": e.collection,
+                        "id": e.item_id,
+                        "importance": e.importance.value,
+                    }
                     for e in diff.entries
                 ],
             },
@@ -115,7 +119,10 @@ class HarnessContext:
         if event_seq is None:
             event_seq = self.emit(EventType.SAFE_POINT_REACHED, {"kind": kind.value}).seq
         sp = SafePoint(
-            kind=kind, phase=self.runtime.phase, event_seq=event_seq, problem_version=self.problem.meta.version
+            kind=kind,
+            phase=self.runtime.phase,
+            event_seq=event_seq,
+            problem_version=self.problem.meta.version,
         )
         self.runtime.safe_point = sp
         return sp
@@ -125,9 +132,7 @@ class HarnessContext:
     def narrow_vob_scope(self, vob_id: str, new_scope: Scope, evidence_id: str, rationale: str) -> None:
         """Narrow a VOB blocking_scope. Requires committed evidence (no artificial narrowing)."""
         if evidence_id not in self.problem.evidence:
-            raise ScopeNarrowingRejected(
-                f"cannot narrow {vob_id}: evidence {evidence_id!r} is not committed"
-            )
+            raise ScopeNarrowingRejected(f"cannot narrow {vob_id}: evidence {evidence_id!r} is not committed")
         if not rationale:
             raise ScopeNarrowingRejected(f"cannot narrow {vob_id} without rationale")
         with self.commit(f"narrow blocking_scope of {vob_id}") as ps:

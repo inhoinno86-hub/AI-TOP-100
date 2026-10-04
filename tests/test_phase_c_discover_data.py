@@ -17,6 +17,7 @@ from aitop_harness.core.enums import (
     ToolHealth,
 )
 from aitop_harness.core.errors import StateIntegrityError
+from aitop_harness.domain.data import DataAsset
 from aitop_harness.domain.epistemic import Hypothesis
 from aitop_harness.phases.budget import update_budget
 from aitop_harness.phases.data_inspection import apply_inspection, inspect_records
@@ -34,13 +35,17 @@ from aitop_harness.phases.discover import (
     update_hypothesis,
 )
 from aitop_harness.phases.identity import TEXTUAL_EQUALITY, propose_mapping
-from aitop_harness.domain.data import DataAsset
 
 
 def _a(aid, impact, cost=5.0, tool=None, **kw):
-    return DiscoveryAction(aid, DiscoveryActionKind.TOOL_QUERY if tool else DiscoveryActionKind.STAKEHOLDER_INTERVIEW,
-                           "t", "q", InformationValueFactors(decision_impact=impact, time_cost_minutes=cost, **kw),
-                           tool_id=tool)
+    return DiscoveryAction(
+        aid,
+        DiscoveryActionKind.TOOL_QUERY if tool else DiscoveryActionKind.STAKEHOLDER_INTERVIEW,
+        "t",
+        "q",
+        InformationValueFactors(decision_impact=impact, time_cost_minutes=cost, **kw),
+        tool_id=tool,
+    )
 
 
 def test_information_value_orders_by_decision_relevance_and_excludes_irrelevant():
@@ -84,8 +89,9 @@ def test_claim_is_not_fact_and_conflicts_are_tracked():
     conflicts = list(ctx.problem.conflicts.values())
     assert len(conflicts) == 1 and conflicts[0].type is ConflictType.CLAIM_CONFLICT
     # stakeholder statements cannot establish a fact
-    integrate_evidence(ctx, stakeholder_evidence("E-s", "SH-A", "said B is slow", assertion="delay.cause",
-                                                 value="org_b"))
+    integrate_evidence(
+        ctx, stakeholder_evidence("E-s", "SH-A", "said B is slow", assertion="delay.cause", value="org_b")
+    )
     with pytest.raises(StateIntegrityError):
         establish_fact(ctx, "F-1", "B is slow", ["E-s"])
     # authoritative complete data settles claims and yields a fact
@@ -100,7 +106,9 @@ def test_claim_is_not_fact_and_conflicts_are_tracked():
 def test_partial_or_fallback_evidence_cannot_establish_fact():
     ctx = make_ctx()
     integrate_evidence(ctx, tool_evidence("E-p", completeness=ResultCompleteness.PARTIAL))
-    integrate_evidence(ctx, tool_evidence("E-f", is_fallback=True, authority=SourceAuthority.NON_AUTHORITATIVE))
+    integrate_evidence(
+        ctx, tool_evidence("E-f", is_fallback=True, authority=SourceAuthority.NON_AUTHORITATIVE)
+    )
     for eid in ("E-p", "E-f"):
         with pytest.raises(StateIntegrityError):
             establish_fact(ctx, f"F-{eid}", "x", [eid])
@@ -130,7 +138,9 @@ def test_hypothesis_changes_and_low_value_rejection_is_throttled():
     with ctx.commit("h") as ps:
         ps.hypotheses["H-1"] = Hypothesis("H-1", "printer issue")
     update_hypothesis(ctx, "H-1", HypothesisStatus.REJECTED, "no evidence")
-    assert any(s.kind == "LOW_VALUE_HYPOTHESIS_REJECTED" and s.throttled for s in ctx.supervision.pending_digest)
+    assert any(
+        s.kind == "LOW_VALUE_HYPOTHESIS_REJECTED" and s.throttled for s in ctx.supervision.pending_digest
+    )
 
 
 def test_data_inspection_distinguishes_duplicate_semantics():
@@ -141,8 +151,14 @@ def test_data_inspection_distinguishes_duplicate_semantics():
         {"job": "J2", "status": "completed", "ts": "2026-10-01T12:00:00"},  # exact duplicate
         {"job": "J3", "status": None, "ts": "not-a-date"},
     ]
-    rep = inspect_records(rows, schema={"job": "str", "status": "str", "ts": "datetime"},
-                          key_fields=["job"], status_field="status", timestamp_field="ts", expected_count=10)
+    rep = inspect_records(
+        rows,
+        schema={"job": "str", "status": "str", "ts": "datetime"},
+        key_fields=["job"],
+        status_field="status",
+        timestamp_field="ts",
+        expected_count=10,
+    )
     types = rep.issue_types()
     assert DataIssueType.STATUS_PROGRESSION in types
     assert rep.count(DataIssueType.EXACT_RECORD_DUPLICATE) == 1
@@ -163,20 +179,47 @@ def test_unknown_expected_count_is_not_complete():
 
 def test_identity_mapping_rules():
     ctx = make_ctx()
-    textual = propose_mapping(ctx, "CM-1", entity_type="location", source_namespace="A", source_identifiers={"code": "L1"},
-                              target_namespace="B", candidate_targets=[{"code": "L1"}], basis=[TEXTUAL_EQUALITY],
-                              claimed_confidence=MappingConfidence.HIGH, authority="registry", derived_from=["DA-1"])
+    textual = propose_mapping(
+        ctx,
+        "CM-1",
+        entity_type="location",
+        source_namespace="A",
+        source_identifiers={"code": "L1"},
+        target_namespace="B",
+        candidate_targets=[{"code": "L1"}],
+        basis=[TEXTUAL_EQUALITY],
+        claimed_confidence=MappingConfidence.HIGH,
+        authority="registry",
+        derived_from=["DA-1"],
+    )
     assert textual.confidence is MappingConfidence.MEDIUM  # textual equality ≠ canonical identity
-    ambiguous = propose_mapping(ctx, "CM-2", entity_type="location", source_namespace="A",
-                                source_identifiers={"code": "L2"}, target_namespace="B",
-                                candidate_targets=[{"code": "L2-north"}, {"code": "L2-south"}],
-                                basis=["REGISTRY_LOOKUP"], claimed_confidence=MappingConfidence.HIGH,
-                                authority="registry", derived_from=["DA-1"])
+    ambiguous = propose_mapping(
+        ctx,
+        "CM-2",
+        entity_type="location",
+        source_namespace="A",
+        source_identifiers={"code": "L2"},
+        target_namespace="B",
+        candidate_targets=[{"code": "L2-north"}, {"code": "L2-south"}],
+        basis=["REGISTRY_LOOKUP"],
+        claimed_confidence=MappingConfidence.HIGH,
+        authority="registry",
+        derived_from=["DA-1"],
+    )
     assert ambiguous.confidence is MappingConfidence.UNRESOLVED and not ambiguous.target_identifiers
     assert any(c.type is ConflictType.IDENTITY_CONFLICT for c in ctx.problem.conflicts.values())
-    composite = propose_mapping(ctx, "CM-3", entity_type="location", source_namespace="A",
-                                source_identifiers={"site": "S1", "dock": "3"}, target_namespace="B",
-                                candidate_targets=[{"loc": "B-77"}], basis=["REGISTRY_LOOKUP"],
-                                claimed_confidence=MappingConfidence.HIGH, authority="registry", derived_from=["DA-1"])
+    composite = propose_mapping(
+        ctx,
+        "CM-3",
+        entity_type="location",
+        source_namespace="A",
+        source_identifiers={"site": "S1", "dock": "3"},
+        target_namespace="B",
+        candidate_targets=[{"loc": "B-77"}],
+        basis=["REGISTRY_LOOKUP"],
+        claimed_confidence=MappingConfidence.HIGH,
+        authority="registry",
+        derived_from=["DA-1"],
+    )
     assert composite.confidence is MappingConfidence.HIGH
     assert composite.provenance is not None and composite.provenance.derived_from == ["DA-1"]

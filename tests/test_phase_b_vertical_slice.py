@@ -31,22 +31,45 @@ SCOPE = [ScopeItem("detect_rejects", "feed-1")]
 
 def _inputs(*, root_from_tool: bool = True) -> SliceInputs:
     actions = [
-        DiscoveryAction("A-db", DiscoveryActionKind.TOOL_QUERY, "db", "reject_log",
-                        InformationValueFactors(decision_impact=0.9, uncertainty=0.8, discriminative_power=0.9,
-                                                answerability=0.9, time_cost_minutes=3), tool_id="db"),
-        DiscoveryAction("A-int", DiscoveryActionKind.STAKEHOLDER_INTERVIEW, "SH-REQ", "what is slow?",
-                        InformationValueFactors(decision_impact=0.4, time_cost_minutes=8)),
-        DiscoveryAction("A-noise", DiscoveryActionKind.DOCUMENT_REVIEW, "wiki", "history",
-                        InformationValueFactors(decision_impact=0.0)),
+        DiscoveryAction(
+            "A-db",
+            DiscoveryActionKind.TOOL_QUERY,
+            "db",
+            "reject_log",
+            InformationValueFactors(
+                decision_impact=0.9,
+                uncertainty=0.8,
+                discriminative_power=0.9,
+                answerability=0.9,
+                time_cost_minutes=3,
+            ),
+            tool_id="db",
+        ),
+        DiscoveryAction(
+            "A-int",
+            DiscoveryActionKind.STAKEHOLDER_INTERVIEW,
+            "SH-REQ",
+            "what is slow?",
+            InformationValueFactors(decision_impact=0.4, time_cost_minutes=8),
+        ),
+        DiscoveryAction(
+            "A-noise",
+            DiscoveryActionKind.DOCUMENT_REVIEW,
+            "wiki",
+            "history",
+            InformationValueFactors(decision_impact=0.0),
+        ),
     ]
 
     def build(action, outcome):
         if action.id == "A-db":
             assert outcome is not None and outcome.completeness is ResultCompleteness.COMPLETE
-            return tool_evidence("E-db", "rejects cluster on location code", assertion="reject.cause",
-                                 value="contract"), []
-        return stakeholder_evidence("E-int", "SH-REQ", "partner is slow", assertion="reject.cause",
-                                    value="partner_slow"), []
+            return tool_evidence(
+                "E-db", "rejects cluster on location code", assertion="reject.cause", value="contract"
+            ), []
+        return stakeholder_evidence(
+            "E-int", "SH-REQ", "partner is slow", assertion="reject.cause", value="partner_slow"
+        ), []
 
     return SliceInputs(
         actions=actions,
@@ -54,8 +77,11 @@ def _inputs(*, root_from_tool: bool = True) -> SliceInputs:
         problem_definition=lambda ctx: problem(["E-db"] if root_from_tool else ["E-int"], intended=SCOPE),
         design_inputs=DesignInputs(
             structural_remedies=[StructuralRemedyCandidate("SR-1", "contract fix", True, False)],
-            deterministic_rules_cover_cases=True, llm_reasoning_adds_value=True,
-            bridge_sunset_condition="contract v2 live", release_scope=SCOPE, minimum_useful_scope=SCOPE,
+            deterministic_rules_cover_cases=True,
+            llm_reasoning_adds_value=True,
+            bridge_sunset_condition="contract v2 live",
+            release_scope=SCOPE,
+            minimum_useful_scope=SCOPE,
         ),
         release_scope=SCOPE,
     )
@@ -63,8 +89,10 @@ def _inputs(*, root_from_tool: bool = True) -> SliceInputs:
 
 def _registry() -> ToolRegistry:
     reg = ToolRegistry()
-    reg.register(ScriptedTool("db", script={"reject_log": [ok([{"id": i} for i in range(5)])]}),
-                 ToolSpec("db", dependency="db"))
+    reg.register(
+        ScriptedTool("db", script={"reject_log": [ok([{"id": i} for i in range(5)])]}),
+        ToolSpec("db", dependency="db"),
+    )
     return reg
 
 
@@ -88,10 +116,18 @@ def test_vertical_slice_runs_end_to_end():
     assert ctx.supervision.state_diff is not None
     assert all(e.kind in DiffKind for e in ctx.supervision.state_diff.entries)
     # phase transitions are explicit events in order
-    transitions = [(e.payload["from"], e.payload["to"]) for e in ctx.events.of_type(EventType.PHASE_TRANSITION)
-                   if "from" in e.payload]
-    assert transitions[:5] == [("DISCOVER", "DEFINE"), ("DEFINE", "DESIGN"), ("DESIGN", "EXECUTE"),
-                               ("EXECUTE", "VERIFY"), ("VERIFY", "RELEASE")]
+    transitions = [
+        (e.payload["from"], e.payload["to"])
+        for e in ctx.events.of_type(EventType.PHASE_TRANSITION)
+        if "from" in e.payload
+    ]
+    assert transitions[:5] == [
+        ("DISCOVER", "DEFINE"),
+        ("DEFINE", "DESIGN"),
+        ("DESIGN", "EXECUTE"),
+        ("EXECUTE", "VERIFY"),
+        ("VERIFY", "RELEASE"),
+    ]
 
 
 def test_vertical_slice_holds_when_problem_rests_only_on_initial_request_claims():

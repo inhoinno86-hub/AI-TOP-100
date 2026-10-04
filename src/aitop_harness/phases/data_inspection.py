@@ -72,7 +72,9 @@ def inspect_records(
             ok_types = _TYPES.get(tname)
             if ok_types and (not isinstance(v, ok_types) or (tname != "bool" and isinstance(v, bool))):
                 unexpected += 1
-                issues.append(DataIssue(DataIssueType.UNEXPECTED_TYPE, f"row {i} {f} not {tname}", [str(i)], f))
+                issues.append(
+                    DataIssue(DataIssueType.UNEXPECTED_TYPE, f"row {i} {f} not {tname}", [str(i)], f)
+                )
         if timestamp_field and r.get(timestamp_field) is not None:
             try:
                 datetime.fromisoformat(str(r[timestamp_field]))
@@ -91,8 +93,11 @@ def inspect_records(
         if canon in seen_rows:
             exact_dupes += 1
             issues.append(
-                DataIssue(DataIssueType.EXACT_RECORD_DUPLICATE, f"row {i} == row {seen_rows[canon]}",
-                          [str(seen_rows[canon]), str(i)])
+                DataIssue(
+                    DataIssueType.EXACT_RECORD_DUPLICATE,
+                    f"row {i} == row {seen_rows[canon]}",
+                    [str(seen_rows[canon]), str(i)],
+                )
             )
             continue
         seen_rows[canon] = i
@@ -108,26 +113,42 @@ def inspect_records(
         entities = {r.get(entity_field) for r in rows} if entity_field else set()
         if entity_field and len(entities) > 1:
             dup_key += 1
-            issues.append(DataIssue(DataIssueType.KEY_COLLISION,
-                                    f"key {key} refers to different entities {sorted(map(str, entities))}", refs))
+            issues.append(
+                DataIssue(
+                    DataIssueType.KEY_COLLISION,
+                    f"key {key} refers to different entities {sorted(map(str, entities))}",
+                    refs,
+                )
+            )
         elif version_field and len(vers) > 1:
             versions += 1
-            issues.append(DataIssue(DataIssueType.EVENT_VERSION, f"key {key} has versions {sorted(map(str, vers))}",
-                                    refs))
+            issues.append(
+                DataIssue(
+                    DataIssueType.EVENT_VERSION, f"key {key} has versions {sorted(map(str, vers))}", refs
+                )
+            )
         elif status_field and len(statuses) > 1:
             progression += 1
-            issues.append(DataIssue(DataIssueType.STATUS_PROGRESSION, f"key {key} statuses {sorted(map(str, statuses))}",
-                                    refs))
+            issues.append(
+                DataIssue(
+                    DataIssueType.STATUS_PROGRESSION, f"key {key} statuses {sorted(map(str, statuses))}", refs
+                )
+            )
         else:
             dup_key += 1
-            issues.append(DataIssue(DataIssueType.DUPLICATE_BUSINESS_KEY, f"key {key} repeated with differences",
-                                    refs))
+            issues.append(
+                DataIssue(DataIssueType.DUPLICATE_BUSINESS_KEY, f"key {key} repeated with differences", refs)
+            )
 
     # completeness: SUCCESS ≠ COMPLETE
     if expected_count is None or pagination_complete is False:
-        completeness = ResultCompleteness.PARTIAL if pagination_complete is False else ResultCompleteness.UNKNOWN
+        completeness = (
+            ResultCompleteness.PARTIAL if pagination_complete is False else ResultCompleteness.UNKNOWN
+        )
     else:
-        completeness = ResultCompleteness.COMPLETE if len(records) >= expected_count else ResultCompleteness.PARTIAL
+        completeness = (
+            ResultCompleteness.COMPLETE if len(records) >= expected_count else ResultCompleteness.PARTIAL
+        )
 
     n = max(len(records), 1)
 
@@ -147,7 +168,9 @@ def inspect_records(
         timeliness=QualityLevel.UNKNOWN,  # freshness is lazy
         interpretability=level(dup_key),
     )
-    return InspectionReport(quality=quality, issues=issues, completeness=completeness, record_count=len(records))
+    return InspectionReport(
+        quality=quality, issues=issues, completeness=completeness, record_count=len(records)
+    )
 
 
 def apply_inspection(ctx: HarnessContext, data_asset_id: str, report: InspectionReport) -> None:
@@ -165,4 +188,6 @@ def apply_inspection(ctx: HarnessContext, data_asset_id: str, report: Inspection
     if not report.issues and report.completeness is ResultCompleteness.COMPLETE:
         ctx.signal(SignalKind.ROUTINE_VALIDATION_SUCCESS, f"{data_asset_id} clean", event_seq=event.seq)
     else:
-        ctx.signal(SignalKind.STATE_DIFF, "; ".join(warnings) or f"{data_asset_id} incomplete", event_seq=event.seq)
+        ctx.signal(
+            SignalKind.STATE_DIFF, "; ".join(warnings) or f"{data_asset_id} incomplete", event_seq=event.seq
+        )

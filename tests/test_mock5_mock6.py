@@ -67,8 +67,9 @@ S = ScopeItem
 
 
 def _fc(o, **kw):
-    return FailureContext(o.tool_id, o.operation, o.failure_signature, o.result.error_class, o.result.retryable_hint,
-                          **kw)
+    return FailureContext(
+        o.tool_id, o.operation, o.failure_signature, o.result.error_class, o.result.retryable_hint, **kw
+    )
 
 
 def test_mock5_time_pressure_and_tool_failure():
@@ -76,8 +77,18 @@ def test_mock5_time_pressure_and_tool_failure():
     seed_org(ctx)
     seed_success(ctx)
     api = ScriptedTool("hold-api", script={"holds": [err("HTTP_503"), err("HTTP_503")]})
-    snap = ScriptedTool("hold-snapshot", script={"holds": [ok([{"id": i} for i in range(40)], expected_count=55,
-                                                               source_authority=SourceAuthority.NON_AUTHORITATIVE)]})
+    snap = ScriptedTool(
+        "hold-snapshot",
+        script={
+            "holds": [
+                ok(
+                    [{"id": i} for i in range(40)],
+                    expected_count=55,
+                    source_authority=SourceAuthority.NON_AUTHORITATIVE,
+                )
+            ]
+        },
+    )
     reg = ToolRegistry()
     reg.register(api, ToolSpec("hold-api", "holds-svc", authority=SourceAuthority.AUTHORITATIVE))
     reg.register(snap, ToolSpec("hold-snapshot", "warehouse", fallback_for="hold-api"))
@@ -94,10 +105,14 @@ def test_mock5_time_pressure_and_tool_failure():
     record_retry(ctx, _fc(o1), 1.0, "HTTP_503")
     # repeated failure → replan via fallback (not another retry, not redefine)
     d2 = decide_recovery(ctx, _fc(o2, fallbacks=reg.fallbacks_for("hold-api"), expected_value=20))
-    assert d2.kind is RecoveryKind.REPLAN and d2.stop_reason is RetryStopReason.REPEATED_SAME_DEPENDENCY_FAILURE
+    assert (
+        d2.kind is RecoveryKind.REPLAN and d2.stop_reason is RetryStopReason.REPEATED_SAME_DEPENDENCY_FAILURE
+    )
     apply_recovery_decision(ctx, d2, _fc(o2, fallbacks=reg.fallbacks_for("hold-api")))
-    assert ctx.problem.problem_definition is None or \
-        ctx.problem.problem_definition.status is not ProblemDefinitionStatus.INVALIDATED
+    assert (
+        ctx.problem.problem_definition is None
+        or ctx.problem.problem_definition.status is not ProblemDefinitionStatus.INVALIDATED
+    )
 
     # fallback: partial + non-authoritative; usable for diagnosis, not for the protected action
     activate_fallback(ctx, "hold-api", reg.spec("hold-snapshot"), "hold-api HTTP_503 x2")
@@ -121,35 +136,85 @@ def test_mock5_time_pressure_and_tool_failure():
     full_scope = scope_detect + scope_release + [S("auto_repair", "all")]
     with ctx.commit("auth + VOB") as ps:
         ps.domain_authorizations["DA-HR"] = DomainAuthorization(
-            "DA-HR", "release_hold", "tms", authority_holder="ops lead",
-            authorized_scope=Scope.of(("release_hold", "carrier-C1")), evidence_refs=["E-owner"],
-            status=AuthorizationStatus.GRANTED)
+            "DA-HR",
+            "release_hold",
+            "tms",
+            authority_holder="ops lead",
+            authorized_scope=Scope.of(("release_hold", "carrier-C1")),
+            evidence_refs=["E-owner"],
+            status=AuthorizationStatus.GRANTED,
+        )
         ps.verification_obligations["VOB-AR"] = VerificationObligation(
-            "VOB-AR", "auto-repair correctness on partial data", Phase.DEFINE, decision_impact=Criticality.CRITICAL,
-            validation_method="full authoritative list", required_before=RequiredBefore.BEFORE_RELEASE,
-            blocking_scope=Scope.of(("auto_repair", "*")))
-        ps.data_assets["DA-SNAP"] = DataAsset("DA-SNAP", "snapshot", completeness=ResultCompleteness.PARTIAL,
-                                              is_fallback=True, used_by=["auto_repair"])
+            "VOB-AR",
+            "auto-repair correctness on partial data",
+            Phase.DEFINE,
+            decision_impact=Criticality.CRITICAL,
+            validation_method="full authoritative list",
+            required_before=RequiredBefore.BEFORE_RELEASE,
+            blocking_scope=Scope.of(("auto_repair", "*")),
+        )
+        ps.data_assets["DA-SNAP"] = DataAsset(
+            "DA-SNAP",
+            "snapshot",
+            completeness=ResultCompleteness.PARTIAL,
+            is_fallback=True,
+            used_by=["auto_repair"],
+        )
     define_problem(ctx, problem(["E-holds", "E-owner"], intended=full_scope, protected=["release_hold"]))
     gate = evaluate_define_gate(ctx, reg)
     assert gate.result is not DefineGateResult.FAIL, [f.message for f in gate.findings]
     apply_define_gate(ctx, gate)
-    sd = design_solution(ctx, DesignInputs(
-        structural_remedies=[StructuralRemedyCandidate("SR", "hold reason codes at source", True, False)],
-        deterministic_rules_cover_cases=True, llm_reasoning_adds_value=True,
-        bridge_sunset_condition="source reason codes live", release_scope=full_scope,
-        minimum_useful_scope=scope_detect))
+    sd = design_solution(
+        ctx,
+        DesignInputs(
+            structural_remedies=[StructuralRemedyCandidate("SR", "hold reason codes at source", True, False)],
+            deterministic_rules_cover_cases=True,
+            llm_reasoning_adds_value=True,
+            bridge_sunset_condition="source reason codes live",
+            release_scope=full_scope,
+            minimum_useful_scope=scope_detect,
+        ),
+    )
     assert AgentRole.PRIMARY_SOLUTION not in sd.agent_roles
 
     # time pressure → release reserve → real scope reduction
-    set_plan(ctx, Plan("P", work_items=[
-        WorkItem("W-detect", "detection + classification", WorkClass.CORE_FEATURE, 0, scope_detect, True, True),
-        WorkItem("W-release", "C1 hold release (gated)", WorkClass.CORE_FEATURE, 0, scope_release, True, True),
-        WorkItem("W-repair", "autonomous repair", WorkClass.NON_BLOCKING_FEATURE, 40, [S("auto_repair", "all")], True),
-        WorkItem("W-dash", "dashboard", WorkClass.NICE_TO_HAVE, 20),
-        WorkItem("W-verify", "blocking verification", WorkClass.RELEASE_BLOCKING_VERIFICATION, 8),
-        WorkItem("W-pack", "packaging + submission", WorkClass.PACKAGING, 6),
-    ]))
+    set_plan(
+        ctx,
+        Plan(
+            "P",
+            work_items=[
+                WorkItem(
+                    "W-detect",
+                    "detection + classification",
+                    WorkClass.CORE_FEATURE,
+                    0,
+                    scope_detect,
+                    True,
+                    True,
+                ),
+                WorkItem(
+                    "W-release",
+                    "C1 hold release (gated)",
+                    WorkClass.CORE_FEATURE,
+                    0,
+                    scope_release,
+                    True,
+                    True,
+                ),
+                WorkItem(
+                    "W-repair",
+                    "autonomous repair",
+                    WorkClass.NON_BLOCKING_FEATURE,
+                    40,
+                    [S("auto_repair", "all")],
+                    True,
+                ),
+                WorkItem("W-dash", "dashboard", WorkClass.NICE_TO_HAVE, 20),
+                WorkItem("W-verify", "blocking verification", WorkClass.RELEASE_BLOCKING_VERIFICATION, 8),
+                WorkItem("W-pack", "packaging + submission", WorkClass.PACKAGING, 6),
+            ],
+        ),
+    )
     ctx.clock = SimulatedClock(272)
     update_budget(ctx)
     assert ctx.runtime.release_runtime.reserve_status is ReserveStatus.ACTIVE
@@ -160,9 +225,21 @@ def test_mock5_time_pressure_and_tool_failure():
 
     # protected hold release passes the gate, approve → atomic action + read-back
     tms = ScriptedTool("tms", read_only=False, script={"release_hold": [mutation_ok()]})
-    gate_out = propose_protected_action(ctx, ProtectedActionProposal(
-        "HR-1", "release_hold", "carrier C1 holds", "tms", scope_release, ProtectedActionCategory.PROTECTED_MUTATION,
-        why="authoritative list complete for C1", idempotency_key="hr-c1", key_evidence=["E-holds", "E-owner"]), tms)
+    gate_out = propose_protected_action(
+        ctx,
+        ProtectedActionProposal(
+            "HR-1",
+            "release_hold",
+            "carrier C1 holds",
+            "tms",
+            scope_release,
+            ProtectedActionCategory.PROTECTED_MUTATION,
+            why="authoritative list complete for C1",
+            idempotency_key="hr-c1",
+            key_evidence=["E-holds", "E-owner"],
+        ),
+        tms,
+    )
     assert gate_out.status is GateStatus.WAITING_APPROVAL
     assert decide(ctx, HumanDecision(HumanDecisionKind.APPROVE), tms).status is GateStatus.EXECUTED
 
@@ -191,18 +268,32 @@ def test_mock6_readiness_new_evidence_invalidates_problem():
     scope_v1 = [S("prioritize_queue", "partner")]
     define_problem(ctx, problem(["E-q"], intended=scope_v1))
     apply_define_gate(ctx, evaluate_define_gate(ctx))
-    design_solution(ctx, DesignInputs([StructuralRemedyCandidate("SR", "queue triage", True, True)], True, True,
-                                      release_scope=scope_v1))
+    design_solution(
+        ctx,
+        DesignInputs(
+            [StructuralRemedyCandidate("SR", "queue triage", True, True)], True, True, release_scope=scope_v1
+        ),
+    )
     controller = PhaseController(ctx)
     ctx.runtime.phase = Phase.EXECUTE
 
     # authoritative evidence: the queue is a symptom; approvals are blocked by an expired contract
-    integrate_evidence(ctx, tool_evidence("E-contract", "contract registry: partner contract expired 09-30",
-                                          source="contract-registry"))
-    rev = revise_evidence(ctx, "E-q", "E-contract", "queue growth is caused by expired contract, not capacity",
-                          invalidates_problem=True)
-    decision = decide_recovery(ctx, FailureContext("n/a", "n/a", None, None, None,
-                                                   problem_invalidating_evidence="E-contract"))
+    integrate_evidence(
+        ctx,
+        tool_evidence(
+            "E-contract", "contract registry: partner contract expired 09-30", source="contract-registry"
+        ),
+    )
+    rev = revise_evidence(
+        ctx,
+        "E-q",
+        "E-contract",
+        "queue growth is caused by expired contract, not capacity",
+        invalidates_problem=True,
+    )
+    decision = decide_recovery(
+        ctx, FailureContext("n/a", "n/a", None, None, None, problem_invalidating_evidence="E-contract")
+    )
     assert decision.kind is RecoveryKind.REDEFINE
     controller.redefine("E-contract", rev.revised_interpretation)
 
@@ -215,10 +306,15 @@ def test_mock6_readiness_new_evidence_invalidates_problem():
     assert any("invalidates problem" in r for r in ctx.supervision.evidence_revisions)
 
     # old design is stale: EXECUTE is unreachable until DEFINE + DESIGN are redone
-    pd2 = ProblemDefinition(id="PD-1", version=2, requested_solution="speed up approvals",
-                            root_problem="expired partner contract blocks approvals",
-                            evidence_refs=["E-contract"], intended_scope=[S("flag_expired_contract", "partner")],
-                            success_criteria=["SC-1"])
+    pd2 = ProblemDefinition(
+        id="PD-1",
+        version=2,
+        requested_solution="speed up approvals",
+        root_problem="expired partner contract blocks approvals",
+        evidence_refs=["E-contract"],
+        intended_scope=[S("flag_expired_contract", "partner")],
+        success_criteria=["SC-1"],
+    )
     define_problem(ctx, pd2)
     apply_define_gate(ctx, evaluate_define_gate(ctx))
     assert pd2.gate_result is DefineGateResult.PASS
@@ -226,8 +322,16 @@ def test_mock6_readiness_new_evidence_invalidates_problem():
     with pytest.raises(IllegalTransitionError, match="stale"):
         controller.advance()  # stale v1 design must not reach EXECUTE
     # replan after redefine: new design against v2
-    sd2 = design_solution(ctx, DesignInputs([StructuralRemedyCandidate("SR2", "contract renewal alert", True, True)],
-                                            True, False, release_scope=pd2.intended_scope), design_id="SD-2")
+    sd2 = design_solution(
+        ctx,
+        DesignInputs(
+            [StructuralRemedyCandidate("SR2", "contract renewal alert", True, True)],
+            True,
+            False,
+            release_scope=pd2.intended_scope,
+        ),
+        design_id="SD-2",
+    )
     assert sd2.problem_version == 2
     controller.advance()  # → EXECUTE
     assert ctx.runtime.phase is Phase.EXECUTE

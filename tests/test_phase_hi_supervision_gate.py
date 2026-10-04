@@ -48,9 +48,20 @@ def test_never_throttle_signals_are_immediate_even_if_marked_low():
     for kind in NEVER_THROTTLE:
         sig = monitoring.route(ctx.supervision, kind, "x", importance=Importance.LOW)
         assert sig.channel is EmissionChannel.IMMEDIATE and not sig.throttled
-    required = {"STRATEGY_CHANGING_FAILURE", "PROBLEM_INVALIDATED", "DEFINE_GATE_RESULT", "RELEASE_BLOCKING_VOB",
-                "RELEASE_RESERVE_ENTERED", "PACKAGING_AT_RISK", "SUBMISSION_AT_RISK", "MANDATORY_HUMAN_GATE",
-                "AUTHORITY_VIOLATION", "PRIVACY_VIOLATION", "SAFETY_VIOLATION", "RELEASE_GATE_RESULT"}
+    required = {
+        "STRATEGY_CHANGING_FAILURE",
+        "PROBLEM_INVALIDATED",
+        "DEFINE_GATE_RESULT",
+        "RELEASE_BLOCKING_VOB",
+        "RELEASE_RESERVE_ENTERED",
+        "PACKAGING_AT_RISK",
+        "SUBMISSION_AT_RISK",
+        "MANDATORY_HUMAN_GATE",
+        "AUTHORITY_VIOLATION",
+        "PRIVACY_VIOLATION",
+        "SAFETY_VIOLATION",
+        "RELEASE_GATE_RESULT",
+    }
     assert required <= {k.value for k in NEVER_THROTTLE}
 
 
@@ -82,8 +93,14 @@ def setup_gate(*, authorized: Scope | None = None, grant_auth: bool = True):
     integrate_evidence(ctx, tool_evidence("E-policy", "policy P-7: owner may publish location mappings"))
     define_problem(ctx, problem(["E-reg"], intended=REQ, protected=["publish_mapping"]))
     if grant_auth:
-        grant(ctx, "DA-pub", "publish_mapping", "registry",
-              authorized or Scope.of(("publish_mapping", "*")), "E-policy")
+        grant(
+            ctx,
+            "DA-pub",
+            "publish_mapping",
+            "registry",
+            authorized or Scope.of(("publish_mapping", "*")),
+            "E-policy",
+        )
     apply_define_gate(ctx, evaluate_define_gate(ctx))
     ctx.runtime.phase = Phase.EXECUTE
     executor = ScriptedTool("registry", read_only=False, script={"publish_mapping": [mutation_ok()]})
@@ -92,11 +109,18 @@ def setup_gate(*, authorized: Scope | None = None, grant_auth: bool = True):
 
 def proposal(scope=None, **kw) -> ProtectedActionProposal:
     fields = dict(
-        action_id="PUB-1", action="publish_mapping", subject="location mappings", protected_resource="registry",
-        requested_scope=list(scope or REQ), category=ProtectedActionCategory.SUBMISSION_PUBLISH,
-        why="downstream rejects stop once mappings are published", side_effect="partner registry updated",
-        reversibility=Reversibility.PARTIALLY_REVERSIBLE, alternatives=["manual publish by owner"],
-        idempotency_key="pub-CM-1-2", key_evidence=["E-reg"],
+        action_id="PUB-1",
+        action="publish_mapping",
+        subject="location mappings",
+        protected_resource="registry",
+        requested_scope=list(scope or REQ),
+        category=ProtectedActionCategory.SUBMISSION_PUBLISH,
+        why="downstream rejects stop once mappings are published",
+        side_effect="partner registry updated",
+        reversibility=Reversibility.PARTIALLY_REVERSIBLE,
+        alternatives=["manual publish by owner"],
+        idempotency_key="pub-CM-1-2",
+        key_evidence=["E-reg"],
     )
     fields.update(kw)
     return ProtectedActionProposal(**fields)
@@ -109,8 +133,13 @@ def test_gate_flow_order_and_waiting_approval_blocks_execution():
     assert ctx.runtime.execution_status is ExecutionStatus.WAITING_APPROVAL
     assert executor.calls == []  # nothing executed before the gate
     types = [e.type for e in ctx.events]
-    order = [EventType.PROTECTED_ACTION_PROPOSED, EventType.STATE_COMMITTED, EventType.SAFE_POINT_REACHED,
-             EventType.RUNTIME_CONFIRMATION_REQUESTED, EventType.APPROVAL_PACKET_EMITTED]
+    order = [
+        EventType.PROTECTED_ACTION_PROPOSED,
+        EventType.STATE_COMMITTED,
+        EventType.SAFE_POINT_REACHED,
+        EventType.RUNTIME_CONFIRMATION_REQUESTED,
+        EventType.APPROVAL_PACKET_EMITTED,
+    ]
     idx = [len(types) - 1 - types[::-1].index(t) for t in order]
     assert idx == sorted(idx)
     assert ctx.runtime.pending_protected_action.safe_point_seq is not None
@@ -163,6 +192,7 @@ def test_authorization_revoked_while_waiting_blocks_approve():
     propose_protected_action(ctx, proposal(), executor)
     with ctx.commit("revoke") as ps:
         from aitop_harness.core.enums import AuthorizationStatus
+
         ps.domain_authorizations["DA-pub"].status = AuthorizationStatus.REVOKED
     out = decide(ctx, HumanDecision(HumanDecisionKind.APPROVE), executor)
     assert out.status is GateStatus.BLOCKED and executor.calls == []
@@ -178,8 +208,13 @@ def test_vob_required_before_protected_action_blocks_only_its_scope():
     ctx, executor = setup_gate()
     with ctx.commit("vob") as ps:
         ps.verification_obligations["VOB-1"] = VerificationObligation(
-            "VOB-1", "CM-2 identity", Phase.DEFINE, validation_method="owner",
-            required_before=RequiredBefore.BEFORE_PROTECTED_ACTION, blocking_scope=Scope.of(("publish_mapping", "CM-2")))
+            "VOB-1",
+            "CM-2 identity",
+            Phase.DEFINE,
+            validation_method="owner",
+            required_before=RequiredBefore.BEFORE_PROTECTED_ACTION,
+            blocking_scope=Scope.of(("publish_mapping", "CM-2")),
+        )
     assert propose_protected_action(ctx, proposal(), executor).status is GateStatus.BLOCKED
     out = propose_protected_action(ctx, proposal([S("publish_mapping", "CM-1")]), executor)
     assert out.status is GateStatus.WAITING_APPROVAL
@@ -188,8 +223,9 @@ def test_vob_required_before_protected_action_blocks_only_its_scope():
 def test_modify_narrower_scope_executes_only_modified_action():
     ctx, executor = setup_gate()
     propose_protected_action(ctx, proposal(), executor)
-    out = decide(ctx, HumanDecision(HumanDecisionKind.MODIFY, modified_scope=[S("publish_mapping", "CM-1")]),
-                 executor)
+    out = decide(
+        ctx, HumanDecision(HumanDecisionKind.MODIFY, modified_scope=[S("publish_mapping", "CM-1")]), executor
+    )
     assert out.status is GateStatus.EXECUTED
     assert executor.calls[-1][1]["scope"] == ["publish_mapping:CM-1"]
     assert ctx.events.get(out.action_record.approval_event_seq).type is EventType.HUMAN_OVERRIDE_RECEIVED
@@ -198,8 +234,9 @@ def test_modify_narrower_scope_executes_only_modified_action():
 def test_modify_beyond_authorized_scope_blocks():
     ctx, executor = setup_gate(authorized=Scope.of(("publish_mapping", "CM-1"), ("publish_mapping", "CM-2")))
     propose_protected_action(ctx, proposal(), executor)
-    out = decide(ctx, HumanDecision(HumanDecisionKind.MODIFY, modified_scope=[S("publish_mapping", "CM-9")]),
-                 executor)
+    out = decide(
+        ctx, HumanDecision(HumanDecisionKind.MODIFY, modified_scope=[S("publish_mapping", "CM-9")]), executor
+    )
     assert out.status is GateStatus.BLOCKED and executor.calls == []
     assert ctx.runtime.execution_status is ExecutionStatus.WAITING_APPROVAL  # still pending, nothing executed
 
@@ -218,8 +255,11 @@ def test_protected_action_without_runtime_confirmation_still_has_safe_point():
     p = proposal(category=ProtectedActionCategory.NONE)
     out = propose_protected_action(ctx, p, executor)
     assert out.status is GateStatus.EXECUTED
-    assert any(e.type is EventType.SAFE_POINT_REACHED and e.payload.get("kind") == SafePointKind.BEFORE_PROTECTED_ACTION
-               for e in ctx.events)
+    assert any(
+        e.type is EventType.SAFE_POINT_REACHED
+        and e.payload.get("kind") == SafePointKind.BEFORE_PROTECTED_ACTION
+        for e in ctx.events
+    )
 
 
 def test_interpret_human_input_never_defaults_to_approval():

@@ -46,6 +46,11 @@ def from_dict(cls: type[T], data: Any) -> T:
     return typing.cast(T, _convert(cls, data))
 
 
+def convert(tp: Any, value: Any) -> Any:
+    """Convert a plain value to the (resolved) type expression ``tp``, e.g. ``dict[str, Metric]``."""
+    return _convert(tp, value)
+
+
 def _convert(tp: Any, value: Any) -> Any:
     if value is None:
         return None
@@ -65,10 +70,10 @@ def _convert(tp: Any, value: Any) -> Any:
         (arg,) = get_args(tp) or (Any,)
         return [_convert(arg, v) for v in value]
     if origin in (tuple,):
-        args = get_args(tp)
-        if len(args) == 2 and args[1] is Ellipsis:
-            return tuple(_convert(args[0], v) for v in value)
-        return tuple(_convert(a, v) for a, v in zip(args, value, strict=False))
+        targs = get_args(tp)
+        if len(targs) == 2 and targs[1] is Ellipsis:
+            return tuple(_convert(targs[0], v) for v in value)
+        return tuple(_convert(a, v) for a, v in zip(targs, value, strict=False))
     if origin in (set, frozenset):
         (arg,) = get_args(tp) or (Any,)
         return origin(_convert(arg, v) for v in value)

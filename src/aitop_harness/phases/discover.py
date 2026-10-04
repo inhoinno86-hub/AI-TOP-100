@@ -130,11 +130,15 @@ def rank_actions(ctx: HarnessContext, actions: list[DiscoveryAction]) -> list[Ra
         if in_reserve and not safety_check:
             ranked.append(RankedAction(a, 0.0, True, "release reserve active: low-value exploration dropped"))
             continue
-        usable = budget.remaining if (in_reserve and safety_check) else (
-            budget.remaining - ctx.problem.budget.release_reserve_minutes
+        usable = (
+            budget.remaining
+            if (in_reserve and safety_check)
+            else (budget.remaining - ctx.problem.budget.release_reserve_minutes)
         )
         if f.time_cost_minutes > max(0.0, usable):
-            ranked.append(RankedAction(a, 0.0, True, "time cost exceeds usable budget (release reserve protected)"))
+            ranked.append(
+                RankedAction(a, 0.0, True, "time cost exceeds usable budget (release reserve protected)")
+            )
             continue
         value = sum(getattr(f, name) * w for name, w in _WEIGHTS.items())
         value *= 0.5 + 0.5 * reliability  # tool reliability
@@ -153,7 +157,8 @@ def select_next_action(ctx: HarnessContext, actions: list[DiscoveryAction]) -> D
         {
             "selected": chosen.action.id if chosen else None,
             "ranking": [
-                {"id": r.action.id, "score": r.score, "excluded": r.excluded, "reason": r.reason} for r in ranked
+                {"id": r.action.id, "score": r.score, "excluded": r.excluded, "reason": r.reason}
+                for r in ranked
             ],
         },
     )
@@ -220,7 +225,9 @@ def integrate_evidence(
                             agrees = not agrees
                         claim.status = ClaimStatus.CORROBORATED if agrees else ClaimStatus.CONTRADICTED
                         claim.evidence_refs.append(evidence.id)
-    ctx.emit(EventType.EVIDENCE_ADDED, {"evidence": evidence.id, "source": evidence.source_id}, refs=[evidence.id])
+    ctx.emit(
+        EventType.EVIDENCE_ADDED, {"evidence": evidence.id, "source": evidence.source_id}, refs=[evidence.id]
+    )
     return evidence
 
 
@@ -256,7 +263,9 @@ def _detect_conflicts(
         pair = {new_id, other_id}
         if any({c.side_a, c.side_b} == pair for c in ps.conflicts.values()):
             continue
-        ctype = ConflictType.CLAIM_CONFLICT if (new_is_claim and other_is_claim) else ConflictType.DATA_CONFLICT
+        ctype = (
+            ConflictType.CLAIM_CONFLICT if (new_is_claim and other_is_claim) else ConflictType.DATA_CONFLICT
+        )
         cid = ps.next_id("C", "conflicts")
         ps.conflicts[cid] = Conflict(
             id=cid,
@@ -276,8 +285,13 @@ def _detect_conflicts(
 
 
 def establish_fact(
-    ctx: HarnessContext, fact_id: str, statement: str, evidence_refs: list[str], *,
-    assertion: str | None = None, value: Any = None,
+    ctx: HarnessContext,
+    fact_id: str,
+    statement: str,
+    evidence_refs: list[str],
+    *,
+    assertion: str | None = None,
+    value: Any = None,
 ) -> Fact:
     """Promote to Fact only with committed, authoritative, complete, non-stakeholder evidence."""
     ps = ctx.problem
@@ -286,9 +300,12 @@ def establish_fact(
         raise StateIntegrityError(f"fact {fact_id} cites uncommitted evidence {missing}")
     if not any(_is_strong(ps.evidence[e]) for e in evidence_refs):
         raise StateIntegrityError(
-            f"fact {fact_id}: claims / partial / fallback / non-authoritative evidence cannot establish a Fact"
+            f"fact {fact_id}: claims / partial / fallback / non-authoritative evidence "
+            "cannot establish a Fact"
         )
-    fact = Fact(id=fact_id, statement=statement, assertion=assertion, value=value, evidence_refs=evidence_refs)
+    fact = Fact(
+        id=fact_id, statement=statement, assertion=assertion, value=value, evidence_refs=evidence_refs
+    )
     with ctx.commit(f"fact {fact_id}") as p:
         p.facts[fact_id] = fact
     ctx.emit(EventType.FACT_ESTABLISHED, {"fact": fact_id}, refs=evidence_refs)
@@ -308,7 +325,9 @@ def revise_evidence(
     if revised_by not in ps.evidence:
         raise StateIntegrityError(f"revising evidence {revised_by!r} is not committed")
     target = ps.evidence[evidence_id]
-    previous = target.interpretation_history[-1].interpretation if target.interpretation_history else target.content
+    previous = (
+        target.interpretation_history[-1].interpretation if target.interpretation_history else target.content
+    )
     rid = ps.next_id("ER", "evidence_revisions")
     revision = EvidenceRevision(
         id=rid,
@@ -320,12 +339,19 @@ def revise_evidence(
     )
     with ctx.commit(f"evidence revision {rid}") as p:
         e = p.evidence[evidence_id]
-        e.interpretation_history.append(InterpretationEntry(revised_interpretation, f"revised by {revised_by}"))
+        e.interpretation_history.append(
+            InterpretationEntry(revised_interpretation, f"revised by {revised_by}")
+        )
         e.status = EvidenceStatus.REVISED
         p.evidence_revisions[rid] = revision
     event = ctx.emit(
         EventType.EVIDENCE_REVISED,
-        {"revision": rid, "evidence": evidence_id, "revised_by": revised_by, "invalidates_problem": invalidates_problem},
+        {
+            "revision": rid,
+            "evidence": evidence_id,
+            "revised_by": revised_by,
+            "invalidates_problem": invalidates_problem,
+        },
         importance=Importance.HIGH,
         refs=[evidence_id, revised_by],
     )
@@ -333,9 +359,7 @@ def revise_evidence(
     return revision
 
 
-def update_hypothesis(
-    ctx: HarnessContext, hypothesis_id: str, status: HypothesisStatus, reason: str
-) -> None:
+def update_hypothesis(ctx: HarnessContext, hypothesis_id: str, status: HypothesisStatus, reason: str) -> None:
     with ctx.commit(f"hypothesis {hypothesis_id} → {status.value}") as ps:
         h = ps.hypotheses[hypothesis_id]
         old = h.status

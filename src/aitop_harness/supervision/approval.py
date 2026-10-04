@@ -64,7 +64,9 @@ def _scope_str(scope: Scope) -> tuple[str, ...]:
     return ("ENTIRE_SOLUTION",) if scope.entire_solution else tuple(str(i) for i in scope.items)
 
 
-def project_packet(problem: ProblemState, runtime: RuntimeState, pending: PendingProtectedAction) -> ApprovalPacket:
+def project_packet(
+    problem: ProblemState, runtime: RuntimeState, pending: PendingProtectedAction
+) -> ApprovalPacket:
     p = pending.proposal
     auth = problem.domain_authorizations.get(pending.domain_authorization_ref or "")
     authorized = auth.authorized_scope if auth else Scope()
@@ -76,17 +78,20 @@ def project_packet(problem: ProblemState, runtime: RuntimeState, pending: Pendin
         hits = v.blocking_scope.intersect(p.requested_scope)
         relevance = "intersects request" if hits else "outside request"
         vobs.append(
-            f"{v.id} [{v.required_before.value}] blocking: {', '.join(_scope_str(v.blocking_scope))} ({relevance})"
+            f"{v.id} [{v.required_before.value}] "
+            f"blocking: {', '.join(_scope_str(v.blocking_scope))} ({relevance})"
         )
     unresolved = [f"uncommitted evidence {e}" for e in uncommitted]
     unresolved += [
-        f"{u.id}: {u.question}" for u in problem.unknowns.values()
+        f"{u.id}: {u.question}"
+        for u in problem.unknowns.values()
         if u.status.value != "RESOLVED" and u.affects_scope.intersect(p.requested_scope)
     ]
     br = runtime.budget_runtime
     auth_desc = (
         f"{auth.status.value} by {auth.authority_holder} (evidence {', '.join(auth.evidence_refs)})"
-        if auth else "NONE"
+        if auth
+        else "NONE"
     )
     return ApprovalPacket(
         gate_id=pending.gate_id,
@@ -100,7 +105,9 @@ def project_packet(problem: ProblemState, runtime: RuntimeState, pending: Pendin
         why_human_now=pending.confirmation.reason,
         side_effect=p.side_effect,
         reversibility=p.reversibility.value,
-        consequence_if_approved=f"execute {p.action} once (idempotency key {p.idempotency_key}), then read-back",
+        consequence_if_approved=(
+            f"execute {p.action} once (idempotency key {p.idempotency_key}), then read-back"
+        ),
         consequence_if_rejected="action not executed; harness replans an alternate / manual path",
         alternatives=tuple(p.alternatives),
         unresolved_items=tuple(unresolved),
@@ -116,6 +123,7 @@ def project_packet(problem: ProblemState, runtime: RuntimeState, pending: Pendin
 def blocking_vobs_for(problem: ProblemState, scope: list[ScopeItem]) -> list[str]:
     """Open VOBs required before protected action whose blocking_scope intersects the action scope."""
     return [
-        v.id for v in problem.open_vobs()
+        v.id
+        for v in problem.open_vobs()
         if v.required_before is RequiredBefore.BEFORE_PROTECTED_ACTION and v.blocking_scope.intersect(scope)
     ]

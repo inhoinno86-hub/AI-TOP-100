@@ -65,8 +65,9 @@ def assess_completeness(result: ToolResult) -> ResultCompleteness:
     return ResultCompleteness.COMPLETE
 
 
-def _next_health(previous: ToolHealth, result: ToolResult, completeness: ResultCompleteness,
-                 consecutive_failures: int) -> ToolHealth:
+def _next_health(
+    previous: ToolHealth, result: ToolResult, completeness: ResultCompleteness, consecutive_failures: int
+) -> ToolHealth:
     if result.status is ResultStatus.ERROR:
         if result.error_class == "UNAVAILABLE" or consecutive_failures >= 2:
             return ToolHealth.UNAVAILABLE
@@ -89,7 +90,9 @@ def invoke_tool(
 ) -> ToolCallOutcome:
     spec = registry.spec(tool_id)
     if not spec.read_only:
-        raise ProtectedActionBlocked(f"{tool_id} is not read-only; mutations must pass the Mandatory Human Gate")
+        raise ProtectedActionBlocked(
+            f"{tool_id} is not read-only; mutations must pass the Mandatory Human Gate"
+        )
     ctx.runtime.current_tool = tool_id
     ctx.runtime.current_action = f"{tool_id}.{operation}"
     ctx.safe_point(SafePointKind.BEFORE_ACTION)
@@ -108,7 +111,9 @@ def invoke_tool(
     tr.retryable_hint = result.retryable_hint
     tr.partial_side_effect_possible = result.partial_side_effect_possible
     tr.result_completeness = completeness
-    tr.result_authority = result.source_authority if result.status is ResultStatus.SUCCESS else tr.result_authority
+    tr.result_authority = (
+        result.source_authority if result.status is ResultStatus.SUCCESS else tr.result_authority
+    )
     tr.time_cost = result.time_cost
     tr.cumulative_cost += result.time_cost
     tr.consecutive_failures = tr.consecutive_failures + 1 if result.status is ResultStatus.ERROR else 0
@@ -117,12 +122,19 @@ def invoke_tool(
     signature = None
     event = ctx.emit(
         EventType.TOOL_CALLED,
-        {"tool": tool_id, "operation": operation, "status": result.status.value,
-         "completeness": completeness.value, "cost": result.time_cost},
+        {
+            "tool": tool_id,
+            "operation": operation,
+            "status": result.status.value,
+            "completeness": completeness.value,
+            "cost": result.time_cost,
+        },
         importance=Importance.LOW,
     )
     if result.status is ResultStatus.ERROR:
-        signature = failure_signature(tool_id, spec.dependency, operation_family or operation, result.error_class)
+        signature = failure_signature(
+            tool_id, spec.dependency, operation_family or operation, result.error_class
+        )
         rec = ctx.runtime.recovery
         rec.active = True
         rec.failure_signature = signature
@@ -130,20 +142,35 @@ def invoke_tool(
         rec.mutation_uncertainty = rec.mutation_uncertainty or result.partial_side_effect_possible
         ctx.emit(
             EventType.TOOL_FAILED,
-            {"tool": tool_id, "operation": operation, "attempt": tr.attempt, "error_class": result.error_class,
-             "retryable_hint": result.retryable_hint, "signature": signature,
-             "partial_side_effect_possible": result.partial_side_effect_possible},
+            {
+                "tool": tool_id,
+                "operation": operation,
+                "attempt": tr.attempt,
+                "error_class": result.error_class,
+                "retryable_hint": result.retryable_hint,
+                "signature": signature,
+                "partial_side_effect_possible": result.partial_side_effect_possible,
+            },
             importance=Importance.NORMAL,
         )
     elif completeness is ResultCompleteness.PARTIAL:
         ctx.runtime.recovery.partial_result_status = ResultCompleteness.PARTIAL
-        ctx.emit(EventType.PARTIAL_RESULT,
-                 {"tool": tool_id, "operation": operation, "expected": result.expected_count,
-                  "returned": result.returned_count, "pagination_complete": result.pagination_complete},
-                 importance=Importance.HIGH)
+        ctx.emit(
+            EventType.PARTIAL_RESULT,
+            {
+                "tool": tool_id,
+                "operation": operation,
+                "expected": result.expected_count,
+                "returned": result.returned_count,
+                "pagination_complete": result.pagination_complete,
+            },
+            importance=Importance.HIGH,
+        )
     if tr.health is not previous_health:
-        ctx.emit(EventType.TOOL_HEALTH_CHANGED,
-                 {"tool": tool_id, "from": previous_health.value, "to": tr.health.value})
+        ctx.emit(
+            EventType.TOOL_HEALTH_CHANGED,
+            {"tool": tool_id, "from": previous_health.value, "to": tr.health.value},
+        )
     tr.evidence_ref = f"ev:{tool_id}:{event.seq}"
     ctx.safe_point(SafePointKind.AFTER_TOOL_RESULT)
     return ToolCallOutcome(tool_id, operation, result, completeness, tr.health, signature, tr.attempt)

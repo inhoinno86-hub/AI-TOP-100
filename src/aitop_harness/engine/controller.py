@@ -27,9 +27,9 @@ from ..core.enums import (
 from ..core.errors import IllegalTransitionError
 from ..core.events import EventType
 from ..domain.design import DecisionRecord
+from ..phases.budget import update_budget
 from ..state.runtime import Plan
 from ..supervision.monitoring import SignalKind
-from ..phases.budget import update_budget
 from .context import HarnessContext
 
 
@@ -57,7 +57,9 @@ class PhaseController:
             {"kind": kind.value, "from": source.value, "to": target.value, "rationale": rationale, **payload},
             importance=Importance.HIGH if kind is not TransitionKind.ADVANCE else Importance.NORMAL,
         )
-        ctx.signal(SignalKind.PHASE_CHECKPOINT, f"{kind.value}: {source.value} → {target.value}", event_seq=event.seq)
+        ctx.signal(
+            SignalKind.PHASE_CHECKPOINT, f"{kind.value}: {source.value} → {target.value}", event_seq=event.seq
+        )
 
     def _reject(self, kind: TransitionKind, reason: str) -> None:
         self.ctx.emit(EventType.TRANSITION_REJECTED, {"kind": kind.value, "reason": reason})
@@ -82,12 +84,19 @@ class PhaseController:
                 self._reject(TransitionKind.ADVANCE, "design incomplete: Agentification Gate not recorded")
             assert pd is not None and sd is not None
             if sd.problem_version != pd.version:
-                self._reject(TransitionKind.ADVANCE, "solution design is stale for the current problem version")
-            blocking = [v.id for v in ps.open_vobs()
-                        if v.required_before is RequiredBefore.BEFORE_DESIGN_FINALIZATION
-                        and v.blocking_scope.intersect(sd.release_scope)]
+                self._reject(
+                    TransitionKind.ADVANCE, "solution design is stale for the current problem version"
+                )
+            blocking = [
+                v.id
+                for v in ps.open_vobs()
+                if v.required_before is RequiredBefore.BEFORE_DESIGN_FINALIZATION
+                and v.blocking_scope.intersect(sd.release_scope)
+            ]
             if blocking:
-                self._reject(TransitionKind.ADVANCE, f"VOBs required before design finalization open: {blocking}")
+                self._reject(
+                    TransitionKind.ADVANCE, f"VOBs required before design finalization open: {blocking}"
+                )
         if target is Phase.VERIFY and self.ctx.runtime.pending_protected_action is not None:
             self._reject(TransitionKind.ADVANCE, "protected action pending")
         if target is Phase.RELEASE and not ps.validation.verify_runs:
@@ -135,10 +144,16 @@ class PhaseController:
         """New authoritative Evidence invalidates the canonical Problem (never tool failure alone)."""
         ctx, ps = self.ctx, self.ctx.problem
         e = ps.evidence.get(invalidating_evidence)
-        if e is None or e.status is not EvidenceStatus.ACTIVE or e.authority is not SourceAuthority.AUTHORITATIVE \
-                or e.is_fallback:
-            self._reject(TransitionKind.REDEFINE,
-                         "redefine requires committed, active, authoritative, non-fallback evidence")
+        if (
+            e is None
+            or e.status is not EvidenceStatus.ACTIVE
+            or e.authority is not SourceAuthority.AUTHORITATIVE
+            or e.is_fallback
+        ):
+            self._reject(
+                TransitionKind.REDEFINE,
+                "redefine requires committed, active, authoritative, non-fallback evidence",
+            )
         pd = ps.problem_definition
         if pd is None:
             self._reject(TransitionKind.REDEFINE, "no canonical Problem to redefine")
@@ -149,12 +164,21 @@ class PhaseController:
             current.status = ProblemDefinitionStatus.INVALIDATED
             current.invalidated_by.append(invalidating_evidence)
             p.meta.problem_definition_history.append(current)
-            p.decision_log.append(DecisionRecord(
-                id=f"D-{len(p.decision_log) + 1}", phase=ctx.runtime.phase, decision="REDEFINE",
-                rationale=rationale, evidence_refs=[invalidating_evidence]))
-        event = ctx.emit(EventType.PROBLEM_INVALIDATED,
-                         {"problem": pd.id, "version": pd.version, "evidence": invalidating_evidence},
-                         importance=Importance.CRITICAL, refs=[invalidating_evidence])
+            p.decision_log.append(
+                DecisionRecord(
+                    id=f"D-{len(p.decision_log) + 1}",
+                    phase=ctx.runtime.phase,
+                    decision="REDEFINE",
+                    rationale=rationale,
+                    evidence_refs=[invalidating_evidence],
+                )
+            )
+        event = ctx.emit(
+            EventType.PROBLEM_INVALIDATED,
+            {"problem": pd.id, "version": pd.version, "evidence": invalidating_evidence},
+            importance=Importance.CRITICAL,
+            refs=[invalidating_evidence],
+        )
         ctx.signal(SignalKind.PROBLEM_INVALIDATED, f"{pd.id} v{pd.version}: {rationale}", event_seq=event.seq)
         self._move(TransitionKind.REDEFINE, Phase.DEFINE, rationale, evidence=invalidating_evidence)
 
@@ -174,5 +198,8 @@ class PhaseController:
 
     def hold(self, rationale: str) -> None:
         self.ctx.runtime.execution_status = ExecutionStatus.HOLD
-        self.ctx.emit(EventType.PHASE_TRANSITION, {"kind": "HOLD", "rationale": rationale},
-                      importance=Importance.CRITICAL)
+        self.ctx.emit(
+            EventType.PHASE_TRANSITION,
+            {"kind": "HOLD", "rationale": rationale},
+            importance=Importance.CRITICAL,
+        )

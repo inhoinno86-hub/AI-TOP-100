@@ -66,8 +66,12 @@ def propose_mapping(
         target_identifiers=targets,
         confidence=confidence,
         authority=authority,
-        provenance=Provenance(EvidenceSourceType.DATA, derived_from[0] if derived_from else "unknown",
-                              method="+".join(basis), derived_from=list(derived_from)),
+        provenance=Provenance(
+            EvidenceSourceType.DATA,
+            derived_from[0] if derived_from else "unknown",
+            method="+".join(basis),
+            derived_from=list(derived_from),
+        ),
         status=status,
         basis=list(basis),
     )
@@ -85,7 +89,9 @@ def propose_mapping(
             )
             mapping.conflicts.append(cid)
     if conflict_needed:
-        ctx.emit(EventType.CONFLICT_DETECTED, {"mapping": mapping_id, "reason": "non-unique source identifier"})
+        ctx.emit(
+            EventType.CONFLICT_DETECTED, {"mapping": mapping_id, "reason": "non-unique source identifier"}
+        )
     return mapping
 
 

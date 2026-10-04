@@ -15,6 +15,7 @@ from aitop_harness.core.enums import (
     RecoveryKind,
     ReserveStatus,
     ResultCompleteness,
+    ResultStatus,
     RetryStopReason,
     SourceAuthority,
     ToolHealth,
@@ -48,7 +49,6 @@ from aitop_harness.phases.recovery import (
 from aitop_harness.state.runtime import Plan
 from aitop_harness.tools.base import ToolRegistry, ToolResult, ToolSpec
 from aitop_harness.tools.simulated import ScriptedTool
-from aitop_harness.core.enums import ResultStatus
 
 
 def _reg(*tools: tuple[ScriptedTool, ToolSpec]) -> ToolRegistry:
@@ -59,20 +59,31 @@ def _reg(*tools: tuple[ScriptedTool, ToolSpec]) -> ToolRegistry:
 
 
 def _fc(outcome, **kw) -> FailureContext:
-    return FailureContext(outcome.tool_id, outcome.operation, outcome.failure_signature,
-                          outcome.result.error_class, outcome.result.retryable_hint, **kw)
+    return FailureContext(
+        outcome.tool_id,
+        outcome.operation,
+        outcome.failure_signature,
+        outcome.result.error_class,
+        outcome.result.retryable_hint,
+        **kw,
+    )
 
 
 # --------------------------------------------------------------------------- partial / health
 
 
 def test_success_is_not_complete():
-    assert assess_completeness(ToolResult(ResultStatus.SUCCESS, records=[{"a": 1}])) is ResultCompleteness.UNKNOWN
+    assert (
+        assess_completeness(ToolResult(ResultStatus.SUCCESS, records=[{"a": 1}]))
+        is ResultCompleteness.UNKNOWN
+    )
     assert assess_completeness(ok([{"a": 1}], expected_count=3)) is ResultCompleteness.PARTIAL
     assert assess_completeness(ok([{"a": 1}], pagination_complete=False)) is ResultCompleteness.PARTIAL
     assert assess_completeness(ok([{"a": 1}], missing_fields=["owner"])) is ResultCompleteness.PARTIAL
-    assert assess_completeness(ok([{"a": 1}], coverage_period="Q1", required_coverage_period="Q1-Q2")) \
+    assert (
+        assess_completeness(ok([{"a": 1}], coverage_period="Q1", required_coverage_period="Q1-Q2"))
         is ResultCompleteness.PARTIAL
+    )
     assert assess_completeness(ok([{"a": 1}])) is ResultCompleteness.COMPLETE
 
 
@@ -95,15 +106,16 @@ def test_mutating_tools_cannot_be_invoked_outside_human_gate():
         invoke_tool(ctx, reg, "erp", "write")
 
 
-# --------------------------------------------------------------------------- retry / replan / reprofile / redefine
+# ------------------------------------------------------------------ retry / replan / reprofile / redefine
 
 
 def test_bounded_retry_then_replan_with_fallback_and_param_variation_is_same_signature():
     ctx = make_ctx()
     api = ScriptedTool("api", script={"orders": [err("TIMEOUT"), err("TIMEOUT"), err("TIMEOUT")]})
     snap = ScriptedTool("snapshot", script={"orders": [ok([{"id": 1}], expected_count=1)]})
-    reg = _reg((api, ToolSpec("api", "orders-svc")),
-               (snap, ToolSpec("snapshot", "warehouse", fallback_for="api")))
+    reg = _reg(
+        (api, ToolSpec("api", "orders-svc")), (snap, ToolSpec("snapshot", "warehouse", fallback_for="api"))
+    )
 
     o1 = invoke_tool(ctx, reg, "api", "orders", {"page": 1})
     d1 = decide_recovery(ctx, _fc(o1, fallbacks=reg.fallbacks_for("api"), expected_value=10))
@@ -135,8 +147,10 @@ def test_retry_stops_on_budget_and_ev():
     api = ScriptedTool("api", script={"q": [err("TIMEOUT")]})
     reg = _reg((api, ToolSpec("api", "svc")))
     out = invoke_tool(ctx, reg, "api", "q")
-    assert decide_recovery(ctx, _fc(out, expected_value=1, estimated_retry_cost=5)).stop_reason \
+    assert (
+        decide_recovery(ctx, _fc(out, expected_value=1, estimated_retry_cost=5)).stop_reason
         is RetryStopReason.EXPECTED_VALUE_NOT_ABOVE_COST
+    )
     ctx.clock = SimulatedClock(250)
     update_budget(ctx)
     d = decide_recovery(ctx, _fc(out, expected_value=50, estimated_retry_cost=5))
@@ -149,7 +163,9 @@ def test_retry_stops_on_budget_and_ev():
 
 def test_non_transient_failure_without_alternatives_holds():
     ctx = make_ctx()
-    reg = _reg((ScriptedTool("api", script={"q": [err("AUTH_DENIED", retryable=False)]}), ToolSpec("api", "svc")))
+    reg = _reg(
+        (ScriptedTool("api", script={"q": [err("AUTH_DENIED", retryable=False)]}), ToolSpec("api", "svc"))
+    )
     out = invoke_tool(ctx, reg, "api", "q")
     d = decide_recovery(ctx, _fc(out))
     assert d.kind is RecoveryKind.HOLD and d.stop_reason is RetryStopReason.NOT_TRANSIENT
@@ -157,8 +173,12 @@ def test_non_transient_failure_without_alternatives_holds():
 
 def test_mutation_uncertainty_requires_read_back_first():
     ctx = make_ctx()
-    reg = _reg((ScriptedTool("api", script={"q": [err("TIMEOUT", partial_side_effect_possible=True)]}),
-                ToolSpec("api", "svc")))
+    reg = _reg(
+        (
+            ScriptedTool("api", script={"q": [err("TIMEOUT", partial_side_effect_possible=True)]}),
+            ToolSpec("api", "svc"),
+        )
+    )
     out = invoke_tool(ctx, reg, "api", "q")
     d = decide_recovery(ctx, _fc(out, partial_side_effect_possible=True, expected_value=99))
     assert d.kind is RecoveryKind.HOLD and d.next_action == "READ_BACK"
@@ -184,15 +204,19 @@ def _active_problem(ctx):
 def test_tool_failure_alone_never_redefines():
     ctx = make_ctx()
     _active_problem(ctx)
-    reg = _reg((ScriptedTool("api", script={"q": [err("UNAVAILABLE", retryable=False)] * 3}),
-                ToolSpec("api", "svc")))
+    reg = _reg(
+        (ScriptedTool("api", script={"q": [err("UNAVAILABLE", retryable=False)] * 3}), ToolSpec("api", "svc"))
+    )
     for _ in range(3):
         out = invoke_tool(ctx, reg, "api", "q")
         d = decide_recovery(ctx, _fc(out, problem_invalidating_evidence=None))
         assert d.kind is not RecoveryKind.REDEFINE
     # even pointing at the failure itself / non-authoritative evidence is not enough
     integrate_evidence(ctx, tool_evidence("E-weak", authority=SourceAuthority.NON_AUTHORITATIVE))
-    assert decide_recovery(ctx, _fc(out, problem_invalidating_evidence="E-weak")).kind is not RecoveryKind.REDEFINE
+    assert (
+        decide_recovery(ctx, _fc(out, problem_invalidating_evidence="E-weak")).kind
+        is not RecoveryKind.REDEFINE
+    )
     c = PhaseController(ctx)
     with pytest.raises(IllegalTransitionError):
         c.redefine("E-weak", "tool keeps failing")
@@ -203,7 +227,9 @@ def test_redefine_on_authoritative_problem_invalidation_versions_state():
     ctx = make_ctx()
     _active_problem(ctx)
     integrate_evidence(ctx, tool_evidence("E-new", "policy registry: process retired"))
-    d = decide_recovery(ctx, FailureContext("x", "y", None, None, None, problem_invalidating_evidence="E-new"))
+    d = decide_recovery(
+        ctx, FailureContext("x", "y", None, None, None, problem_invalidating_evidence="E-new")
+    )
     assert d.kind is RecoveryKind.REDEFINE
     c = PhaseController(ctx)
     c.redefine("E-new", "authoritative registry shows the process is retired")
@@ -216,14 +242,22 @@ def test_redefine_on_authoritative_problem_invalidation_versions_state():
 
 def test_fallback_authority_and_lazy_freshness():
     ctx = make_ctx()
-    fb = activate_fallback(ctx, "api", ToolSpec("snapshot", "warehouse", fallback_for="api"), "api unavailable x2")
+    fb = activate_fallback(
+        ctx, "api", ToolSpec("snapshot", "warehouse", fallback_for="api"), "api unavailable x2"
+    )
     assert fb.authority is SourceAuthority.NON_AUTHORITATIVE
     ok_hist, _ = fallback_permits(ctx, "api", FallbackUsage.HISTORICAL_BASELINE)
     assert ok_hist and fb.freshness_status is FreshnessStatus.NOT_EVALUATED  # not decision-relevant → lazy
     ok_mut, why = fallback_permits(ctx, "api", FallbackUsage.CURRENT_PROTECTED_MUTATION)
     assert not ok_mut and "prohibited" in why
-    ok_fresh, _ = fallback_permits(ctx, "api", FallbackUsage.READ_ONLY_SUPPORTING_EVIDENCE,
-                                   snapshot_age_minutes=600, max_age_minutes=60, freshness_relevant=True)
+    ok_fresh, _ = fallback_permits(
+        ctx,
+        "api",
+        FallbackUsage.READ_ONLY_SUPPORTING_EVIDENCE,
+        snapshot_age_minutes=600,
+        max_age_minutes=60,
+        freshness_relevant=True,
+    )
     assert not ok_fresh and fb.freshness_status is FreshnessStatus.STALE
 
 
@@ -248,16 +282,21 @@ def test_retry_transition_requires_eligibility():
 
 def _plan() -> Plan:
     S = ScopeItem
-    return Plan("PLAN-1", work_items=[
-        WorkItem("W-detect", "detection rules", WorkClass.CORE_FEATURE, 5, [S("detect", "x")], True, True),
-        WorkItem("W-ui", "nice dashboard", WorkClass.NICE_TO_HAVE, 40),
-        WorkItem("W-refactor", "refactor", WorkClass.BROAD_REFACTOR, 30),
-        WorkItem("W-explore", "explore", WorkClass.LOW_VALUE_EXPLORATION, 10),
-        WorkItem("W-verify", "blocking tests", WorkClass.RELEASE_BLOCKING_VERIFICATION, 10),
-        WorkItem("W-auth", "authority checks", WorkClass.AUTHORITY_SAFETY_CHECK, 5),
-        WorkItem("W-pack", "packaging", WorkClass.PACKAGING, 5),
-        WorkItem("W-submit", "submission", WorkClass.SUBMISSION, 2),
-    ])
+    return Plan(
+        "PLAN-1",
+        work_items=[
+            WorkItem(
+                "W-detect", "detection rules", WorkClass.CORE_FEATURE, 5, [S("detect", "x")], True, True
+            ),
+            WorkItem("W-ui", "nice dashboard", WorkClass.NICE_TO_HAVE, 40),
+            WorkItem("W-refactor", "refactor", WorkClass.BROAD_REFACTOR, 30),
+            WorkItem("W-explore", "explore", WorkClass.LOW_VALUE_EXPLORATION, 10),
+            WorkItem("W-verify", "blocking tests", WorkClass.RELEASE_BLOCKING_VERIFICATION, 10),
+            WorkItem("W-auth", "authority checks", WorkClass.AUTHORITY_SAFETY_CHECK, 5),
+            WorkItem("W-pack", "packaging", WorkClass.PACKAGING, 5),
+            WorkItem("W-submit", "submission", WorkClass.SUBMISSION, 2),
+        ],
+    )
 
 
 def test_release_reserve_entry_reduces_scope():

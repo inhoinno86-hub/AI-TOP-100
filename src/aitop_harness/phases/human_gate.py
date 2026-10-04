@@ -98,8 +98,13 @@ class ContextResponse:
 
 # --------------------------------------------------------------------------- human input interpretation
 
-_QUESTION = re.compile(r"[?？]|\b(why|what|how|which|when|who|explain)\b|왜|무엇|뭐|어떻게|어떤|설명|이유|근거|되나|하나요|인가", re.I)
-_APPROVE = re.compile(r"^\s*(approve|approved|yes,? approve|승인(합니다|함|해)?|진행(해|하세요)?)\s*[.!]?\s*$", re.I)
+_QUESTION = re.compile(
+    r"[?？]|\b(why|what|how|which|when|who|explain)\b|왜|무엇|뭐|어떻게|어떤|설명|이유|근거|되나|하나요|인가",
+    re.I,
+)
+_APPROVE = re.compile(
+    r"^\s*(approve|approved|yes,? approve|승인(합니다|함|해)?|진행(해|하세요)?)\s*[.!]?\s*$", re.I
+)
 _REJECT = re.compile(r"^\s*(reject|rejected|deny|거절(합니다|함)?|반려(합니다|함)?)\s*[.!]?\s*$", re.I)
 
 
@@ -120,14 +125,17 @@ def interpret_human_input(text: str) -> HumanDecisionKind:
 # --------------------------------------------------------------------------- pre-checks
 
 
-def _precheck(ctx: HarnessContext, proposal: ProtectedActionProposal, scope: list[ScopeItem]) -> tuple[list[str], str | None]:
+def _precheck(
+    ctx: HarnessContext, proposal: ProtectedActionProposal, scope: list[ScopeItem]
+) -> tuple[list[str], str | None]:
     """Domain authorization + scope + VOB + constraint + fallback checks. Returns (reasons, auth id)."""
     ps = ctx.problem
     reasons: list[str] = []
     auth = ps.authorization_for(proposal.action, proposal.protected_resource)
     if auth is None or not auth.is_effective():
         reasons.append(
-            f"DOMAIN_AUTHORIZATION missing/not effective for {proposal.action} on {proposal.protected_resource}"
+            f"DOMAIN_AUTHORIZATION missing/not effective for {proposal.action} "
+            f"on {proposal.protected_resource}"
         )
     else:
         ok, outside = auth.authorized_scope.contains_all(scope)
@@ -137,8 +145,10 @@ def _precheck(ctx: HarnessContext, proposal: ProtectedActionProposal, scope: lis
     if blocking:
         reasons.append(f"VOB required before protected action intersects scope: {blocking}")
     unknown_rules = [
-        c.id for c in ps.constraints.values()
-        if c.protected_action == proposal.action and c.status in (ConstraintStatus.UNKNOWN, ConstraintStatus.SUSPECTED)
+        c.id
+        for c in ps.constraints.values()
+        if c.protected_action == proposal.action
+        and c.status in (ConstraintStatus.UNKNOWN, ConstraintStatus.SUSPECTED)
     ]
     if unknown_rules:
         reasons.append(f"approval requirement unknown: {unknown_rules}")
@@ -166,9 +176,13 @@ def _block(ctx: HarnessContext, proposal: ProtectedActionProposal, reasons: list
         {"action": proposal.action_id, "reasons": reasons},
         importance=Importance.CRITICAL,
     )
-    kind = SignalKind.AUTHORITY_VIOLATION if any(
-        r.startswith(("DOMAIN_AUTHORIZATION", "SCOPE")) for r in reasons
-    ) else SignalKind.RELEASE_BLOCKING_VOB if any(r.startswith("VOB") for r in reasons) else SignalKind.HUMAN_INTERVENTION_REQUIRED
+    kind = (
+        SignalKind.AUTHORITY_VIOLATION
+        if any(r.startswith(("DOMAIN_AUTHORIZATION", "SCOPE")) for r in reasons)
+        else SignalKind.RELEASE_BLOCKING_VOB
+        if any(r.startswith("VOB") for r in reasons)
+        else SignalKind.HUMAN_INTERVENTION_REQUIRED
+    )
     ctx.signal(kind, f"{proposal.action} blocked: {'; '.join(reasons)}", event_seq=event.seq)
     return GateOutcome(GateStatus.BLOCKED, reasons=reasons)
 
@@ -181,8 +195,11 @@ def propose_protected_action(
 ) -> GateOutcome:
     if ctx.runtime.pending_protected_action is not None:
         raise ProtectedActionBlocked("another protected action is already pending approval")
-    ctx.emit(EventType.PROTECTED_ACTION_PROPOSED, {"action": proposal.action_id, "category": proposal.category.value},
-             importance=Importance.HIGH)
+    ctx.emit(
+        EventType.PROTECTED_ACTION_PROPOSED,
+        {"action": proposal.action_id, "category": proposal.category.value},
+        importance=Importance.HIGH,
+    )
     ctx.signal(SignalKind.PROTECTED_ACTION_PROPOSAL, f"{proposal.action} on {proposal.protected_resource}")
 
     # 1-2. Domain authorization check + scope validation (+ VOB / constraint / fallback)
@@ -205,9 +222,15 @@ def propose_protected_action(
 
     # 4. Canonical state commit
     with ctx.commit(f"protected action proposed {proposal.action_id}") as ps:
-        ps.decision_log.append(DecisionRecord(
-            id=f"D-{len(ps.decision_log) + 1}", phase=ctx.runtime.phase,
-            decision=f"propose {proposal.action}", rationale=proposal.why, evidence_refs=list(proposal.key_evidence)))
+        ps.decision_log.append(
+            DecisionRecord(
+                id=f"D-{len(ps.decision_log) + 1}",
+                phase=ctx.runtime.phase,
+                decision=f"propose {proposal.action}",
+                rationale=proposal.why,
+                evidence_refs=list(proposal.key_evidence),
+            )
+        )
 
     # 5. Safe point before protected action
     sp = ctx.safe_point(SafePointKind.BEFORE_PROTECTED_ACTION)
@@ -221,10 +244,17 @@ def propose_protected_action(
     ctx.runtime.pending_protected_action = pending
     ctx.runtime.execution_status = ExecutionStatus.WAITING_APPROVAL
     packet = project_packet(ctx.problem, ctx.runtime, pending)
-    ctx.emit(EventType.RUNTIME_CONFIRMATION_REQUESTED, {"gate": gate_id, "reason": why_human},
-             importance=Importance.CRITICAL)
-    pe = ctx.emit(EventType.APPROVAL_PACKET_EMITTED, {"gate": gate_id, "packet": packet.render()},
-                  importance=Importance.CRITICAL, refs=list(packet.key_evidence))
+    ctx.emit(
+        EventType.RUNTIME_CONFIRMATION_REQUESTED,
+        {"gate": gate_id, "reason": why_human},
+        importance=Importance.CRITICAL,
+    )
+    pe = ctx.emit(
+        EventType.APPROVAL_PACKET_EMITTED,
+        {"gate": gate_id, "packet": packet.render()},
+        importance=Importance.CRITICAL,
+        refs=list(packet.key_evidence),
+    )
     pending.packet_event_seq = pe.seq
     confirmation.event_ref = pe.seq
     ctx.supervision.intervention = Intervention(required=True, reason=why_human, gate_id=gate_id)
@@ -250,37 +280,50 @@ def decide(
     )
     if decision.kind is HumanDecisionKind.REQUEST_CONTEXT:
         response = request_context(ctx, decision.text, context_probe=context_probe)
-        return GateOutcome(GateStatus.WAITING_APPROVAL, gate_id=pending.gate_id,
-                           packet=project_packet(ctx.problem, ctx.runtime, pending),
-                           explanation=response.explanation)
+        return GateOutcome(
+            GateStatus.WAITING_APPROVAL,
+            gate_id=pending.gate_id,
+            packet=project_packet(ctx.problem, ctx.runtime, pending),
+            explanation=response.explanation,
+        )
     if decision.kind is HumanDecisionKind.REJECT:
         return _reject(ctx, pending, decision)
     if decision.kind is HumanDecisionKind.APPROVE:
-        ev = ctx.emit(EventType.APPROVAL_GRANTED,
-                      {"gate": pending.gate_id, "approval_kind": "RUNTIME_EXECUTION_CONFIRMATION"},
-                      importance=Importance.HIGH)
+        ev = ctx.emit(
+            EventType.APPROVAL_GRANTED,
+            {"gate": pending.gate_id, "approval_kind": "RUNTIME_EXECUTION_CONFIRMATION"},
+            importance=Importance.HIGH,
+        )
         # re-check domain authorization + scope: APPROVE cannot repair either
         reasons, _ = _precheck(ctx, pending.proposal, pending.proposal.requested_scope)
         if reasons:
             return _blocked_after_decision(ctx, pending, reasons)
         pending.confirmation.decision = HumanDecisionKind.APPROVE
         pending.confirmation.decided_at = ctx.clock.now()
-        return _execute_atomic(ctx, pending, pending.proposal.requested_scope, executor, decision_event_seq=ev.seq)
+        return _execute_atomic(
+            ctx, pending, pending.proposal.requested_scope, executor, decision_event_seq=ev.seq
+        )
     return _modify(ctx, pending, decision, executor)
 
 
-def _blocked_after_decision(ctx: HarnessContext, pending: PendingProtectedAction, reasons: list[str]) -> GateOutcome:
+def _blocked_after_decision(
+    ctx: HarnessContext, pending: PendingProtectedAction, reasons: list[str]
+) -> GateOutcome:
     """Re-check failed after a decision: do not execute; gate stays pending for REJECT/MODIFY."""
     outcome = _block(ctx, pending.proposal, reasons)
     outcome.gate_id = pending.gate_id
     return outcome
 
 
-def _modify(ctx: HarnessContext, pending: PendingProtectedAction, decision: HumanDecision,
-            executor: ProtectedExecutor) -> GateOutcome:
+def _modify(
+    ctx: HarnessContext, pending: PendingProtectedAction, decision: HumanDecision, executor: ProtectedExecutor
+) -> GateOutcome:
     scope = list(decision.modified_scope or [])
-    ev = ctx.emit(EventType.HUMAN_OVERRIDE_RECEIVED,
-                  {"gate": pending.gate_id, "modified_scope": [str(i) for i in scope]}, importance=Importance.HIGH)
+    ev = ctx.emit(
+        EventType.HUMAN_OVERRIDE_RECEIVED,
+        {"gate": pending.gate_id, "modified_scope": [str(i) for i in scope]},
+        importance=Importance.HIGH,
+    )
     if not scope:
         return _blocked_after_decision(ctx, pending, ["MODIFY without a modified scope"])
     reasons, _ = _precheck(ctx, pending.proposal, scope)
@@ -289,8 +332,13 @@ def _modify(ctx: HarnessContext, pending: PendingProtectedAction, decision: Huma
     original = pending.proposal.requested_scope
     if not all(item in original for item in scope):
         # widened beyond what was presented: needs its own gate
-        new_proposal = ProtectedActionProposal(**{**pending.proposal.__dict__, "requested_scope": scope,
-                                                  "action_id": f"{pending.proposal.action_id}-M"})
+        new_proposal = ProtectedActionProposal(
+            **{
+                **pending.proposal.__dict__,
+                "requested_scope": scope,
+                "action_id": f"{pending.proposal.action_id}-M",
+            }
+        )
         _clear_pending(ctx)
         return propose_protected_action(ctx, new_proposal, executor)
     pending.confirmation.decision = HumanDecisionKind.MODIFY
@@ -301,16 +349,26 @@ def _modify(ctx: HarnessContext, pending: PendingProtectedAction, decision: Huma
 def _reject(ctx: HarnessContext, pending: PendingProtectedAction, decision: HumanDecision) -> GateOutcome:
     pending.confirmation.decision = HumanDecisionKind.REJECT
     pending.confirmation.decided_at = ctx.clock.now()
-    ev = ctx.emit(EventType.APPROVAL_REJECTED, {"gate": pending.gate_id, "text": decision.text},
-                  importance=Importance.HIGH)
+    ev = ctx.emit(
+        EventType.APPROVAL_REJECTED,
+        {"gate": pending.gate_id, "text": decision.text},
+        importance=Importance.HIGH,
+    )
     with ctx.commit(f"protected action rejected {pending.proposal.action_id}") as ps:
-        ps.decision_log.append(DecisionRecord(
-            id=f"D-{len(ps.decision_log) + 1}", phase=ctx.runtime.phase,
-            decision=f"REJECT {pending.proposal.action}", rationale=decision.text or "human rejected"))
+        ps.decision_log.append(
+            DecisionRecord(
+                id=f"D-{len(ps.decision_log) + 1}",
+                phase=ctx.runtime.phase,
+                decision=f"REJECT {pending.proposal.action}",
+                rationale=decision.text or "human rejected",
+            )
+        )
     gate_id = pending.gate_id
     _clear_pending(ctx)
     ctx.runtime.transition_candidate = TransitionCandidate(
-        TransitionKind.REPLAN, Phase.EXECUTE, "protected action rejected: alternate / manual / reduced-scope path"
+        TransitionKind.REPLAN,
+        Phase.EXECUTE,
+        "protected action rejected: alternate / manual / reduced-scope path",
     )
     ctx.signal(SignalKind.STRATEGY_CHANGING_FAILURE, f"{gate_id} rejected → replan", event_seq=ev.seq)
     return GateOutcome(GateStatus.REJECTED, gate_id=gate_id, reasons=["rejected by human"])
@@ -347,11 +405,17 @@ def _execute_atomic(
         used_fallback_data=proposal.uses_fallback_data,
     )
     if key in ctx.problem.execution.executed_idempotency_keys():
-        ctx.emit(EventType.DUPLICATE_MUTATION_PREVENTED, {"key": key, "gate": pending.gate_id},
-                 importance=Importance.HIGH)
+        ctx.emit(
+            EventType.DUPLICATE_MUTATION_PREVENTED,
+            {"key": key, "gate": pending.gate_id},
+            importance=Importance.HIGH,
+        )
         _clear_pending(ctx)
-        return GateOutcome(GateStatus.DUPLICATE_PREVENTED, gate_id=pending.gate_id,
-                           reasons=[f"idempotency key {key} already executed"])
+        return GateOutcome(
+            GateStatus.DUPLICATE_PREVENTED,
+            gate_id=pending.gate_id,
+            reasons=[f"idempotency key {key} already executed"],
+        )
     result = executor.call(proposal.action, {"scope": [str(i) for i in scope], "idempotency_key": key})
     ctx.clock.advance(result.time_cost)
     read_back = executor.read_back(key)
@@ -359,22 +423,42 @@ def _execute_atomic(
     if result.status is ResultStatus.ERROR:
         ctx.runtime.recovery.mutation_uncertainty = result.partial_side_effect_possible and not verified
         if not verified:
-            ctx.emit(EventType.TOOL_FAILED, {"tool": executor.tool_id, "operation": proposal.action,
-                                             "error_class": result.error_class, "read_back": False},
-                     importance=Importance.HIGH)
+            ctx.emit(
+                EventType.TOOL_FAILED,
+                {
+                    "tool": executor.tool_id,
+                    "operation": proposal.action,
+                    "error_class": result.error_class,
+                    "read_back": False,
+                },
+                importance=Importance.HIGH,
+            )
             _clear_pending(ctx)
-            return GateOutcome(GateStatus.EXECUTION_FAILED, gate_id=pending.gate_id,
-                               reasons=[f"{result.error_class}; read-back did not confirm mutation"])
+            return GateOutcome(
+                GateStatus.EXECUTION_FAILED,
+                gate_id=pending.gate_id,
+                reasons=[f"{result.error_class}; read-back did not confirm mutation"],
+            )
     record.read_back_verified = verified
     record.result = result.status.value
-    ev = ctx.emit(EventType.PROTECTED_ACTION_EXECUTED,
-                  {"gate": pending.gate_id, "action": proposal.action, "scope": [str(i) for i in scope],
-                   "idempotency_key": key, "approval_event_seq": decision_event_seq,
-                   "runtime_confirmation_required": pending.confirmation.required},
-                  importance=Importance.HIGH)
+    ev = ctx.emit(
+        EventType.PROTECTED_ACTION_EXECUTED,
+        {
+            "gate": pending.gate_id,
+            "action": proposal.action,
+            "scope": [str(i) for i in scope],
+            "idempotency_key": key,
+            "approval_event_seq": decision_event_seq,
+            "runtime_confirmation_required": pending.confirmation.required,
+        },
+        importance=Importance.HIGH,
+    )
     record.executed_event_seq = ev.seq
-    ctx.emit(EventType.READ_BACK_VERIFIED, {"key": key, "verified": verified},
-             importance=Importance.NORMAL if verified else Importance.CRITICAL)
+    ctx.emit(
+        EventType.READ_BACK_VERIFIED,
+        {"key": key, "verified": verified},
+        importance=Importance.NORMAL if verified else Importance.CRITICAL,
+    )
     ctx.safe_point(SafePointKind.AFTER_VALIDATION)
     with ctx.commit(f"protected action executed {proposal.action_id}") as ps:
         ps.execution.actions.append(record)
@@ -411,24 +495,34 @@ def request_context(
     pending = ctx.runtime.pending_protected_action
     assert pending is not None
     pending.context_requests += 1
-    ev = ctx.emit(EventType.HUMAN_CONTEXT_REQUESTED,
-                  {"gate": pending.gate_id, "text": text, "n": pending.context_requests},
-                  importance=Importance.HIGH)
+    ev = ctx.emit(
+        EventType.HUMAN_CONTEXT_REQUESTED,
+        {"gate": pending.gate_id, "text": text, "n": pending.context_requests},
+        importance=Importance.HIGH,
+    )
     topics = _topics(text)
     fresh = [t for t in topics if t not in pending.answered_topics]
     if not fresh:  # repeated question: go one level deeper instead of repeating the same answer
-        fresh = [t for t in ("EVIDENCE", "AUTHORITY", "SCOPE", "CONSEQUENCE", "ALTERNATIVES")
-                 if t not in pending.answered_topics] or topics
+        fresh = [
+            t
+            for t in ("EVIDENCE", "AUTHORITY", "SCOPE", "CONSEQUENCE", "ALTERNATIVES")
+            if t not in pending.answered_topics
+        ] or topics
     packet = project_packet(ctx.problem, ctx.runtime, pending)
     answers: dict[str, str | None] = {
         "WHY": packet.why or None,
         "WHY_HUMAN_NOW": packet.why_human_now or None,
         "SCOPE": f"requested {list(packet.requested_scope)} ⊆ authorized {list(packet.authorized_scope)}; "
-                 f"delta {list(packet.scope_delta) or 'none'}",
+        f"delta {list(packet.scope_delta) or 'none'}",
         "AUTHORITY": packet.domain_authorization if packet.domain_authorization != "NONE" else None,
-        "CONSEQUENCE": f"approve → {packet.consequence_if_approved}; reject → {packet.consequence_if_rejected}",
-        "EVIDENCE": (", ".join(f"{e}: {ctx.problem.evidence[e].content}" for e in packet.key_evidence)
-                     if packet.key_evidence else None),
+        "CONSEQUENCE": (
+            f"approve → {packet.consequence_if_approved}; reject → {packet.consequence_if_rejected}"
+        ),
+        "EVIDENCE": (
+            ", ".join(f"{e}: {ctx.problem.evidence[e].content}" for e in packet.key_evidence)
+            if packet.key_evidence
+            else None
+        ),
         "ALTERNATIVES": "; ".join(packet.alternatives) or None,
     }
     lines: list[str] = []
@@ -442,8 +536,11 @@ def request_context(
     insufficient = any(u.startswith(tuple(fresh)) for u in unresolved) or bool(packet.uncommitted_evidence)
     reprofiled: list[str] = []
     if insufficient:
-        ctx.emit(EventType.APPROVAL_CONTEXT_INSUFFICIENT, {"gate": pending.gate_id, "unresolved": unresolved},
-                 importance=Importance.HIGH)
+        ctx.emit(
+            EventType.APPROVAL_CONTEXT_INSUFFICIENT,
+            {"gate": pending.gate_id, "unresolved": unresolved},
+            importance=Importance.HIGH,
+        )
         if context_probe is not None:
             # safe read-only targeted reprofile: adds evidence only; no protected write, no execution change
             new_ev = context_probe(fresh)
@@ -460,9 +557,12 @@ def request_context(
         ctx.signal(SignalKind.REQUEST_CONTEXT, f"{pending.gate_id}: {text}", event_seq=ev.seq)
     pending.answered_topics.extend(t for t in fresh if t not in pending.answered_topics)
     explanation = "\n".join(lines) if lines else "no additional committed context available"
-    ctx.emit(EventType.APPROVAL_PACKET_EMITTED, {"gate": pending.gate_id, "explanation": explanation,
-                                                  "topics": fresh},
-             importance=Importance.HIGH, refs=list(packet.key_evidence))
+    ctx.emit(
+        EventType.APPROVAL_PACKET_EMITTED,
+        {"gate": pending.gate_id, "explanation": explanation, "topics": fresh},
+        importance=Importance.HIGH,
+        refs=list(packet.key_evidence),
+    )
     return ContextResponse(
         gate_id=pending.gate_id,
         topics=fresh,
