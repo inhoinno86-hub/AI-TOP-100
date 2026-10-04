@@ -125,11 +125,16 @@ def rank_actions(ctx: HarnessContext, actions: list[DiscoveryAction]) -> list[Ra
             if reliability == 0.0:
                 ranked.append(RankedAction(a, 0.0, True, f"tool {a.tool_id} UNAVAILABLE"))
                 continue
-        if reserve in (ReserveStatus.ACTIVE, ReserveStatus.AT_RISK) and f.constraint_risk < 0.7:
+        in_reserve = reserve in (ReserveStatus.ACTIVE, ReserveStatus.AT_RISK)
+        safety_check = f.constraint_risk >= 0.7  # authority/safety checks are KEEP work in the reserve
+        if in_reserve and not safety_check:
             ranked.append(RankedAction(a, 0.0, True, "release reserve active: low-value exploration dropped"))
             continue
-        if f.time_cost_minutes > max(0.0, budget.remaining - ctx.problem.budget.release_reserve_minutes):
-            ranked.append(RankedAction(a, 0.0, True, "time cost exceeds budget outside release reserve"))
+        usable = budget.remaining if (in_reserve and safety_check) else (
+            budget.remaining - ctx.problem.budget.release_reserve_minutes
+        )
+        if f.time_cost_minutes > max(0.0, usable):
+            ranked.append(RankedAction(a, 0.0, True, "time cost exceeds usable budget (release reserve protected)"))
             continue
         value = sum(getattr(f, name) * w for name, w in _WEIGHTS.items())
         value *= 0.5 + 0.5 * reliability  # tool reliability
