@@ -1,0 +1,107 @@
+{
+  "_comment": "Autonomous E2E example. 'scenario' + 'problem' + 'tool_surface' are the PUBLIC scenario (the only Harness input). 'world' simulates the environment. 'fake_reasoning' is used only with --provider fake (offline, deterministic); with --provider claude the Reasoning Layer proposes everything itself.",
+  "scenario": {
+    "id": "A-REJECTS",
+    "title": "Carrier rejects shipment notices (rehearsal, not an official contest problem)",
+    "initial_request": "Let an AI agent auto-fix rejected shipment notices and resubmit them",
+    "requested_by": "SH-REQ"
+  },
+  "problem": {
+    "organizations": {"ORG-A": {"id": "ORG-A", "name": "Shipper"}, "ORG-B": {"id": "ORG-B", "name": "Carrier"}},
+    "stakeholders": {
+      "SH-REQ": {"id": "SH-REQ", "organization_id": "ORG-A", "role": "operations manager", "potential_bias": ["blames the carrier"]},
+      "SH-INT": {"id": "SH-INT", "organization_id": "ORG-B", "role": "interface owner"}
+    },
+    "processes": {"P-1": {"id": "P-1", "name": "shipment notice", "organization_ids": ["ORG-A", "ORG-B"], "handoff_ids": ["H-1"]}},
+    "process_handoffs": {"H-1": {"id": "H-1", "process_id": "P-1", "from_org": "ORG-A", "to_org": "ORG-B",
+                                 "delivery_status": "HEALTHY", "semantic_validity": "VALID"}},
+    "data_assets": {"DA-REJ": {"id": "DA-REJ", "name": "carrier reject log", "organization_id": "ORG-B",
+                               "source": "reject-log", "authority": "AUTHORITATIVE"}}
+  },
+  "tool_surface": [{"tool_id": "reject-log", "read_only": true, "describes": "carrier business rejects by reason"}],
+  "world": {
+    "tools": [{"tool_id": "reject-log", "dependency": "carrier-api", "authority": "AUTHORITATIVE",
+               "describes": "carrier business rejects by reason",
+               "script": {"rejects_by_reason": [{"status": "SUCCESS", "time_cost": 2.0, "expected_count": 3,
+                 "pagination_complete": true, "source_authority": "AUTHORITATIVE",
+                 "records": [{"notice": "N-1", "reason": "LOC_UNKNOWN"}, {"notice": "N-2", "reason": "LOC_UNKNOWN"},
+                             {"notice": "N-3", "reason": "EVENT_ORDER"}]}]}}],
+    "interviews": {"SH-REQ": "The carrier system is flaky; just resubmit everything."}
+  },
+  "human_script": [],
+  "fake_reasoning": {
+    "hypothesis_init": {
+      "framing_assertion": {"key": "reject.cause", "value": "carrier_flaky", "rationale": "initial request"},
+      "hypotheses": [
+        {"key": "FLAKY", "statement": "the carrier system is flaky", "origin": "REQUESTER_FRAMING",
+         "decision_impact": "MEDIUM", "rationale": "requester", "discriminating_evidence": ["reject reasons"]},
+        {"key": "CONTRACT", "statement": "interface contract violations cause the rejects", "origin": "ALTERNATIVE",
+         "decision_impact": "HIGH", "rationale": "rejects are business-level", "discriminating_evidence": ["reject reasons"]}],
+      "confidence": 0.7},
+    "discover_actions": {"actions": [
+      {"catalog_ref": "reject-log:rejects_by_reason", "question": "why are notices rejected?", "decision_impact": 0.9,
+       "uncertainty": 0.7, "discriminative_power": 0.9, "answerability": 0.9, "process_data_handoff_impact": 0.5,
+       "action_proximity": 0.3, "constraint_risk": 0.0, "estimated_cost_minutes": 3, "expected_information_gain": "reject causes",
+       "decision_impact_rationale": "separates FLAKY from CONTRACT", "discriminates_hypotheses": ["H-FLAKY", "H-CONTRACT"],
+       "resolves_unknowns": [], "addresses": [], "why_now": "cheapest discriminating evidence"},
+      {"catalog_ref": "interview:SH-REQ", "question": "why do you think notices are rejected?", "decision_impact": 0.3,
+       "uncertainty": 0.5, "discriminative_power": 0.3, "answerability": 0.8, "process_data_handoff_impact": 0.2,
+       "action_proximity": 0.2, "constraint_risk": 0.0, "estimated_cost_minutes": 5, "expected_information_gain": "requester view",
+       "decision_impact_rationale": "claim only", "discriminates_hypotheses": ["H-FLAKY"], "resolves_unknowns": [],
+       "addresses": [], "why_now": "context"}], "stop": false, "stop_reason": ""},
+    "interpret_evidence": [
+      {"match": {"observation.source": "reject-log"}, "output": {
+        "interpretation": "2 of 3 rejects are unknown location codes: an interface contract problem, not flakiness",
+        "assertion_key": "reject.cause", "assertion_value": "interface_contract",
+        "hypothesis_effects": [{"hypothesis": "H-FLAKY", "effect": "CONTRADICTS", "rationale": "business rejects"},
+                               {"hypothesis": "H-CONTRACT", "effect": "SUPPORTS", "rationale": "LOC_UNKNOWN"}],
+        "new_hypotheses": [], "fact_candidates": [], "unknown_resolutions": [], "authorization_candidates": [],
+        "contradiction_assessment": {"relation": "UNRELATED", "target_type": "NONE", "target_refs": [], "materiality": "LOW",
+                                     "problem_invalidating": false, "rationale": "no canonical problem yet"},
+        "vob_proposals": [], "follow_up_actions": [], "confidence": 0.8}},
+      {"match": {"observation.source": "SH-REQ"}, "output": {
+        "interpretation": "the requester believes the carrier is flaky", "claim_assertion_key": "reject.cause",
+        "claim_assertion_value": "carrier_flaky",
+        "hypothesis_effects": [{"hypothesis": "H-FLAKY", "effect": "SUPPORTS", "rationale": "claim"}],
+        "new_hypotheses": [], "fact_candidates": [], "unknown_resolutions": [], "authorization_candidates": [],
+        "contradiction_assessment": {"relation": "UNRELATED", "target_type": "NONE", "target_refs": [], "materiality": "LOW",
+                                     "problem_invalidating": false, "rationale": "no canonical problem yet"},
+        "vob_proposals": [], "follow_up_actions": [], "confidence": 0.6}}],
+    "assess_hypotheses": {"updates": [
+      {"hypothesis": "H-CONTRACT", "status": "SUPPORTED", "rationale": "reject log", "evidence_refs": ["E-01"]},
+      {"hypothesis": "H-FLAKY", "status": "REJECTED", "rationale": "reject log contradicts", "evidence_refs": ["E-01"]}],
+      "ready_to_define": true, "rationale": "discriminating evidence collected"},
+    "define_problem": {
+      "root_problem": "Shipment notices are business-rejected because location codes and event ordering violate the carrier interface contract (2 of 3 rejects LOC_UNKNOWN).",
+      "requested_solution": "AI agent auto-fixes and resubmits rejected notices", "symptoms": ["notices rejected after transport ACK"],
+      "affected_process": "P-1", "causal_chain": ["sender uses unmapped location codes", "carrier validation rejects the notice"],
+      "premise_hypotheses": ["H-CONTRACT"], "evidence_refs": ["E-01"], "assumptions": [], "unknowns": [],
+      "metrics": [{"key": "REJECT_RATE", "name": "business reject rate", "metric_type": "RATE", "numerator": "business rejects",
+                   "denominator": "transport-accepted notices", "owner": "ORG-A", "target_value": 0.01}],
+      "success_criteria": [{"key": "CAUSE_CLASSIFIED", "statement": "a reject cause is classified for every reject", "kind": "MUST",
+                            "metric": "REJECT_RATE", "threshold": "100%", "validation_method": "replay last week's rejects"}],
+      "intended_scope": [{"action": "detect_reject_cause", "target": "H-1"}], "protected_actions": [], "required_tools": ["reject-log"],
+      "depends_on_handoffs": [], "constraint_refs": [],
+      "rejected_framings": [{"hypothesis": "H-FLAKY", "why": "the reject log shows contract violations"}], "confidence": 0.8},
+    "structural_remedy": {"root_cause": "interface contract mismatch", "remedies": [
+      {"key": "CONTRACT_V2", "description": "versioned location / event contract with the carrier", "removes_root_cause": true,
+       "feasible_in_contest_time": false, "constraint_feasible": true, "feasibility_rationale": "partner release cycle",
+       "residual_gap": "legacy notices"}], "why_agent_needed": "classify rejects until the contract lands", "confidence": 0.7},
+    "agent_design": {"deterministic_rules_cover_cases": true, "llm_reasoning_adds_value": true, "autonomous_iteration_adds_value": false,
+      "residual_exceptions": true, "detection_needed": true, "why_agent": "explain ambiguous rejects",
+      "bridge_sunset_condition": "contract v2 adopted", "deterministic_components": ["reason-code classifier"],
+      "release_scope": [{"action": "detect_reject_cause", "target": "H-1"}],
+      "minimum_useful_scope": [{"action": "detect_reject_cause", "target": "H-1"}],
+      "scope_dependencies": [{"action": "detect_reject_cause", "depends_on": ["DA-REJ"]}], "role_suggestion": ["BRIDGE"],
+      "capabilities": ["classify rejects"], "llm_required_for": ["ambiguous reject explanations"], "tools": ["reject-log"],
+      "authority_boundary": ["read-only"], "human_gate": [], "termination": "single pass", "validation": ["replay"],
+      "known_limitations": [], "vob_proposals": [], "confidence": 0.7},
+    "plan_execution": {"work_items": [
+      {"key": "CLASSIFY", "description": "classify reject causes", "work_class": "CORE_FEATURE", "est_minutes": 20,
+       "scope_items": [{"action": "detect_reject_cause", "target": "H-1"}], "root_problem_aligned": true, "release_blocking": true,
+       "data_ops": ["reject-log:rejects_by_reason"], "output_name": "reject_causes", "output_key_fields": ["notice"],
+       "output_join": false, "output_constant_fields": []}], "protected_actions": [], "rationale": "detection bridge"},
+    "semantic_judge": {"checks": [{"name": "root_alignment", "status": "PASS", "detail": "release scope addresses the contract mismatch", "refs": ["E-01"]}]},
+    "release_summary": {"summary": "Reject-cause detection released as a bridge until contract v2.", "key_points": [], "limitations_explained": []}
+  }
+}
