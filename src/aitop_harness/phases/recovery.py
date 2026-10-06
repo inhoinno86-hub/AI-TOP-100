@@ -11,7 +11,6 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 
 from ..core.enums import (
-    EvidenceStatus,
     FallbackStatus,
     FallbackUsage,
     FreshnessStatus,
@@ -30,6 +29,7 @@ from ..state.runtime import FallbackRuntime, RetryRecord, TransitionCandidate
 from ..supervision.monitoring import SignalKind
 from ..tools.base import TRANSIENT_ERROR_CLASSES, ToolSpec
 from .budget import retry_budget_ok
+from .redefine import validate_problem_invalidation
 
 
 @dataclass
@@ -61,31 +61,33 @@ class RecoveryDecision:
     retry_eligible: bool = False
 
 
-def _invalidating_evidence_valid(ctx: HarnessContext, evidence_id: str | None) -> bool:
-    if not evidence_id:
-        return False
-    e = ctx.problem.evidence.get(evidence_id)
-    return (
-        e is not None
-        and e.status is EvidenceStatus.ACTIVE
-        and e.authority is SourceAuthority.AUTHORITATIVE
-        and not e.is_fallback
-    )
-
-
 def decide_recovery(
     ctx: HarnessContext, fc: FailureContext, policy: FailureHandlingPolicy | None = None
 ) -> RecoveryDecision:
-    policy = policy or FailureHandlingPolicy()
-    rec = ctx.runtime.recovery
-
-    # redefine: only authoritative problem-invalidating evidence; a tool failure is never enough
-    if _invalidating_evidence_valid(ctx, fc.problem_invalidating_evidence):
+    """``problem_invalidating_evidence`` is a *claim* by the caller; the Harness validates it against the
+    active canonical Problem's premises (IDR-REDEFINE-01/02) and otherwise decides as for any failure."""
+    asserted = fc.problem_invalidating_evidence
+    if not asserted:
+        return _decide(ctx, fc, policy or FailureHandlingPolicy())
+    found, why_not = validate_problem_invalidation(ctx.problem, asserted)
+    if why_not is None:
+        pd = ctx.problem.problem_definition
+        assert pd is not None
         return RecoveryDecision(
             RecoveryKind.REDEFINE,
-            f"authoritative evidence {fc.problem_invalidating_evidence} invalidates canonical Problem",
+            f"authoritative evidence {asserted} invalidates canonical Problem {pd.ref}: "
+            + "; ".join(c.detail for c in found),
             stop_reason=RetryStopReason.PROBLEM_INVALID,
         )
+    decision = _decide(ctx, fc, policy or FailureHandlingPolicy())
+    decision.rationale = f"asserted problem-invalidating evidence {asserted} rejected ({why_not}); " + (
+        decision.rationale
+    )
+    return decision
+
+
+def _decide(ctx: HarnessContext, fc: FailureContext, policy: FailureHandlingPolicy) -> RecoveryDecision:
+    rec = ctx.runtime.recovery
 
     # mutation uncertainty: read-back first, never blind re-attempt (duplicate mutation risk)
     if fc.partial_side_effect_possible or rec.mutation_uncertainty:
@@ -180,12 +182,14 @@ def apply_recovery_decision(ctx: HarnessContext, decision: RecoveryDecision, fc:
     if fc.fallbacks and rec.fallback_status is FallbackStatus.NOT_NEEDED:
         rec.fallback_status = FallbackStatus.AVAILABLE
     transition = _TRANSITION_FOR.get(decision.kind)
-    if transition:
-        ctx.runtime.transition_candidate = TransitionCandidate(
-            transition[0],
-            transition[1],
-            decision.rationale,
-            [fc.problem_invalidating_evidence] if fc.problem_invalidating_evidence else [],
+    if transition:  # precedence-aware: a REDEFINE candidate is never overwritten by REPLAN/RETRY
+        ctx.runtime.propose_transition(
+            TransitionCandidate(
+                transition[0],
+                transition[1],
+                decision.rationale,
+                [fc.problem_invalidating_evidence] if fc.problem_invalidating_evidence else [],
+            )
         )
     if decision.reprofile_targets:
         ctx.runtime.reprofile_targets = list(decision.reprofile_targets)

@@ -21,6 +21,7 @@ from ..core.enums import (
     EvidenceStatus,
     HypothesisStatus,
     ResultCompleteness,
+    RevisionKind,
     SourceAuthority,
     UnknownStatus,
 )
@@ -58,7 +59,11 @@ class Evidence:
 
 @dataclass
 class EvidenceRevision:
-    """New evidence invalidating/revising existing evidence (Design Freeze §5, Mock #6)."""
+    """New evidence invalidating/revising existing evidence (Design Freeze §5, Mock #6).
+
+    ``revision_kind`` separates observation validity from interpretation (IDR-REDEFINE-06);
+    ``affected_objects`` makes the revision traceable to the downstream objects it touches.
+    """
 
     id: str
     evidence_id: str
@@ -67,6 +72,11 @@ class EvidenceRevision:
     revised_interpretation: str
     invalidates_problem: bool = False
     event_seq: int | None = None
+    revision_kind: RevisionKind = RevisionKind.INTERPRETATION_ONLY
+    # problem_definitions / hypotheses / assumptions / designs / vobs / plans -> ids
+    affected_objects: dict[str, list[str]] = field(default_factory=dict)
+    proposed_by_harness: bool = False  # proposed by a canonical challenge before it was written
+    dependency_review_id: str | None = None
 
 
 @dataclass
@@ -113,6 +123,7 @@ class Assumption:
     risk_if_wrong: Criticality = Criticality.MEDIUM
     status: AssumptionStatus = AssumptionStatus.ACTIVE
     linked_vob: str | None = None
+    evidence_refs: list[str] = field(default_factory=list)  # evidence the assumption rests on
 
 
 @dataclass

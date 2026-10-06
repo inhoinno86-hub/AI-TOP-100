@@ -11,6 +11,7 @@ from ..domain.design import (
     AgentSpec,
     BudgetPlan,
     DecisionRecord,
+    DependencyReview,
     ExecutionRecord,
     ProblemDefinition,
     SolutionDesign,
@@ -75,6 +76,7 @@ TRACKED_COLLECTIONS: tuple[str, ...] = (
     "risks",
     "success_criteria",
     "verification_obligations",
+    "dependency_reviews",
 )
 
 
@@ -105,6 +107,7 @@ class ProblemState:
     risks: dict[str, Risk] = field(default_factory=dict)
     success_criteria: dict[str, SuccessCriterion] = field(default_factory=dict)
     verification_obligations: dict[str, VerificationObligation] = field(default_factory=dict)
+    dependency_reviews: dict[str, DependencyReview] = field(default_factory=dict)
     problem_definition: ProblemDefinition | None = None
     solution_design: SolutionDesign | None = None
     agent_spec: AgentSpec | None = None

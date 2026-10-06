@@ -21,8 +21,9 @@ from ..core.enums import (
     EvidenceStatus,
     HypothesisStatus,
     Importance,
+    Phase,
     ReserveStatus,
-    ResultCompleteness,
+    RevisionKind,
     SourceAuthority,
     ToolHealth,
     UnknownStatus,
@@ -39,7 +40,9 @@ from ..domain.epistemic import (
     InterpretationEntry,
 )
 from ..engine.context import HarnessContext
+from ..state.problem import ProblemState
 from ..supervision.monitoring import SignalKind
+from .redefine import affected_objects, assess_canonical_challenge, infer_revision_kind, is_strong
 
 
 class DiscoveryActionKind(StrEnum):
@@ -77,6 +80,8 @@ class DiscoveryAction:
     discriminates_hypotheses: list[str] = field(default_factory=list)
     tool_id: str | None = None
     read_only: bool = True
+    addresses: list[str] = field(default_factory=list)  # explicit reprofile targets this action serves
+    prerequisite_for: list[str] = field(default_factory=list)  # explicit prerequisite of these targets
 
 
 @dataclass
@@ -105,11 +110,41 @@ _HEALTH_RELIABILITY = {
 }
 
 
+def _target_aliases(ps: ProblemState, target: str) -> set[str]:
+    """Names an action may carry to serve a reprofile target (DataAsset → its source system;
+    ProcessHandoff → systems of the sending organisation's data assets, where the payload originates)."""
+    aliases = {target}
+    asset = ps.data_assets.get(target)
+    if asset is not None and asset.source:
+        aliases.add(asset.source)
+    handoff = ps.process_handoffs.get(target)
+    if handoff is not None and handoff.from_org:
+        aliases |= {
+            d.source for d in ps.data_assets.values() if d.organization_id == handoff.from_org and d.source
+        }
+    return aliases
+
+
+def _reprofile_scope(ctx: HarnessContext) -> dict[str, set[str]]:
+    rt = ctx.runtime
+    if rt.phase is not Phase.DISCOVER or not rt.reprofile_targets:
+        return {}
+    return {t: _target_aliases(ctx.problem, t) for t in rt.reprofile_targets}
+
+
+def _targets_served(a: DiscoveryAction, scope: dict[str, set[str]]) -> list[str]:
+    names = {a.id, a.target, *a.addresses, *a.resolves_unknowns, *a.discriminates_hypotheses}
+    if a.tool_id:
+        names.add(a.tool_id)
+    return [t for t, aliases in scope.items() if aliases & names]
+
+
 def rank_actions(ctx: HarnessContext, actions: list[DiscoveryAction]) -> list[RankedAction]:
     budget = ctx.runtime.budget_runtime
     reserve = ctx.runtime.release_runtime.reserve_status
     total = budget.total_budget or 1.0
     budget_pressure = max(0.0, min(1.0, 1.0 - budget.remaining / total))
+    targeting = _reprofile_scope(ctx)  # targeted reprofile is enforced, not declarative (D12)
     ranked: list[RankedAction] = []
     for a in actions:
         f = a.factors
@@ -119,6 +154,17 @@ def rank_actions(ctx: HarnessContext, actions: list[DiscoveryAction]) -> list[Ra
         if f.decision_impact <= 0:
             ranked.append(RankedAction(a, 0.0, True, "evidence would not change the next decision"))
             continue
+        note = ""
+        if targeting and not _targets_served(a, targeting):
+            prereq = sorted(set(a.prerequisite_for) & set(targeting))
+            if not prereq:
+                ranked.append(
+                    RankedAction(
+                        a, 0.0, True, f"outside reprofile targets {sorted(targeting)} (no broad rediscovery)"
+                    )
+                )
+                continue
+            note = f"; explicit prerequisite for reprofile target(s) {prereq}"
         reliability = 1.0
         if a.tool_id is not None:
             reliability = _HEALTH_RELIABILITY[ctx.runtime.tool(a.tool_id).health]
@@ -144,7 +190,7 @@ def rank_actions(ctx: HarnessContext, actions: list[DiscoveryAction]) -> list[Ra
         value *= 0.5 + 0.5 * reliability  # tool reliability
         cost = f.time_cost_minutes * (1.0 + 2.0 * budget_pressure)  # time cost scaled by remaining budget
         score = value / (1.0 + cost / 10.0)
-        ranked.append(RankedAction(a, round(score, 4), False, f"value={value:.2f} cost={cost:.1f}"))
+        ranked.append(RankedAction(a, round(score, 4), False, f"value={value:.2f} cost={cost:.1f}{note}"))
     ranked.sort(key=lambda r: (not r.excluded, r.score, r.action.factors.decision_impact), reverse=True)
     return ranked
 
@@ -228,18 +274,12 @@ def integrate_evidence(
     ctx.emit(
         EventType.EVIDENCE_ADDED, {"evidence": evidence.id, "source": evidence.source_id}, refs=[evidence.id]
     )
+    # Harness-owned canonical premise monitoring (IDR-REDEFINE-01)
+    assess_canonical_challenge(ctx, evidence.id)
     return evidence
 
 
-def _is_strong(e: Evidence) -> bool:
-    """Evidence strong enough to establish facts / settle claims."""
-    if e.status is not EvidenceStatus.ACTIVE or e.is_fallback:
-        return False
-    if e.source_type is EvidenceSourceType.STAKEHOLDER:
-        return False
-    if e.authority is not SourceAuthority.AUTHORITATIVE:
-        return False
-    return e.completeness in (ResultCompleteness.COMPLETE, ResultCompleteness.NOT_APPLICABLE)
+_is_strong = is_strong
 
 
 def _detect_conflicts(
@@ -319,14 +359,25 @@ def revise_evidence(
     revised_interpretation: str,
     *,
     invalidates_problem: bool = False,
+    revision_kind: RevisionKind | None = None,
 ) -> EvidenceRevision:
-    """Append an Evidence Revision (never overwrite history)."""
+    """Append an Evidence Revision (never overwrite history).
+
+    Observation validity and interpretation are separate (IDR-REDEFINE-06): unless the revising
+    evidence contradicts the observation itself (same assertion, different value, strong), the
+    revision is INTERPRETATION_ONLY and the observation stays ACTIVE / citable.
+    """
     ps = ctx.problem
     if revised_by not in ps.evidence:
         raise StateIntegrityError(f"revising evidence {revised_by!r} is not committed")
     target = ps.evidence[evidence_id]
+    kind = revision_kind or infer_revision_kind(target, ps.evidence[revised_by])
     previous = (
         target.interpretation_history[-1].interpretation if target.interpretation_history else target.content
+    )
+    pd = ps.problem_definition
+    proposed = pd is not None and any(
+        c.evidence_id == revised_by and evidence_id in c.proposed_revisions for c in pd.challenges
     )
     rid = ps.next_id("ER", "evidence_revisions")
     revision = EvidenceRevision(
@@ -336,13 +387,17 @@ def revise_evidence(
         previous_interpretation=previous,
         revised_interpretation=revised_interpretation,
         invalidates_problem=invalidates_problem,
+        revision_kind=kind,
+        affected_objects=affected_objects(ps, ctx.runtime, evidence_id),
+        proposed_by_harness=proposed,
     )
     with ctx.commit(f"evidence revision {rid}") as p:
         e = p.evidence[evidence_id]
         e.interpretation_history.append(
-            InterpretationEntry(revised_interpretation, f"revised by {revised_by}")
+            InterpretationEntry(revised_interpretation, f"revised by {revised_by} ({kind.value})")
         )
-        e.status = EvidenceStatus.REVISED
+        if kind is RevisionKind.OBSERVATION_INVALIDATED:
+            e.status = EvidenceStatus.REVISED
         p.evidence_revisions[rid] = revision
     event = ctx.emit(
         EventType.EVIDENCE_REVISED,
@@ -351,11 +406,17 @@ def revise_evidence(
             "evidence": evidence_id,
             "revised_by": revised_by,
             "invalidates_problem": invalidates_problem,
+            "revision_kind": kind.value,
+            "affected": revision.affected_objects,
+            "proposed_by_harness": proposed,
         },
         importance=Importance.HIGH,
         refs=[evidence_id, revised_by],
     )
     revision.event_seq = event.seq
+    e.interpretation_history[-1].event_seq = event.seq
+    if invalidates_problem or kind is RevisionKind.OBSERVATION_INVALIDATED:
+        assess_canonical_challenge(ctx, revised_by)
     return revision
 
 

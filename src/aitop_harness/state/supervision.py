@@ -85,6 +85,7 @@ class SupervisionState:
     decision_rationale: list[str] = field(default_factory=list)
     gate_rationale: list[str] = field(default_factory=list)
     pending_verification_obligations: list[str] = field(default_factory=list)
+    dependency_review: list[str] = field(default_factory=list)  # latest redefine review, non-trivial items
     current_action: str | None = None
     next_action: str | None = None
     monitoring_policy: MonitoringPolicy = field(default_factory=MonitoringPolicy)

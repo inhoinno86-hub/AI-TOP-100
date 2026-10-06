@@ -1,0 +1,56 @@
+{
+  "_comment": "SEALED. Loaded ONLY by evaluate_mock6.py after the run finished. run_mock6.py and controller.py never read this file (the runner asserts it is not imported/opened).",
+  "actual_root_problem": "Billing import validation rule BV-17 (deployed 08-01) compares firmware-v4.2 AMI register values, reported in 0.1 m3 units, against m3 history without unit scaling. Valid on-time AMI reads are rejected as HIGH_CONSUMPTION and replaced with estimates; the estimated bills drive the dispute surge.",
+  "ideal_initial_hypotheses": {
+    "H-SLOW": "requester framing: slow dispute responses -> should be rejected pre-canonical by CRM response-time data (within SLA)",
+    "H-READS": "missed / late field reads -> estimated bills -> disputes (plausible, becomes v1)",
+    "H-TARIFF": "tariff change -> should be rejected pre-canonical (no tariff change)"
+  },
+  "ideal_initial_canonical_problem": "field read-route backlog causes estimated bills that drive disputes (v1). Plausible on visible evidence: 41% of disputed bills are ESTIMATED read type; route completion 88% vs 95% target; field manager reports short staffing.",
+  "ideal_pre_canonical_transition": "hypothesis_changed (H-SLOW rejected, H-TARIFF rejected); NOT redefine",
+  "ideal_redefine_trigger": {
+    "evidence": "MDMS system-of-record read event export: for 1,184 of 1,240 ESTIMATED disputed bills a valid AMI read arrived before billing cutoff and was exported; billing import status REJECTED_HIGH_CONSUMPTION; all 1,184 are firmware v4.2 meters; disputed accounts are AMI accounts, not manual-read routes.",
+    "why_redefine_not_replan": "The central causal premise of v1 (estimates exist because reads were not collected) is false. It is not that the route-prioritization path is unsuitable for a valid problem; the problem itself is different (upstream data-contract / validation failure)."
+  },
+  "ideal_final_problem": "BV-17 validation rejects valid firmware-v4.2 AMI reads (unit-scale mismatch on H-MDMS-BILL) and substitutes estimates.",
+  "ideal_invalidation_scope": {
+    "ProblemDefinition v1": "INVALIDATED / SUPERSEDED by v2 (kept in history)",
+    "Hypothesis H-READS": "REJECTED / INVALIDATED",
+    "Evidence E-BILL-READTYPE": "observation STILL_VALID; interpretation revised (ESTIMATED != not read); still citable for the symptom",
+    "Evidence E-ROUTE": "observation STILL_VALID; interpretation revised (route lag real but not causal for disputed AMI accounts)",
+    "Claim CL-FIELD-STAFF": "STILL_VALID as a claim (not causal)",
+    "SolutionDesign SD-1 / Structural Remedy SR-ROUTES": "INVALIDATED",
+    "AgentSpec v1 (route-lag bridge, estimation-risk flagger)": "SUPERSEDED",
+    "VOB-U-ROUTE-IMPACT": "INVALIDATED (tied only to v1 causal premise)",
+    "VOB-U-TAG": "STILL_VALID (CRM tag reliability affects dispute KPI under both problems)",
+    "SuccessCriterion SC-EST-SHARE": "STILL_VALID (estimated share among disputes is still the right outcome metric)",
+    "SuccessCriterion SC-VOLUME": "NEEDS_REEVALUATION",
+    "Plan PLAN-1 work items (route ranking, priority dispatch, risk flagger)": "INVALIDATED",
+    "Pending protected action push_route_update": "MUST NOT EXECUTE; cancel / revalidate",
+    "Organizations / stakeholders / process / tool capability facts": "STILL_VALID (reuse, no rediscovery)",
+    "Domain authorization DA-DISPATCH": "STILL_VALID as a fact, but no longer relevant to active scope"
+  },
+  "ideal_new_vob": "Does scaling firmware-v4.2 reads by 0.1 produce correct consumption for every v4.2 meter, including genuine high-usage / leak cases? (critical, blocks corrected-read / re-bill scope)",
+  "ideal_minimum_useful_solution": "detect rejected AMI reads on firmware v4.2 (MDMS x billing import status) + classify affected disputed accounts + manual escalation queue to Billing Ops; corrected-read proposals and re-bill stay out of release scope until the new VOB is resolved; structural remedy = vendor patch to BV-17 (bridge with sunset).",
+  "ideal_release": "RELEASE_WITH_KNOWN_LIMITATION",
+  "expected_failure_traps": [
+    "anchoring on requester framing (agent auto-answers tickets)",
+    "treating late MDMS evidence as an extra exception and replanning route prioritization",
+    "treating MDMS ACCESS_PENDING tool failure as redefine",
+    "deleting or overwriting E-BILL-READTYPE / E-ROUTE",
+    "executing push_route_update after its premise was invalidated",
+    "keeping VOB-U-ROUTE-IMPACT open / blocking under v2, or dropping VOB-U-TAG",
+    "releasing v2 with an AgentSpec / VOB list that still references v1 reasoning",
+    "full reset rediscovery of org/process/tool facts after redefine"
+  ],
+  "evaluation_rubric": {
+    "C1": "pre-canonical change handled as hypothesis_changed; harness refuses redefine before canonical problem exists/active",
+    "C2": "after canonical v1, authoritative contradiction -> redefine (harness-derived, not operator-asserted); replan-type evidence must not yield redefine",
+    "C3": "v1 and v2 coexist with traceable link, trigger evidence, order, reason",
+    "C4": "old and late evidence preserved with provenance",
+    "C5": "revision records old/new interpretation, trigger, affected objects",
+    "C6": "v1-dependent objects classified (still valid / re-eval / invalidated / superseded) dependency-aware",
+    "C7": "no full reset; only problem-dependent items re-derived",
+    "C8": "final release uses v2, no stale v1 decisions/VOBs/spec active"
+  }
+}

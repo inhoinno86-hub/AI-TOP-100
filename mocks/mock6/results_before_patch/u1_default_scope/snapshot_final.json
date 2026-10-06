@@ -1,0 +1,2276 @@
+{
+ "problem": {
+  "scenario": {
+   "id": "MOCK6-WATER-BILLING",
+   "title": "Lakeside Water — billing dispute surge (Mock #6, not an official contest problem)",
+   "description": "Billing dispute tickets roughly doubled in August-September. Customer Service wants an AI agent. Field reading is contracted out; AMI meters and the meter data management system (MDMS) are run by a vendor.",
+   "initial_request": "Dispute tickets doubled since August. Build an AI agent that auto-answers billing dispute tickets and fixes whatever is causing the wrong bills.",
+   "requested_by": "SH-CS",
+   "raw": {}
+  },
+  "meta": {
+   "version": 38,
+   "problem_definition_history": [
+    {
+     "id": "PD-1",
+     "version": 1,
+     "requested_solution": "AI agent that auto-answers billing dispute tickets",
+     "symptoms": [
+      "dispute tickets doubled since August",
+      "41% of disputed bills are ESTIMATED"
+     ],
+     "root_problem": "Manual meter-read route backlog (88% vs 95% completion) leaves accounts unread, so they receive estimated bills, which drive the August-September dispute surge.",
+     "evidence_refs": [
+      "E-BILL-READTYPE",
+      "E-ROUTE",
+      "E-VOLUME",
+      "E-FIELD-STMT"
+     ],
+     "intended_scope": [
+      {
+       "action": "prioritize_read_routes",
+       "target": "lagging_routes"
+      },
+      {
+       "action": "push_route_update",
+       "target": "field-dispatch"
+      },
+      {
+       "action": "flag_estimation_risk",
+       "target": "accounts"
+      },
+      {
+       "action": "publish_dispute_kpi",
+       "target": "mgmt-dashboard"
+      }
+     ],
+     "protected_actions": [
+      "push_route_update"
+     ],
+     "depends_on_mappings": [],
+     "depends_on_handoffs": [],
+     "depends_on_exports": [],
+     "required_tools": [
+      "billing-db",
+      "route-log"
+     ],
+     "success_criteria": [
+      "SC-EST-SHARE",
+      "SC-VOLUME"
+     ],
+     "metric_ids": [
+      "M-EST-SHARE",
+      "M-VOLUME"
+     ],
+     "status": "INVALIDATED",
+     "gate_result": "CONDITIONAL_PASS",
+     "invalidated_by": [
+      "E-MDMS"
+     ]
+    }
+   ]
+  },
+  "organizations": {
+   "ORG-UTIL": {
+    "id": "ORG-UTIL",
+    "name": "Lakeside Water Utility",
+    "role": "operator / biller",
+    "objectives": [
+     "accurate bills",
+     "dispute volume back to baseline"
+    ],
+    "stakeholders": [
+     "SH-CS",
+     "SH-BILL"
+    ],
+    "processes": [
+     "P-M2C"
+    ],
+    "process_handoffs": [],
+    "data_assets": [
+     "DA-BILL",
+     "DA-TICKET",
+     "DA-RULES"
+    ],
+    "external_dependencies": [
+     "ORG-FIELD",
+     "ORG-AMI"
+    ],
+    "relations": []
+   },
+   "ORG-FIELD": {
+    "id": "ORG-FIELD",
+    "name": "MeterWorks Field Services",
+    "role": "contracted manual meter reading",
+    "objectives": [],
+    "stakeholders": [
+     "SH-FIELD"
+    ],
+    "processes": [],
+    "process_handoffs": [],
+    "data_assets": [
+     "DA-ROUTE"
+    ],
+    "external_dependencies": [],
+    "relations": []
+   },
+   "ORG-AMI": {
+    "id": "ORG-AMI",
+    "name": "Telemetrix AMI",
+    "role": "AMI network + MDMS vendor",
+    "objectives": [],
+    "stakeholders": [
+     "SH-AMI"
+    ],
+    "processes": [],
+    "process_handoffs": [],
+    "data_assets": [
+     "DA-MDMS"
+    ],
+    "external_dependencies": [],
+    "relations": []
+   }
+  },
+  "stakeholders": {
+   "SH-CS": {
+    "id": "SH-CS",
+    "organization_id": "ORG-UTIL",
+    "role": "Customer Service Director (requester)",
+    "responsibilities": [
+     "dispute tickets",
+     "response SLA"
+    ],
+    "process_steps": [],
+    "knowledge_scope": [],
+    "authority_scope": [
+     "ticket_response_templates"
+    ],
+    "incentives": [
+     "lower ticket backlog"
+    ],
+    "potential_bias": [
+     "frames the issue as a response-speed problem"
+    ],
+    "interview_status": "NOT_INTERVIEWED",
+    "information_topics": [
+     "ticket volume",
+     "response times"
+    ]
+   },
+   "SH-FIELD": {
+    "id": "SH-FIELD",
+    "organization_id": "ORG-FIELD",
+    "role": "Field Operations Manager",
+    "responsibilities": [
+     "manual read routes"
+    ],
+    "process_steps": [],
+    "knowledge_scope": [],
+    "authority_scope": [
+     "field_dispatch_routes"
+    ],
+    "incentives": [
+     "contract headcount increase"
+    ],
+    "potential_bias": [
+     "attributes problems to staffing"
+    ],
+    "interview_status": "NOT_INTERVIEWED",
+    "information_topics": [
+     "route completion",
+     "staffing"
+    ]
+   },
+   "SH-BILL": {
+    "id": "SH-BILL",
+    "organization_id": "ORG-UTIL",
+    "role": "Billing Operations Lead",
+    "responsibilities": [
+     "bill runs",
+     "manual adjustments"
+    ],
+    "process_steps": [],
+    "knowledge_scope": [],
+    "authority_scope": [
+     "billing_adjustments_manual"
+    ],
+    "incentives": [],
+    "potential_bias": [],
+    "interview_status": "NOT_INTERVIEWED",
+    "information_topics": [
+     "read types",
+     "tariffs",
+     "bill runs"
+    ]
+   },
+   "SH-AMI": {
+    "id": "SH-AMI",
+    "organization_id": "ORG-AMI",
+    "role": "AMI Program Engineer",
+    "responsibilities": [
+     "AMI network",
+     "MDMS exports"
+    ],
+    "process_steps": [],
+    "knowledge_scope": [],
+    "authority_scope": [],
+    "incentives": [],
+    "potential_bias": [],
+    "interview_status": "NOT_INTERVIEWED",
+    "information_topics": [
+     "AMI read delivery",
+     "MDMS"
+    ]
+   }
+  },
+  "processes": {
+   "P-M2C": {
+    "id": "P-M2C",
+    "name": "meter-to-cash",
+    "organization_ids": [
+     "ORG-UTIL",
+     "ORG-FIELD",
+     "ORG-AMI"
+    ],
+    "purpose": "turn meter reads into bills",
+    "trigger": "monthly bill cycle",
+    "inputs": [],
+    "outputs": [],
+    "steps": [
+     "read collection (AMI interval read or field manual read)",
+     "MDMS validation",
+     "billing import + validation",
+     "estimate substitution when no accepted read",
+     "bill issue",
+     "dispute ticket"
+    ],
+    "actors": [
+     "SH-FIELD",
+     "SH-AMI",
+     "SH-BILL",
+     "SH-CS"
+    ],
+    "systems": [
+     "MDMS",
+     "billing system",
+     "CRM",
+     "field dispatch"
+    ],
+    "data_assets": [
+     "DA-BILL",
+     "DA-TICKET",
+     "DA-ROUTE",
+     "DA-MDMS",
+     "DA-RULES"
+    ],
+    "handoff_ids": [
+     "H-FIELD-BILL",
+     "H-MDMS-BILL"
+    ],
+    "wait_points": [],
+    "manual_steps": [
+     "field manual reads"
+    ],
+    "duplicate_steps": [],
+    "failure_points": [],
+    "metrics": [],
+    "pain_points": [
+     "dispute surge since August"
+    ]
+   }
+  },
+  "process_handoffs": {
+   "H-FIELD-BILL": {
+    "id": "H-FIELD-BILL",
+    "process_id": "P-M2C",
+    "from_org": "ORG-FIELD",
+    "from_actor": null,
+    "to_org": "ORG-UTIL",
+    "to_actor": null,
+    "accountable_owner": null,
+    "trigger": "",
+    "payload": "manual meter reads",
+    "payload_schema": null,
+    "entity_identity_refs": [],
+    "channel": "daily upload",
+    "cadence": "",
+    "acknowledgments": [],
+    "delivery_status": "UNKNOWN",
+    "semantic_validity": "UNKNOWN",
+    "expected_latency": null,
+    "actual_latency": null,
+    "freshness_requirement": null,
+    "observed_data_age": null,
+    "version_lag": null,
+    "freshness_status": "NOT_EVALUATED",
+    "manual_or_automated": "manual",
+    "authority_boundary": null,
+    "failure_modes": [],
+    "evidence_refs": [],
+    "metric_refs": [],
+    "status": "ACTIVE"
+   },
+   "H-MDMS-BILL": {
+    "id": "H-MDMS-BILL",
+    "process_id": "P-M2C",
+    "from_org": "ORG-AMI",
+    "from_actor": null,
+    "to_org": "ORG-UTIL",
+    "to_actor": null,
+    "accountable_owner": null,
+    "trigger": "",
+    "payload": "AMI register reads",
+    "payload_schema": null,
+    "entity_identity_refs": [],
+    "channel": "nightly export",
+    "cadence": "",
+    "acknowledgments": [],
+    "delivery_status": "UNKNOWN",
+    "semantic_validity": "UNKNOWN",
+    "expected_latency": null,
+    "actual_latency": null,
+    "freshness_requirement": null,
+    "observed_data_age": null,
+    "version_lag": null,
+    "freshness_status": "NOT_EVALUATED",
+    "manual_or_automated": "automated",
+    "authority_boundary": null,
+    "failure_modes": [],
+    "evidence_refs": [],
+    "metric_refs": [],
+    "status": "ACTIVE"
+   }
+  },
+  "entity_identities": {},
+  "canonical_mappings": {},
+  "data_assets": {
+   "DA-BILL": {
+    "id": "DA-BILL",
+    "name": "billing system bills + read types",
+    "organization_id": "ORG-UTIL",
+    "source": "billing-db",
+    "source_type": "",
+    "format": "",
+    "acquisition": "",
+    "raw_reference": null,
+    "schema": {},
+    "quality": {
+     "completeness": "GOOD",
+     "validity": "GOOD",
+     "consistency": "GOOD",
+     "uniqueness": "GOOD",
+     "timeliness": "UNKNOWN",
+     "interpretability": "GOOD"
+    },
+    "issues": [],
+    "transformations": [],
+    "normalized_reference": null,
+    "validation": {},
+    "provenance": null,
+    "used_by": [],
+    "completeness": "COMPLETE",
+    "authority": "AUTHORITATIVE",
+    "is_fallback": false
+   },
+   "DA-TICKET": {
+    "id": "DA-TICKET",
+    "name": "CRM dispute tickets",
+    "organization_id": "ORG-UTIL",
+    "source": "crm-tickets",
+    "source_type": "",
+    "format": "",
+    "acquisition": "",
+    "raw_reference": null,
+    "schema": {},
+    "quality": {
+     "completeness": "UNKNOWN",
+     "validity": "UNKNOWN",
+     "consistency": "UNKNOWN",
+     "uniqueness": "UNKNOWN",
+     "timeliness": "UNKNOWN",
+     "interpretability": "UNKNOWN"
+    },
+    "issues": [],
+    "transformations": [],
+    "normalized_reference": null,
+    "validation": {},
+    "provenance": null,
+    "used_by": [],
+    "completeness": "UNKNOWN",
+    "authority": "AUTHORITATIVE",
+    "is_fallback": false
+   },
+   "DA-ROUTE": {
+    "id": "DA-ROUTE",
+    "name": "field route completion log",
+    "organization_id": "ORG-FIELD",
+    "source": "route-log",
+    "source_type": "",
+    "format": "",
+    "acquisition": "",
+    "raw_reference": null,
+    "schema": {},
+    "quality": {
+     "completeness": "GOOD",
+     "validity": "GOOD",
+     "consistency": "GOOD",
+     "uniqueness": "GOOD",
+     "timeliness": "UNKNOWN",
+     "interpretability": "GOOD"
+    },
+    "issues": [],
+    "transformations": [],
+    "normalized_reference": null,
+    "validation": {},
+    "provenance": null,
+    "used_by": [],
+    "completeness": "COMPLETE",
+    "authority": "AUTHORITATIVE",
+    "is_fallback": false
+   },
+   "DA-MDMS": {
+    "id": "DA-MDMS",
+    "name": "MDMS AMI read event log (system of record for AMI reads)",
+    "organization_id": "ORG-AMI",
+    "source": "mdms-export",
+    "source_type": "",
+    "format": "",
+    "acquisition": "vendor must provision export access",
+    "raw_reference": null,
+    "schema": {},
+    "quality": {
+     "completeness": "GOOD",
+     "validity": "GOOD",
+     "consistency": "GOOD",
+     "uniqueness": "GOOD",
+     "timeliness": "UNKNOWN",
+     "interpretability": "GOOD"
+    },
+    "issues": [],
+    "transformations": [],
+    "normalized_reference": null,
+    "validation": {},
+    "provenance": null,
+    "used_by": [],
+    "completeness": "COMPLETE",
+    "authority": "AUTHORITATIVE",
+    "is_fallback": false
+   },
+   "DA-RULES": {
+    "id": "DA-RULES",
+    "name": "billing import validation rule change log",
+    "organization_id": "ORG-UTIL",
+    "source": "billing-config",
+    "source_type": "",
+    "format": "",
+    "acquisition": "",
+    "raw_reference": null,
+    "schema": {},
+    "quality": {
+     "completeness": "UNKNOWN",
+     "validity": "UNKNOWN",
+     "consistency": "UNKNOWN",
+     "uniqueness": "UNKNOWN",
+     "timeliness": "UNKNOWN",
+     "interpretability": "UNKNOWN"
+    },
+    "issues": [],
+    "transformations": [],
+    "normalized_reference": null,
+    "validation": {},
+    "provenance": null,
+    "used_by": [],
+    "completeness": "UNKNOWN",
+    "authority": "AUTHORITATIVE",
+    "is_fallback": false
+   }
+  },
+  "metrics": {
+   "M-EST-SHARE": {
+    "id": "M-EST-SHARE",
+    "name": "estimated share of disputed bills",
+    "metric_type": "RATE",
+    "purpose": "",
+    "definition": "",
+    "measurement_source": "",
+    "reliability": "UNKNOWN",
+    "profile": "EXTENDED",
+    "organization_id": null,
+    "start_event": null,
+    "end_event": null,
+    "population": null,
+    "numerator": "disputed bills with ESTIMATED read type",
+    "denominator": "disputed bills",
+    "aggregation": null,
+    "measurement_window": "bill cycle",
+    "exclusions": [],
+    "owner": "ORG-UTIL",
+    "current_value": 0.41,
+    "target_value": 0.1,
+    "related_handoff": null,
+    "current_value_is_speculative": false
+   },
+   "M-VOLUME": {
+    "id": "M-VOLUME",
+    "name": "dispute tickets per month",
+    "metric_type": "COUNT",
+    "purpose": "",
+    "definition": "",
+    "measurement_source": "",
+    "reliability": "UNKNOWN",
+    "profile": "EXTENDED",
+    "organization_id": null,
+    "start_event": null,
+    "end_event": null,
+    "population": null,
+    "numerator": null,
+    "denominator": null,
+    "aggregation": null,
+    "measurement_window": "month",
+    "exclusions": [],
+    "owner": "ORG-UTIL",
+    "current_value": 1260,
+    "target_value": 600,
+    "related_handoff": null,
+    "current_value_is_speculative": false
+   },
+   "M-DETECT": {
+    "id": "M-DETECT",
+    "name": "detection recall of v4.2 rejected-read disputes",
+    "metric_type": "RATE",
+    "purpose": "",
+    "definition": "",
+    "measurement_source": "",
+    "reliability": "UNKNOWN",
+    "profile": "EXTENDED",
+    "organization_id": null,
+    "start_event": null,
+    "end_event": null,
+    "population": null,
+    "numerator": "affected accounts queued",
+    "denominator": "affected accounts per MDMS x billing import",
+    "aggregation": null,
+    "measurement_window": "Aug-Sep",
+    "exclusions": [],
+    "owner": "ORG-UTIL",
+    "current_value": null,
+    "target_value": 0.95,
+    "related_handoff": null,
+    "current_value_is_speculative": false
+   }
+  },
+  "facts": {},
+  "claims": {
+   "CL-CS-SLOW": {
+    "id": "CL-CS-SLOW",
+    "stakeholder_id": "SH-CS",
+    "statement": "Customers wait too long for answers on disputes; an agent that answers instantly would fix it.",
+    "assertion": "dispute_response.too_slow",
+    "value": true,
+    "evidence_refs": [
+     "E-CRM-SLA"
+    ],
+    "status": "CONTRADICTED",
+    "is_initial_request": true
+   },
+   "CL-FIELD-CAUSE": {
+    "id": "CL-FIELD-CAUSE",
+    "stakeholder_id": "SH-FIELD",
+    "statement": "We are short three readers since July; routes run late, so those customers get estimated bills.",
+    "assertion": "disputed_estimates.cause",
+    "value": "missed_field_read",
+    "evidence_refs": [
+     "E-MDMS"
+    ],
+    "status": "CONTRADICTED",
+    "is_initial_request": false
+   },
+   "CL-BILL-TARIFF": {
+    "id": "CL-BILL-TARIFF",
+    "stakeholder_id": "SH-BILL",
+    "statement": "There has been no tariff change this year.",
+    "assertion": "tariff.changed_2026",
+    "value": false,
+    "evidence_refs": [],
+    "status": "UNVERIFIED",
+    "is_initial_request": false
+   }
+  },
+  "hypotheses": {
+   "H-SLOW": {
+    "id": "H-SLOW",
+    "statement": "slow dispute responses cause escalations (requester framing)",
+    "supporting_evidence": [],
+    "contradicting_evidence": [
+     "E-CRM-SLA"
+    ],
+    "status": "REJECTED",
+    "decision_impact": "MEDIUM",
+    "discriminating_actions": []
+   },
+   "H-READS": {
+    "id": "H-READS",
+    "statement": "missed/late field reads -> estimated bills -> disputes",
+    "supporting_evidence": [
+     "E-BILL-READTYPE",
+     "E-ROUTE",
+     "E-FIELD-STMT"
+    ],
+    "contradicting_evidence": [
+     "E-MDMS"
+    ],
+    "status": "SUPPORTED",
+    "decision_impact": "HIGH",
+    "discriminating_actions": []
+   },
+   "H-TARIFF": {
+    "id": "H-TARIFF",
+    "statement": "a tariff change caused bill shock",
+    "supporting_evidence": [],
+    "contradicting_evidence": [
+     "E-TARIFF"
+    ],
+    "status": "REJECTED",
+    "decision_impact": "LOW",
+    "discriminating_actions": []
+   },
+   "H-VALIDATION": {
+    "id": "H-VALIDATION",
+    "statement": "BV-17 rejects valid firmware-v4.2 AMI reads (unit scale) and substitutes estimates",
+    "supporting_evidence": [
+     "E-MDMS",
+     "E-RULES",
+     "E-UNITS"
+    ],
+    "contradicting_evidence": [],
+    "status": "SUPPORTED",
+    "decision_impact": "CRITICAL",
+    "discriminating_actions": []
+   }
+  },
+  "evidence": {
+   "E-BILL-READTYPE": {
+    "id": "E-BILL-READTYPE",
+    "source_type": "TOOL",
+    "source_id": "billing-db",
+    "provenance": {
+     "source_type": "TOOL",
+     "source_id": "billing-db",
+     "method": "disputed_bills_by_read_type",
+     "derived_from": [],
+     "event_seq": 8,
+     "recorded_at_minute": 18.0
+    },
+    "content": "billing: 1,240 of 3,025 disputed bills (41%) carry read type ESTIMATED",
+    "target_assertion": "disputed_bills.estimated_share",
+    "value": 0.41,
+    "relation": "SUPPORTS",
+    "reliability": "HIGH",
+    "extraction_confidence": "UNKNOWN",
+    "completeness": "COMPLETE",
+    "authority": "AUTHORITATIVE",
+    "interpretation_history": [
+     {
+      "interpretation": "ESTIMATED read type does not mean no read was collected: 1,184/1,240 had valid AMI reads rejected at billing import",
+      "reason": "revised by E-MDMS",
+      "event_seq": null
+     }
+    ],
+    "status": "REVISED",
+    "is_fallback": false,
+    "hidden_ground_truth": false
+   },
+   "E-TARIFF": {
+    "id": "E-TARIFF",
+    "source_type": "TOOL",
+    "source_id": "billing-db",
+    "provenance": {
+     "source_type": "TOOL",
+     "source_id": "billing-db",
+     "method": "tariff_change_log",
+     "derived_from": [],
+     "event_seq": 14,
+     "recorded_at_minute": 21.0
+    },
+    "content": "billing: no tariff change records in 2026",
+    "target_assertion": "tariff.changed_2026",
+    "value": false,
+    "relation": "SUPPORTS",
+    "reliability": "HIGH",
+    "extraction_confidence": "UNKNOWN",
+    "completeness": "COMPLETE",
+    "authority": "AUTHORITATIVE",
+    "interpretation_history": [],
+    "status": "ACTIVE",
+    "is_fallback": false,
+    "hidden_ground_truth": false
+   },
+   "E-CRM-SLA": {
+    "id": "E-CRM-SLA",
+    "source_type": "TOOL",
+    "source_id": "crm-tickets",
+    "provenance": {
+     "source_type": "TOOL",
+     "source_id": "crm-tickets",
+     "method": "dispute_response_times",
+     "derived_from": [],
+     "event_seq": 21,
+     "recorded_at_minute": 26.0
+    },
+    "content": "CRM: dispute response median 1.6d, p90 2.8d, SLA 3d (2,440 tickets)",
+    "target_assertion": "dispute_response.too_slow",
+    "value": false,
+    "relation": "SUPPORTS",
+    "reliability": "HIGH",
+    "extraction_confidence": "UNKNOWN",
+    "completeness": "COMPLETE",
+    "authority": "AUTHORITATIVE",
+    "interpretation_history": [],
+    "status": "ACTIVE",
+    "is_fallback": false,
+    "hidden_ground_truth": false
+   },
+   "E-ROUTE": {
+    "id": "E-ROUTE",
+    "source_type": "TOOL",
+    "source_id": "route-log",
+    "provenance": {
+     "source_type": "TOOL",
+     "source_id": "route-log",
+     "method": "route_completion_aug_sep",
+     "derived_from": [],
+     "event_seq": 29,
+     "recorded_at_minute": 31.0
+    },
+    "content": "route log: manual route completion 88% vs 95% target in Aug-Sep (9,200 manual-read accounts)",
+    "target_assertion": "manual_routes.completion",
+    "value": 0.88,
+    "relation": "SUPPORTS",
+    "reliability": "HIGH",
+    "extraction_confidence": "UNKNOWN",
+    "completeness": "COMPLETE",
+    "authority": "AUTHORITATIVE",
+    "interpretation_history": [
+     {
+      "interpretation": "route shortfall is real but the disputed estimated accounts are AMI accounts, not manual-read routes: not causal",
+      "reason": "revised by E-MDMS",
+      "event_seq": null
+     }
+    ],
+    "status": "REVISED",
+    "is_fallback": false,
+    "hidden_ground_truth": false
+   },
+   "E-VOLUME": {
+    "id": "E-VOLUME",
+    "source_type": "TOOL",
+    "source_id": "crm-tickets",
+    "provenance": {
+     "source_type": "TOOL",
+     "source_id": "crm-tickets",
+     "method": "dispute_volume_monthly",
+     "derived_from": [],
+     "event_seq": 42,
+     "recorded_at_minute": 39.0
+    },
+    "content": "CRM: disputes/month 610, 590 (Jun-Jul) -> 1180, 1260 (Aug-Sep)",
+    "target_assertion": "disputes.surge_since_aug",
+    "value": true,
+    "relation": "SUPPORTS",
+    "reliability": "HIGH",
+    "extraction_confidence": "UNKNOWN",
+    "completeness": "COMPLETE",
+    "authority": "AUTHORITATIVE",
+    "interpretation_history": [],
+    "status": "ACTIVE",
+    "is_fallback": false,
+    "hidden_ground_truth": false
+   },
+   "E-FIELD-STMT": {
+    "id": "E-FIELD-STMT",
+    "source_type": "STAKEHOLDER",
+    "source_id": "SH-FIELD",
+    "provenance": {
+     "source_type": "STAKEHOLDER",
+     "source_id": "SH-FIELD",
+     "method": "interview",
+     "derived_from": [],
+     "event_seq": null,
+     "recorded_at_minute": null
+    },
+    "content": "We are short three readers since July; routes run late, so those customers get estimated bills.",
+    "target_assertion": "disputed_estimates.cause",
+    "value": "missed_field_read",
+    "relation": "SUPPORTS",
+    "reliability": "UNKNOWN",
+    "extraction_confidence": "UNKNOWN",
+    "completeness": "NOT_APPLICABLE",
+    "authority": "NON_AUTHORITATIVE",
+    "interpretation_history": [],
+    "status": "ACTIVE",
+    "is_fallback": false,
+    "hidden_ground_truth": false
+   },
+   "E-BILL-STMT": {
+    "id": "E-BILL-STMT",
+    "source_type": "STAKEHOLDER",
+    "source_id": "SH-BILL",
+    "provenance": {
+     "source_type": "STAKEHOLDER",
+     "source_id": "SH-BILL",
+     "method": "interview",
+     "derived_from": [],
+     "event_seq": null,
+     "recorded_at_minute": null
+    },
+    "content": "There has been no tariff change this year.",
+    "target_assertion": "tariff.changed_2026",
+    "value": false,
+    "relation": "SUPPORTS",
+    "reliability": "UNKNOWN",
+    "extraction_confidence": "UNKNOWN",
+    "completeness": "NOT_APPLICABLE",
+    "authority": "NON_AUTHORITATIVE",
+    "interpretation_history": [],
+    "status": "ACTIVE",
+    "is_fallback": false,
+    "hidden_ground_truth": false
+   },
+   "E-CONTRACT": {
+    "id": "E-CONTRACT",
+    "source_type": "DOCUMENT",
+    "source_id": "fieldco-service-contract",
+    "provenance": {
+     "source_type": "DOCUMENT",
+     "source_id": "fieldco-service-contract",
+     "method": "document review",
+     "derived_from": [],
+     "event_seq": null,
+     "recorded_at_minute": null
+    },
+    "content": "Service contract §4.2: utility may request route priority changes; executed after Field Operations Manager confirmation.",
+    "target_assertion": null,
+    "value": null,
+    "relation": "SUPPORTS",
+    "reliability": "UNKNOWN",
+    "extraction_confidence": "UNKNOWN",
+    "completeness": "NOT_APPLICABLE",
+    "authority": "AUTHORITATIVE",
+    "interpretation_history": [],
+    "status": "ACTIVE",
+    "is_fallback": false,
+    "hidden_ground_truth": false
+   },
+   "E-AMI-NOTICE": {
+    "id": "E-AMI-NOTICE",
+    "source_type": "STAKEHOLDER",
+    "source_id": "SH-AMI",
+    "provenance": {
+     "source_type": "STAKEHOLDER",
+     "source_id": "SH-AMI",
+     "method": "interview",
+     "derived_from": [],
+     "event_seq": null,
+     "recorded_at_minute": null
+    },
+    "content": "MDMS export access for Lakeside is provisioned as of today (vendor ticket TX-4471).",
+    "target_assertion": null,
+    "value": null,
+    "relation": "SUPPORTS",
+    "reliability": "UNKNOWN",
+    "extraction_confidence": "UNKNOWN",
+    "completeness": "NOT_APPLICABLE",
+    "authority": "NON_AUTHORITATIVE",
+    "interpretation_history": [],
+    "status": "ACTIVE",
+    "is_fallback": false,
+    "hidden_ground_truth": false
+   },
+   "E-MDMS": {
+    "id": "E-MDMS",
+    "source_type": "TOOL",
+    "source_id": "mdms-export",
+    "provenance": {
+     "source_type": "TOOL",
+     "source_id": "mdms-export",
+     "method": "read_events_for_disputed_estimated",
+     "derived_from": [],
+     "event_seq": 104,
+     "recorded_at_minute": 135.0
+    },
+    "content": "MDMS system of record: for 1,184 of 1,240 ESTIMATED disputed bills a valid AMI read arrived before billing cutoff and was exported; billing import status REJECTED_HIGH_CONSUMPTION; all 1,184 are firmware v4.2 AMI meters (not manual-read routes). 56 had no read received.",
+    "target_assertion": "disputed_estimates.cause",
+    "value": "ami_read_rejected_at_billing_import",
+    "relation": "SUPPORTS",
+    "reliability": "HIGH",
+    "extraction_confidence": "UNKNOWN",
+    "completeness": "COMPLETE",
+    "authority": "AUTHORITATIVE",
+    "interpretation_history": [],
+    "status": "ACTIVE",
+    "is_fallback": false,
+    "hidden_ground_truth": false
+   },
+   "E-UNITS": {
+    "id": "E-UNITS",
+    "source_type": "TOOL",
+    "source_id": "mdms-export",
+    "provenance": {
+     "source_type": "TOOL",
+     "source_id": "mdms-export",
+     "method": "meter_firmware_units",
+     "derived_from": [],
+     "event_seq": 125,
+     "recorded_at_minute": 137.0
+    },
+    "content": "MDMS: firmware v4.2 reports registers in 0.1 m3 units (rollout 2026-06); v3.x in m3",
+    "target_assertion": "meter.v42_register_unit",
+    "value": "0.1 m3",
+    "relation": "SUPPORTS",
+    "reliability": "HIGH",
+    "extraction_confidence": "UNKNOWN",
+    "completeness": "COMPLETE",
+    "authority": "AUTHORITATIVE",
+    "interpretation_history": [],
+    "status": "ACTIVE",
+    "is_fallback": false,
+    "hidden_ground_truth": false
+   },
+   "E-RULES": {
+    "id": "E-RULES",
+    "source_type": "TOOL",
+    "source_id": "billing-config",
+    "provenance": {
+     "source_type": "TOOL",
+     "source_id": "billing-config",
+     "method": "validation_rule_changes",
+     "derived_from": [],
+     "event_seq": 132,
+     "recorded_at_minute": 140.0
+    },
+    "content": "billing config: BV-17 deployed 2026-08-01 compares raw register value with 12-month m3 history; unit_scaling = none",
+    "target_assertion": "billing.bv17_unit_scaling",
+    "value": "none",
+    "relation": "SUPPORTS",
+    "reliability": "HIGH",
+    "extraction_confidence": "UNKNOWN",
+    "completeness": "COMPLETE",
+    "authority": "AUTHORITATIVE",
+    "interpretation_history": [],
+    "status": "ACTIVE",
+    "is_fallback": false,
+    "hidden_ground_truth": false
+   }
+  },
+  "evidence_revisions": {
+   "ER-1": {
+    "id": "ER-1",
+    "evidence_id": "E-BILL-READTYPE",
+    "revised_by": "E-MDMS",
+    "previous_interpretation": "billing: 1,240 of 3,025 disputed bills (41%) carry read type ESTIMATED",
+    "revised_interpretation": "ESTIMATED read type does not mean no read was collected: 1,184/1,240 had valid AMI reads rejected at billing import",
+    "invalidates_problem": true,
+    "event_seq": 110
+   },
+   "ER-2": {
+    "id": "ER-2",
+    "evidence_id": "E-ROUTE",
+    "revised_by": "E-MDMS",
+    "previous_interpretation": "route log: manual route completion 88% vs 95% target in Aug-Sep (9,200 manual-read accounts)",
+    "revised_interpretation": "route shortfall is real but the disputed estimated accounts are AMI accounts, not manual-read routes: not causal",
+    "invalidates_problem": true,
+    "event_seq": 112
+   }
+  },
+  "unknowns": {
+   "U-ROUTE-IMPACT": {
+    "id": "U-ROUTE-IMPACT",
+    "question": "Does prioritizing lagging routes cut the estimated share within one cycle?",
+    "criticality": "HIGH",
+    "decision_impact": "decides whether route prioritization is the fix",
+    "affects_scope": {
+     "items": [],
+     "entire_solution": false
+    },
+    "resolution_path": "compare next-cycle estimated share on prioritized vs other routes",
+    "safe_placeholder": "ship route prioritization without an impact claim",
+    "status": "DEFERRED",
+    "deferred_to_vob": "VOB-U-ROUTE-IMPACT",
+    "resolution": null
+   },
+   "U-TAG": {
+    "id": "U-TAG",
+    "question": "Is the CRM DISPUTE_BILLING tag applied consistently (agents may tag GENERAL)?",
+    "criticality": "HIGH",
+    "decision_impact": "dispute KPI denominator",
+    "affects_scope": {
+     "items": [
+      {
+       "action": "publish_dispute_kpi",
+       "target": "*"
+      }
+     ],
+     "entire_solution": false
+    },
+    "resolution_path": "audit sample of 200 tickets",
+    "safe_placeholder": "publish KPI marked provisional",
+    "status": "DEFERRED",
+    "deferred_to_vob": "VOB-U-TAG",
+    "resolution": null
+   },
+   "U-SCALE": {
+    "id": "U-SCALE",
+    "question": "Does scaling v4.2 reads by 0.1 give correct consumption for every v4.2 meter, including genuine high-usage / leak cases?",
+    "criticality": "CRITICAL",
+    "decision_impact": "corrected-read proposals / re-bill",
+    "affects_scope": {
+     "items": [
+      {
+       "action": "compute_corrected_read_proposals",
+       "target": "*"
+      }
+     ],
+     "entire_solution": false
+    },
+    "resolution_path": "Billing Ops validates a 50-account sample against field check reads",
+    "safe_placeholder": "release detection + classification + manual escalation only; no corrected values",
+    "status": "DEFERRED",
+    "deferred_to_vob": "VOB-U-SCALE",
+    "resolution": null
+   }
+  },
+  "conflicts": {
+   "C-1": {
+    "id": "C-1",
+    "type": "DATA_CONFLICT",
+    "side_a": "CL-CS-SLOW",
+    "side_b": "E-CRM-SLA",
+    "assertion": "dispute_response.too_slow",
+    "decision_impact": "MEDIUM",
+    "gate_blocking": false,
+    "evidence_refs": [
+     "E-CRM-SLA"
+    ],
+    "resolution_strategy": null,
+    "status": "OPEN",
+    "affects_scope": {
+     "items": [],
+     "entire_solution": false
+    }
+   },
+   "C-2": {
+    "id": "C-2",
+    "type": "DATA_CONFLICT",
+    "side_a": "CL-FIELD-CAUSE",
+    "side_b": "E-MDMS",
+    "assertion": "disputed_estimates.cause",
+    "decision_impact": "MEDIUM",
+    "gate_blocking": false,
+    "evidence_refs": [
+     "E-MDMS"
+    ],
+    "resolution_strategy": null,
+    "status": "OPEN",
+    "affects_scope": {
+     "items": [],
+     "entire_solution": false
+    }
+   },
+   "C-3": {
+    "id": "C-3",
+    "type": "DATA_CONFLICT",
+    "side_a": "E-FIELD-STMT",
+    "side_b": "E-MDMS",
+    "assertion": "disputed_estimates.cause",
+    "decision_impact": "MEDIUM",
+    "gate_blocking": false,
+    "evidence_refs": [
+     "E-FIELD-STMT",
+     "E-MDMS"
+    ],
+    "resolution_strategy": null,
+    "status": "OPEN",
+    "affects_scope": {
+     "items": [],
+     "entire_solution": false
+    }
+   }
+  },
+  "assumptions": {
+   "A-EST-MEANS-NOREAD": {
+    "id": "A-EST-MEANS-NOREAD",
+    "statement": "read type ESTIMATED means no meter read was collected for the cycle",
+    "basis": "billing practice (SH-BILL), E-BILL-READTYPE",
+    "risk_if_wrong": "HIGH",
+    "status": "ACTIVE",
+    "linked_vob": null
+   }
+  },
+  "goals": {
+   "G-1": {
+    "id": "G-1",
+    "statement": "dispute volume back to pre-August baseline with correct bills",
+    "owner": "ORG-UTIL"
+   }
+  },
+  "constraints": {
+   "K-DISPATCH": {
+    "id": "K-DISPATCH",
+    "type": "HUMAN_APPROVAL",
+    "description": "Changes to field dispatch routes are executed only after runtime confirmation by the Field Operations Manager (service contract §4.2).",
+    "actor": "SH-FIELD",
+    "protected_action": "push_route_update",
+    "enforcement": "block",
+    "approval_required": true,
+    "violation_behavior": "block",
+    "evidence_refs": [],
+    "status": "ACTIVE",
+    "criticality": "HIGH",
+    "runtime_confirmation_required": true
+   },
+   "K-BILLWRITE": {
+    "id": "K-BILLWRITE",
+    "type": "AUTHORITY",
+    "description": "Writes to customer bills (re-bill, credit) require Billing Operations authority; no automated bill writes.",
+    "actor": "SH-BILL",
+    "protected_action": "write_bill_adjustment",
+    "enforcement": "block",
+    "approval_required": true,
+    "violation_behavior": "block",
+    "evidence_refs": [],
+    "status": "ACTIVE",
+    "criticality": "HIGH",
+    "runtime_confirmation_required": false
+   }
+  },
+  "domain_authorizations": {
+   "DA-DISPATCH": {
+    "id": "DA-DISPATCH",
+    "action": "push_route_update",
+    "resource": "field-dispatch",
+    "subject": "ORG-UTIL",
+    "authority_holder": "SH-FIELD",
+    "authorized_scope": {
+     "items": [
+      {
+       "action": "push_route_update",
+       "target": "*"
+      }
+     ],
+     "entire_solution": false
+    },
+    "conditions": [],
+    "validity": null,
+    "evidence_refs": [
+     "E-CONTRACT"
+    ],
+    "status": "GRANTED"
+   }
+  },
+  "risks": {},
+  "success_criteria": {
+   "SC-EST-SHARE": {
+    "id": "SC-EST-SHARE",
+    "statement": "estimated share among disputed bills < 10% next cycle",
+    "metric_id": "M-EST-SHARE",
+    "threshold": "< 0.10",
+    "validation_method": "next-cycle billing extract",
+    "test_refs": [
+     "next_cycle_extract"
+    ]
+   },
+   "SC-VOLUME": {
+    "id": "SC-VOLUME",
+    "statement": "dispute tickets back to <= 600/month",
+    "metric_id": "M-VOLUME",
+    "threshold": "<= 600",
+    "validation_method": "CRM monthly count",
+    "test_refs": []
+   },
+   "SC-DETECT": {
+    "id": "SC-DETECT",
+    "statement": ">= 95% of affected v4.2 disputed accounts detected and queued for Billing Ops",
+    "metric_id": "M-DETECT",
+    "threshold": ">= 0.95",
+    "validation_method": "reconcile queue against MDMS x billing import status",
+    "test_refs": [
+     "detect_reconcile"
+    ]
+   }
+  },
+  "verification_obligations": {
+   "VOB-U-ROUTE-IMPACT": {
+    "id": "VOB-U-ROUTE-IMPACT",
+    "unresolved_question": "Does prioritizing lagging routes cut the estimated share within one cycle?",
+    "source_phase": "DEFINE",
+    "reason_deferred": "deferred at DEFINE Gate; safe placeholder: ship route prioritization without an impact claim",
+    "decision_impact": "HIGH",
+    "linked_assumption": null,
+    "linked_success_criterion": null,
+    "validation_method": "compare next-cycle estimated share on prioritized vs other routes",
+    "required_evidence": [],
+    "instrumentation_needed": [],
+    "owner": null,
+    "required_before": "BEFORE_PROTECTED_ACTION",
+    "blocking_scope": {
+     "items": [],
+     "entire_solution": true
+    },
+    "status": "OPEN",
+    "resolution": null,
+    "linked_unknown": "U-ROUTE-IMPACT"
+   },
+   "VOB-U-TAG": {
+    "id": "VOB-U-TAG",
+    "unresolved_question": "Is the CRM DISPUTE_BILLING tag applied consistently (agents may tag GENERAL)?",
+    "source_phase": "DEFINE",
+    "reason_deferred": "deferred at DEFINE Gate; safe placeholder: publish KPI marked provisional",
+    "decision_impact": "HIGH",
+    "linked_assumption": null,
+    "linked_success_criterion": null,
+    "validation_method": "audit sample of 200 tickets",
+    "required_evidence": [],
+    "instrumentation_needed": [],
+    "owner": null,
+    "required_before": "BEFORE_RELEASE",
+    "blocking_scope": {
+     "items": [
+      {
+       "action": "publish_dispute_kpi",
+       "target": "*"
+      }
+     ],
+     "entire_solution": false
+    },
+    "status": "OPEN",
+    "resolution": null,
+    "linked_unknown": "U-TAG"
+   },
+   "VOB-U-SCALE": {
+    "id": "VOB-U-SCALE",
+    "unresolved_question": "Does scaling v4.2 reads by 0.1 give correct consumption for every v4.2 meter, including genuine high-usage / leak cases?",
+    "source_phase": "DEFINE",
+    "reason_deferred": "deferred at DEFINE Gate; safe placeholder: release detection + classification + manual escalation only; no corrected values",
+    "decision_impact": "CRITICAL",
+    "linked_assumption": null,
+    "linked_success_criterion": null,
+    "validation_method": "Billing Ops validates a 50-account sample against field check reads",
+    "required_evidence": [],
+    "instrumentation_needed": [],
+    "owner": null,
+    "required_before": "BEFORE_RELEASE",
+    "blocking_scope": {
+     "items": [
+      {
+       "action": "compute_corrected_read_proposals",
+       "target": "*"
+      }
+     ],
+     "entire_solution": false
+    },
+    "status": "OPEN",
+    "resolution": null,
+    "linked_unknown": "U-SCALE"
+   }
+  },
+  "problem_definition": {
+   "id": "PD-1",
+   "version": 2,
+   "requested_solution": "AI agent that auto-answers billing dispute tickets",
+   "symptoms": [
+    "dispute tickets doubled since August",
+    "41% of disputed bills are ESTIMATED"
+   ],
+   "root_problem": "Billing import validation rule BV-17 (deployed 08-01) compares firmware-v4.2 AMI register values (0.1 m3 units) with m3 history without unit scaling, rejects valid on-time AMI reads as HIGH_CONSUMPTION and substitutes estimates; the estimated bills drive the dispute surge.",
+   "evidence_refs": [
+    "E-MDMS",
+    "E-RULES",
+    "E-UNITS",
+    "E-VOLUME"
+   ],
+   "intended_scope": [
+    {
+     "action": "detect_validation_rejections",
+     "target": "DA-BILL"
+    },
+    {
+     "action": "classify_affected_accounts",
+     "target": "firmware-v4.2"
+    },
+    {
+     "action": "escalate_rebill_queue",
+     "target": "billing-ops"
+    },
+    {
+     "action": "compute_corrected_read_proposals",
+     "target": "firmware-v4.2"
+    },
+    {
+     "action": "publish_dispute_kpi",
+     "target": "mgmt-dashboard"
+    }
+   ],
+   "protected_actions": [],
+   "depends_on_mappings": [],
+   "depends_on_handoffs": [],
+   "depends_on_exports": [],
+   "required_tools": [
+    "billing-db",
+    "mdms-export"
+   ],
+   "success_criteria": [
+    "SC-EST-SHARE",
+    "SC-DETECT"
+   ],
+   "metric_ids": [
+    "M-EST-SHARE",
+    "M-DETECT"
+   ],
+   "status": "ACTIVE",
+   "gate_result": "CONDITIONAL_PASS",
+   "invalidated_by": []
+  },
+  "solution_design": {
+   "id": "SD-2",
+   "problem_ref": "PD-1",
+   "problem_version": 2,
+   "trace": [
+    {
+     "stage": "ROOT_PROBLEM",
+     "summary": "Billing import validation rule BV-17 (deployed 08-01) compares firmware-v4.2 AMI register values (0.1 m3 units) with m3 history without unit scaling, rejects valid on-time AMI reads as HIGH_CONSUMPTION and substitutes estimates; the estimated bills drive the dispute surge.",
+     "details": {
+      "requested_solution": "AI agent that auto-answers billing dispute tickets"
+     }
+    },
+    {
+     "stage": "STRUCTURAL_REMEDY",
+     "summary": "1 candidate(s)",
+     "details": {
+      "removes_root_cause": [
+       "SR-BV17"
+      ]
+     }
+    },
+    {
+     "stage": "FEASIBILITY",
+     "summary": "removes_root_cause=True feasible_in_time=False",
+     "details": {}
+    },
+    {
+     "stage": "WHY_AGENT",
+     "summary": "explain affected accounts to Billing Ops / customers in plain language",
+     "details": {}
+    },
+    {
+     "stage": "AGENT_ROLE",
+     "summary": "BRIDGE, CONTROL_DETECTION, EXCEPTION_HANDLER",
+     "details": {}
+    },
+    {
+     "stage": "AGENTIFICATION_GATE",
+     "summary": "agent_justified=True",
+     "details": {}
+    }
+   ],
+   "structural_remedies": [
+    {
+     "id": "SR-BV17",
+     "description": "billing vendor patches BV-17 to apply firmware register-unit scaling (H-MDMS-BILL contract)",
+     "removes_root_cause": true,
+     "feasible_in_contest_time": false,
+     "constraint_feasible": true,
+     "rationale": "vendor release cycle exceeds contest time"
+    }
+   ],
+   "deterministic_components": [
+    "MDMS x billing import join",
+    "firmware v4.2 classifier"
+   ],
+   "why_agent": "explain affected accounts to Billing Ops / customers in plain language",
+   "agent_roles": [
+    "BRIDGE",
+    "CONTROL_DETECTION",
+    "EXCEPTION_HANDLER"
+   ],
+   "bridge_sunset_condition": "BV-17 patched and one clean bill cycle",
+   "agentification": {
+    "structural_change_removes_root_cause": true,
+    "structural_change_feasible_in_time": false,
+    "deterministic_rules_cover_cases": true,
+    "llm_reasoning_adds_value": true,
+    "autonomous_iteration_adds_value": false,
+    "agent_justified": true,
+    "rationale": "single-pass agent"
+   },
+   "release_scope": [
+    {
+     "action": "detect_validation_rejections",
+     "target": "DA-BILL"
+    },
+    {
+     "action": "classify_affected_accounts",
+     "target": "firmware-v4.2"
+    },
+    {
+     "action": "escalate_rebill_queue",
+     "target": "billing-ops"
+    }
+   ],
+   "minimum_useful_scope": [
+    {
+     "action": "detect_validation_rejections",
+     "target": "DA-BILL"
+    },
+    {
+     "action": "classify_affected_accounts",
+     "target": "firmware-v4.2"
+    },
+    {
+     "action": "escalate_rebill_queue",
+     "target": "billing-ops"
+    }
+   ],
+   "unfinished_scope": [
+    "billing vendor patches BV-17 to apply firmware register-unit scaling (H-MDMS-BILL contract)"
+   ],
+   "scope_dependencies": {
+    "detect_validation_rejections": [
+     "DA-BILL",
+     "DA-MDMS"
+    ],
+    "classify_affected_accounts": [
+     "DA-MDMS"
+    ]
+   }
+  },
+  "agent_spec": {
+   "identity": "agent-SD-2",
+   "problem_reference": "PD-1@v2",
+   "organization_context": [],
+   "process_context": [],
+   "handoff_context": [],
+   "interface": {},
+   "required_data": [],
+   "validation_rules": [],
+   "allowed_transformations": [],
+   "entity_identity": [],
+   "state": {},
+   "capabilities": [],
+   "tools": [],
+   "workflow": [],
+   "decision_rules": [],
+   "constraints": [],
+   "authority_boundary": [],
+   "structural_role": [
+    "BRIDGE",
+    "CONTROL_DETECTION",
+    "EXCEPTION_HANDLER"
+   ],
+   "human_gate": [],
+   "failure_handling": {
+    "tool_health_policy": "track health per tool; DEGRADED/UNAVAILABLE informs planning",
+    "retry_policy": "bounded by evidence and budget",
+    "retry_stop_policy": "v0.2.5 §10 stop conditions",
+    "repeated_failure_threshold": 2,
+    "fallback_policy": "fallback never promoted to authoritative",
+    "partial_result_policy": "partial stays partial until proven complete",
+    "stale_data_policy": "freshness checked only when decision-relevant",
+    "mutation_uncertainty_policy": "read-back before any re-attempt",
+    "replan_reprofile_policy": "tool failure alone never redefines"
+   },
+   "termination": "",
+   "validation": [],
+   "success_criteria": [
+    "SC-EST-SHARE",
+    "SC-DETECT"
+   ],
+   "verification_obligations": [
+    "VOB-U-ROUTE-IMPACT",
+    "VOB-U-TAG",
+    "VOB-U-SCALE"
+   ],
+   "budget_policy": {
+    "soft_phase_budget": "Design Freeze §24",
+    "verification_floor_minutes": 20.0,
+    "release_reserve_minutes": 30.0,
+    "reserve_entry_rule": "remaining <= release_reserve",
+    "scope_reduction_rule": "DROP nice-to-have/low-value/refactor/non-blocking; KEEP blocking",
+    "packaging_protection_rule": "packaging + submission always kept"
+   }
+  },
+  "execution": {
+   "actions": [],
+   "artifacts": []
+  },
+  "validation": {
+   "verify_runs": [
+    {
+     "minute": 230.0,
+     "layer1_passed": true,
+     "failed": [],
+     "release_scope": [
+      "detect_validation_rejections:DA-BILL",
+      "classify_affected_accounts:firmware-v4.2",
+      "escalate_rebill_queue:billing-ops"
+     ]
+    }
+   ],
+   "release_decisions": [
+    "HOLD"
+   ]
+  },
+  "budget": {
+   "total_minutes": 300.0,
+   "slots": [
+    {
+     "slot": "ENVIRONMENT",
+     "start_minute": 0,
+     "end_minute": 15
+    },
+    {
+     "slot": "DISCOVER",
+     "start_minute": 15,
+     "end_minute": 55
+    },
+    {
+     "slot": "DEFINE",
+     "start_minute": 55,
+     "end_minute": 75
+    },
+    {
+     "slot": "DESIGN",
+     "start_minute": 75,
+     "end_minute": 100
+    },
+    {
+     "slot": "EXECUTE",
+     "start_minute": 100,
+     "end_minute": 230
+    },
+    {
+     "slot": "VERIFY",
+     "start_minute": 230,
+     "end_minute": 270
+    },
+    {
+     "slot": "RELEASE",
+     "start_minute": 270,
+     "end_minute": 300
+    }
+   ],
+   "release_reserve_minutes": 30.0,
+   "reserve_approach_window_minutes": 15.0,
+   "verification_floor_minutes": 20.0,
+   "packaging_minutes": 15.0
+  },
+  "decision_log": [
+   {
+    "id": "D-1",
+    "phase": "DEFINE",
+    "decision": "DEFINE Gate CONDITIONAL_PASS",
+    "rationale": "[CONDITIONAL] critical unknown U-ROUTE-IMPACT deferred to VOB-U-ROUTE-IMPACT; [CONDITIONAL] critical unknown U-TAG deferred to VOB-U-TAG",
+    "evidence_refs": [],
+    "event_seq": null
+   },
+   {
+    "id": "D-2",
+    "phase": "EXECUTE",
+    "decision": "REDEFINE",
+    "rationale": "authoritative MDMS evidence: estimates come from rejected AMI reads at billing import, not missed field reads",
+    "evidence_refs": [
+     "E-MDMS"
+    ],
+    "event_seq": null
+   },
+   {
+    "id": "D-3",
+    "phase": "DEFINE",
+    "decision": "DEFINE Gate CONDITIONAL_PASS",
+    "rationale": "[CONDITIONAL] critical unknown U-SCALE deferred to VOB-U-SCALE",
+    "evidence_refs": [],
+    "event_seq": null
+   }
+  ]
+ },
+ "runtime": {
+  "phase": "RELEASE",
+  "execution_status": "HOLD",
+  "current_plan": {
+   "id": "PLAN-2",
+   "version": 1,
+   "work_items": [
+    {
+     "id": "V2-DETECT",
+     "description": "detect rejected v4.2 AMI reads",
+     "work_class": "CORE_FEATURE",
+     "est_minutes": 15,
+     "scope_items": [
+      {
+       "action": "detect_validation_rejections",
+       "target": "DA-BILL"
+      }
+     ],
+     "root_problem_aligned": true,
+     "release_blocking": true,
+     "status": "DONE"
+    },
+    {
+     "id": "V2-CLASSIFY",
+     "description": "classify affected disputed accounts",
+     "work_class": "CORE_FEATURE",
+     "est_minutes": 10,
+     "scope_items": [
+      {
+       "action": "classify_affected_accounts",
+       "target": "firmware-v4.2"
+      }
+     ],
+     "root_problem_aligned": true,
+     "release_blocking": true,
+     "status": "DONE"
+    },
+    {
+     "id": "V2-ESCALATE",
+     "description": "manual escalation queue for Billing Ops",
+     "work_class": "CORE_FEATURE",
+     "est_minutes": 5,
+     "scope_items": [
+      {
+       "action": "escalate_rebill_queue",
+       "target": "billing-ops"
+      }
+     ],
+     "root_problem_aligned": true,
+     "release_blocking": true,
+     "status": "DONE"
+    },
+    {
+     "id": "V2-VERIFY",
+     "description": "release-blocking verification",
+     "work_class": "RELEASE_BLOCKING_VERIFICATION",
+     "est_minutes": 10,
+     "scope_items": [],
+     "root_problem_aligned": false,
+     "release_blocking": false,
+     "status": "PENDING"
+    },
+    {
+     "id": "V2-PACK",
+     "description": "packaging + submission",
+     "work_class": "PACKAGING",
+     "est_minutes": 8,
+     "scope_items": [],
+     "root_problem_aligned": false,
+     "release_blocking": false,
+     "status": "PENDING"
+    }
+   ],
+   "rationale": ""
+  },
+  "current_task": null,
+  "current_action": "mdms-export.reads_for_accounts",
+  "next_action": null,
+  "current_tool": "mdms-export",
+  "tool_runtime": {
+   "crm-tickets": {
+    "tool_id": "crm-tickets",
+    "operation": "dispute_volume_monthly",
+    "health": "HEALTHY",
+    "attempt": 2,
+    "last_result_status": "SUCCESS",
+    "last_error_class": null,
+    "retryable_hint": null,
+    "partial_side_effect_possible": false,
+    "result_completeness": "COMPLETE",
+    "result_authority": "AUTHORITATIVE",
+    "time_cost": 3.0,
+    "cumulative_cost": 6.0,
+    "evidence_ref": "ev:crm-tickets:41",
+    "consecutive_failures": 0
+   },
+   "billing-db": {
+    "tool_id": "billing-db",
+    "operation": "affected_accounts_v42",
+    "health": "HEALTHY",
+    "attempt": 5,
+    "last_result_status": "SUCCESS",
+    "last_error_class": null,
+    "retryable_hint": null,
+    "partial_side_effect_possible": false,
+    "result_completeness": "COMPLETE",
+    "result_authority": "AUTHORITATIVE",
+    "time_cost": 5.0,
+    "cumulative_cost": 15.0,
+    "evidence_ref": "ev:billing-db:162",
+    "consecutive_failures": 0
+   },
+   "route-log": {
+    "tool_id": "route-log",
+    "operation": "lagging_routes",
+    "health": "HEALTHY",
+    "attempt": 2,
+    "last_result_status": "SUCCESS",
+    "last_error_class": null,
+    "retryable_hint": null,
+    "partial_side_effect_possible": false,
+    "result_completeness": "COMPLETE",
+    "result_authority": "AUTHORITATIVE",
+    "time_cost": 3.0,
+    "cumulative_cost": 6.0,
+    "evidence_ref": "ev:route-log:88",
+    "consecutive_failures": 0
+   },
+   "mdms-export": {
+    "tool_id": "mdms-export",
+    "operation": "reads_for_accounts",
+    "health": "HEALTHY",
+    "attempt": 4,
+    "last_result_status": "SUCCESS",
+    "last_error_class": null,
+    "retryable_hint": null,
+    "partial_side_effect_possible": false,
+    "result_completeness": "COMPLETE",
+    "result_authority": "AUTHORITATIVE",
+    "time_cost": 5.0,
+    "cumulative_cost": 12.0,
+    "evidence_ref": "ev:mdms-export:165",
+    "consecutive_failures": 0
+   },
+   "billing-config": {
+    "tool_id": "billing-config",
+    "operation": "validation_rule_changes",
+    "health": "HEALTHY",
+    "attempt": 1,
+    "last_result_status": "SUCCESS",
+    "last_error_class": null,
+    "retryable_hint": null,
+    "partial_side_effect_possible": false,
+    "result_completeness": "COMPLETE",
+    "result_authority": "AUTHORITATIVE",
+    "time_cost": 3.0,
+    "cumulative_cost": 3.0,
+    "evidence_ref": "ev:billing-config:130",
+    "consecutive_failures": 0
+   }
+  },
+  "recovery": {
+   "active": true,
+   "failure_signature": "mdms-export|telemetrix|read_events_for_disputed_estimated|ACCESS_PENDING",
+   "retry_count": 0,
+   "cumulative_retry_cost": 0.0,
+   "retry_eligible": false,
+   "retry_stop_reason": "PROBLEM_INVALID",
+   "fallback_available": false,
+   "fallback_status": "NOT_NEEDED",
+   "fallback_authority": null,
+   "fallback_freshness_status": "NOT_EVALUATED",
+   "partial_result_status": null,
+   "mutation_uncertainty": false,
+   "candidate_transition": "REDEFINE",
+   "decision_rationale": "authoritative evidence E-MDMS invalidates canonical Problem",
+   "linked_vob_ids": [],
+   "signature_failures": {
+    "mdms-export|telemetrix|read_events_for_disputed_estimated|ACCESS_PENDING": 1
+   },
+   "retry_history": [],
+   "fallbacks": {}
+  },
+  "budget_runtime": {
+   "total_budget": 300.0,
+   "elapsed": 262.0,
+   "remaining": 38.0,
+   "phase_budget": {
+    "ENVIRONMENT": 15,
+    "DISCOVER": 40,
+    "DEFINE": 20,
+    "DESIGN": 25,
+    "EXECUTE": 130,
+    "VERIFY": 40,
+    "RELEASE": 30
+   },
+   "phase_spent": {
+    "DISCOVER": 60.0,
+    "DEFINE": 20.0,
+    "DESIGN": 25.0,
+    "EXECUTE": 125.0,
+    "VERIFY": 32.0
+   },
+   "phase_variance": {
+    "DISCOVER": 85.0,
+    "DEFINE": 65.0,
+    "DESIGN": 40.0,
+    "EXECUTE": 0.0,
+    "VERIFY": -8.0
+   },
+   "variance_reason": "DESIGN exceeded soft budget by 40m",
+   "recovery_action": "reduce scope of current phase",
+   "verification_budget_remaining": 8.0,
+   "packaging_budget_remaining": 30.0,
+   "release_reserve_impact": "reserve intact"
+  },
+  "release_runtime": {
+   "reserve_threshold": 30.0,
+   "reserve_status": "APPROACHING",
+   "reserve_entered_at": null,
+   "release_blocking_risks": [],
+   "dropped_scope": [],
+   "kept_scope": [],
+   "packaging_status": "NOT_STARTED",
+   "submission_status": "NOT_STARTED",
+   "projected_finish": 280.0
+  },
+  "pending_protected_action": null,
+  "safe_point": {
+   "kind": "AFTER_STATE_COMMIT",
+   "phase": "RELEASE",
+   "event_seq": 177,
+   "problem_version": 38
+  },
+  "transition_candidate": null,
+  "event_refs": [
+   1,
+   2,
+   3,
+   4,
+   5,
+   6,
+   7,
+   8,
+   9,
+   10,
+   11,
+   12,
+   13,
+   14,
+   15,
+   16,
+   17,
+   18,
+   19,
+   20,
+   21,
+   22,
+   23,
+   24,
+   25,
+   26,
+   27,
+   28,
+   29,
+   30,
+   31,
+   32,
+   33,
+   34,
+   35,
+   36,
+   37,
+   38,
+   39,
+   40,
+   41,
+   42,
+   43,
+   44,
+   45,
+   46,
+   47,
+   48,
+   49,
+   50,
+   51,
+   52,
+   53,
+   54,
+   55,
+   56,
+   57,
+   58,
+   59,
+   60,
+   61,
+   62,
+   63,
+   64,
+   65,
+   66,
+   67,
+   68,
+   69,
+   70,
+   71,
+   72,
+   73,
+   74,
+   75,
+   76,
+   77,
+   78,
+   79,
+   80,
+   81,
+   82,
+   83,
+   84,
+   85,
+   86,
+   87,
+   88,
+   89,
+   90,
+   91,
+   92,
+   93,
+   94,
+   95,
+   96,
+   97,
+   98,
+   99,
+   100,
+   101,
+   102,
+   103,
+   104,
+   105,
+   106,
+   107,
+   108,
+   109,
+   110,
+   111,
+   112,
+   113,
+   114,
+   115,
+   116,
+   117,
+   118,
+   119,
+   120,
+   121,
+   122,
+   123,
+   124,
+   125,
+   126,
+   127,
+   128,
+   129,
+   130,
+   131,
+   132,
+   133,
+   134,
+   135,
+   136,
+   137,
+   138,
+   139,
+   140,
+   141,
+   142,
+   143,
+   144,
+   145,
+   146,
+   147,
+   148,
+   149,
+   150,
+   151,
+   152,
+   153,
+   154,
+   155,
+   156,
+   157,
+   158,
+   159,
+   160,
+   161,
+   162,
+   163,
+   164,
+   165,
+   166,
+   167,
+   168,
+   169,
+   170,
+   171,
+   172,
+   173,
+   174,
+   175,
+   176,
+   177,
+   178,
+   179
+  ],
+  "reprofile_targets": []
+ },
+ "supervision": {
+  "mode": "AUTO",
+  "live_summary": [
+   "[HIGH] STRATEGY_CHANGING_FAILURE: retry stopped (NOT_TRANSIENT); alternate path A-READTYPE",
+   "[HIGH] DEFINE_GATE_RESULT: CONDITIONAL_PASS (2 findings)",
+   "[HIGH] PROTECTED_ACTION_PROPOSAL: push_route_update on field-dispatch",
+   "[CRITICAL] RELEASE_BLOCKING_VOB: push_route_update blocked: VOB required before protected action intersects scope: ['VOB-U-ROUTE-IMPACT']",
+   "[HIGH] STRATEGY_CHANGING_FAILURE: authoritative evidence E-MDMS invalidates canonical Problem",
+   "[CRITICAL] PROBLEM_INVALIDATED: PD-1 v1: authoritative MDMS evidence: estimates come from rejected AMI reads at billing import, not missed field reads",
+   "[HIGH] DEFINE_GATE_RESULT: CONDITIONAL_PASS (1 findings)",
+   "[CRITICAL] RELEASE_GATE_RESULT: HOLD",
+   "[CRITICAL] RELEASE_BLOCKING_VOB: critical VOB-U-ROUTE-IMPACT intersects release scope at ['detect_validation_rejections:DA-BILL', 'classify_affected_accounts:firmware-v4.2', 'escalate_rebill_queue:billing-ops']"
+  ],
+  "current_problem": "Billing import validation rule BV-17 (deployed 08-01) compares firmware-v4.2 AMI register values (0.1 m3 units) with m3 history without unit scaling, rejects valid on-time AMI reads as HIGH_CONSUMPTION and substitutes estimates; the estimated bills drive the dispute surge. (v2, ACTIVE)",
+  "top_hypotheses": [
+   "H-READS: missed/late field reads -> estimated bills -> disputes [SUPPORTED]",
+   "H-VALIDATION: BV-17 rejects valid firmware-v4.2 AMI reads (unit scale) and substitutes estimates [SUPPORTED]"
+  ],
+  "critical_unknowns": [
+   "U-ROUTE-IMPACT: Does prioritizing lagging routes cut the estimated share within one cycle? [DEFERRED]",
+   "U-TAG: Is the CRM DISPUTE_BILLING tag applied consistently (agents may tag GENERAL)? [DEFERRED]",
+   "U-SCALE: Does scaling v4.2 reads by 0.1 give correct consumption for every v4.2 meter, including genuine high-usage / leak cases? [DEFERRED]"
+  ],
+  "critical_conflicts": [],
+  "data_quality_warnings": [],
+  "key_evidence": [
+   "E-MDMS",
+   "E-RULES",
+   "E-UNITS",
+   "E-VOLUME"
+  ],
+  "evidence_revisions": [
+   "ER-1: E-BILL-READTYPE revised by E-MDMS (invalidates problem)",
+   "ER-2: E-ROUTE revised by E-MDMS (invalidates problem)"
+  ],
+  "state_diff": {
+   "from_version": 37,
+   "to_version": 38,
+   "reason": "Release Gate HOLD",
+   "entries": []
+  },
+  "decision_rationale": [
+   "REPLAN: retry stopped (NOT_TRANSIENT); alternate path A-READTYPE",
+   "REDEFINE: authoritative evidence E-MDMS invalidates canonical Problem"
+  ],
+  "gate_rationale": [
+   "RELEASE HOLD",
+   "critical VOB-U-ROUTE-IMPACT intersects release scope at ['detect_validation_rejections:DA-BILL', 'classify_affected_accounts:firmware-v4.2', 'escalate_rebill_queue:billing-ops']",
+   "DEFINE Gate CONDITIONAL_PASS (deferred items tracked as VOBs)",
+   "VOB-U-TAG open; blocking_scope outside release scope",
+   "VOB-U-SCALE open; blocking_scope outside release scope",
+   "unfinished: billing vendor patches BV-17 to apply firmware register-unit scaling (H-MDMS-BILL contract)"
+  ],
+  "pending_verification_obligations": [
+   "VOB-U-ROUTE-IMPACT [BEFORE_PROTECTED_ACTION] Does prioritizing lagging routes cut the estimated share within one cycle?",
+   "VOB-U-TAG [BEFORE_RELEASE] Is the CRM DISPUTE_BILLING tag applied consistently (agents may tag GENERAL)?",
+   "VOB-U-SCALE [BEFORE_RELEASE] Does scaling v4.2 reads by 0.1 give correct consumption for every v4.2 meter, including genuine high-usage / leak cases?"
+  ],
+  "current_action": "mdms-export.reads_for_accounts",
+  "next_action": null,
+  "monitoring_policy": {
+   "digest_low_impact_retry": true,
+   "digest_routine_validation": true,
+   "digest_low_value_rejected_hypothesis": true
+  },
+  "pending_digest": [
+   {
+    "kind": "LOW_VALUE_HYPOTHESIS_REJECTED",
+    "importance": "LOW",
+    "message": "H-SLOW rejected",
+    "channel": "DIGEST",
+    "refs": [],
+    "event_seq": 60,
+    "throttled": true
+   },
+   {
+    "kind": "LOW_VALUE_HYPOTHESIS_REJECTED",
+    "importance": "LOW",
+    "message": "H-TARIFF rejected",
+    "channel": "DIGEST",
+    "refs": [],
+    "event_seq": 62,
+    "throttled": true
+   },
+   {
+    "kind": "STATE_DIFF",
+    "importance": "NORMAL",
+    "message": "H-READS CANDIDATE→SUPPORTED",
+    "channel": "DIGEST",
+    "refs": [],
+    "event_seq": 64,
+    "throttled": false
+   },
+   {
+    "kind": "PHASE_CHECKPOINT",
+    "importance": "NORMAL",
+    "message": "ADVANCE: DISCOVER → DEFINE",
+    "channel": "DIGEST",
+    "refs": [],
+    "event_seq": 68,
+    "throttled": false
+   },
+   {
+    "kind": "PHASE_CHECKPOINT",
+    "importance": "NORMAL",
+    "message": "ADVANCE: DEFINE → DESIGN",
+    "channel": "DIGEST",
+    "refs": [],
+    "event_seq": 76,
+    "throttled": false
+   },
+   {
+    "kind": "PHASE_CHECKPOINT",
+    "importance": "NORMAL",
+    "message": "ADVANCE: DESIGN → EXECUTE",
+    "channel": "DIGEST",
+    "refs": [],
+    "event_seq": 86,
+    "throttled": false
+   },
+   {
+    "kind": "ROUTINE_VALIDATION_SUCCESS",
+    "importance": "LOW",
+    "message": "DA-ROUTE clean",
+    "channel": "DIGEST",
+    "refs": [],
+    "event_seq": 91,
+    "throttled": true
+   },
+   {
+    "kind": "ROUTINE_VALIDATION_SUCCESS",
+    "importance": "LOW",
+    "message": "DA-BILL clean",
+    "channel": "DIGEST",
+    "refs": [],
+    "event_seq": 96,
+    "throttled": true
+   },
+   {
+    "kind": "PHASE_CHECKPOINT",
+    "importance": "NORMAL",
+    "message": "REDEFINE: EXECUTE → DEFINE",
+    "channel": "DIGEST",
+    "refs": [],
+    "event_seq": 117,
+    "throttled": false
+   },
+   {
+    "kind": "BUDGET_VARIANCE",
+    "importance": "NORMAL",
+    "message": "DEFINE exceeded soft budget by 60m",
+    "channel": "DIGEST",
+    "refs": [],
+    "event_seq": 118,
+    "throttled": false
+   },
+   {
+    "kind": "PHASE_CHECKPOINT",
+    "importance": "NORMAL",
+    "message": "REPROFILE: DEFINE → DISCOVER",
+    "channel": "DIGEST",
+    "refs": [],
+    "event_seq": 120,
+    "throttled": false
+   },
+   {
+    "kind": "BUDGET_VARIANCE",
+    "importance": "NORMAL",
+    "message": "DISCOVER exceeded soft budget by 82m",
+    "channel": "DIGEST",
+    "refs": [],
+    "event_seq": 123,
+    "throttled": false
+   },
+   {
+    "kind": "PHASE_CHECKPOINT",
+    "importance": "NORMAL",
+    "message": "REPROFILE: DISCOVER → DEFINE",
+    "channel": "DIGEST",
+    "refs": [],
+    "event_seq": 137,
+    "throttled": false
+   },
+   {
+    "kind": "PHASE_CHECKPOINT",
+    "importance": "NORMAL",
+    "message": "ADVANCE: DEFINE → DESIGN",
+    "channel": "DIGEST",
+    "refs": [],
+    "event_seq": 146,
+    "throttled": false
+   },
+   {
+    "kind": "BUDGET_VARIANCE",
+    "importance": "NORMAL",
+    "message": "DESIGN exceeded soft budget by 40m",
+    "channel": "DIGEST",
+    "refs": [],
+    "event_seq": 155,
+    "throttled": false
+   },
+   {
+    "kind": "PHASE_CHECKPOINT",
+    "importance": "NORMAL",
+    "message": "ADVANCE: DESIGN → EXECUTE",
+    "channel": "DIGEST",
+    "refs": [],
+    "event_seq": 157,
+    "throttled": false
+   },
+   {
+    "kind": "ROUTINE_VALIDATION_SUCCESS",
+    "importance": "LOW",
+    "message": "DA-BILL clean",
+    "channel": "DIGEST",
+    "refs": [],
+    "event_seq": 168,
+    "throttled": true
+   },
+   {
+    "kind": "ROUTINE_VALIDATION_SUCCESS",
+    "importance": "LOW",
+    "message": "DA-MDMS clean",
+    "channel": "DIGEST",
+    "refs": [],
+    "event_seq": 170,
+    "throttled": true
+   },
+   {
+    "kind": "PHASE_CHECKPOINT",
+    "importance": "NORMAL",
+    "message": "ADVANCE: EXECUTE → VERIFY",
+    "channel": "DIGEST",
+    "refs": [],
+    "event_seq": 172,
+    "throttled": false
+   },
+   {
+    "kind": "ROUTINE_VALIDATION_SUCCESS",
+    "importance": "LOW",
+    "message": "VERIFY layer 1 passed",
+    "channel": "DIGEST",
+    "refs": [],
+    "event_seq": 174,
+    "throttled": true
+   },
+   {
+    "kind": "PHASE_CHECKPOINT",
+    "importance": "NORMAL",
+    "message": "ADVANCE: VERIFY → RELEASE",
+    "channel": "DIGEST",
+    "refs": [],
+    "event_seq": 176,
+    "throttled": false
+   }
+  ],
+  "intervention": {
+   "required": false,
+   "reason": null,
+   "gate_id": null
+  },
+  "human_control": []
+ }
+}

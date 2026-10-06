@@ -6,7 +6,7 @@ duplicate mutation prevention) and by Supervision. They are never edited after a
 
 from __future__ import annotations
 
-from collections.abc import Iterator
+from collections.abc import Iterable, Iterator
 from dataclasses import dataclass, field
 from enum import StrEnum
 from typing import Any
@@ -48,6 +48,15 @@ class EventType(StrEnum):
     RECOVERY_DECISION = "recovery_decision"
     FALLBACK_ACTIVATED = "fallback_activated"
     PROBLEM_INVALIDATED = "problem_invalidated"
+    # canonical Problem lifecycle (Mock #6 patch, IDR-REDEFINE-01..08)
+    CANONICAL_PROBLEM_CHALLENGED = "canonical_problem_challenged"
+    CANONICAL_CHALLENGE_DISMISSED = "canonical_challenge_dismissed"
+    EVIDENCE_REVISION_PROPOSED = "evidence_revision_proposed"
+    DEPENDENCY_REVIEW_CREATED = "dependency_review_created"
+    VOB_STATUS_CHANGED = "vob_status_changed"
+    PROBLEM_VERSION_ASSIGNED = "problem_version_assigned"
+    REDEFINE_NOOP = "redefine_noop"
+    TRANSITION_ROLLED_BACK = "transition_rolled_back"
     # budget / release reserve
     BUDGET_VARIANCE = "budget_variance"
     RELEASE_RESERVE_ENTERED = "release_reserve_entered"
@@ -55,6 +64,7 @@ class EventType(StrEnum):
     # human gate
     PROTECTED_ACTION_PROPOSED = "protected_action_proposed"
     PROTECTED_ACTION_BLOCKED = "protected_action_blocked"
+    PROTECTED_ACTION_CANCELLED = "protected_action_cancelled"
     RUNTIME_CONFIRMATION_REQUESTED = "runtime_confirmation_requested"
     APPROVAL_PACKET_EMITTED = "approval_packet_emitted"
     APPROVAL_GRANTED = "approval_granted"
@@ -70,6 +80,14 @@ class EventType(StrEnum):
     VERIFY_COMPLETED = "verify_completed"
     RELEASE_GATE_RESULT = "release_gate_result"
     SIGNAL_EMITTED = "signal_emitted"
+    # Skill / Reasoning Layer provenance (IDR-REASON-*): proposals are records, never state
+    REASONING_COMPLETED = "reasoning_completed"
+    REASONING_FAILED = "reasoning_failed"
+    REASONING_SKIPPED = "reasoning_skipped"
+    PROPOSAL_ACCEPTED = "proposal_accepted"
+    PROPOSAL_ADJUSTED = "proposal_adjusted"
+    PROPOSAL_REJECTED = "proposal_rejected"
+    EXTERNAL_INPUT_RECEIVED = "external_input_received"
 
 
 @dataclass(frozen=True)
@@ -88,6 +106,16 @@ class EventLog:
 
     def __init__(self) -> None:
         self._events: list[Event] = []
+
+    @classmethod
+    def from_events(cls, events: Iterable[Event]) -> EventLog:
+        """Rebuild a persisted log (snapshot restore). Sequence numbers must be contiguous from 1."""
+        log = cls()
+        for i, e in enumerate(events, start=1):
+            if e.seq != i:
+                raise ValueError(f"event log is not contiguous at seq {e.seq} (expected {i})")
+            log._events.append(e)
+        return log
 
     def append(
         self,

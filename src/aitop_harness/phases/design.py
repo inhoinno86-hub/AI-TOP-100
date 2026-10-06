@@ -160,7 +160,10 @@ class DesignSession:
                 problem_reference=f"{pd.id}@v{pd.version}",
                 structural_role=list(self.design.agent_roles),
                 success_criteria=list(pd.success_criteria),
-                verification_obligations=[v.id for v in self.ctx.problem.open_vobs()],
+                # only obligations relevant to the active Problem version (D9)
+                verification_obligations=[
+                    v.id for v in self.ctx.problem.open_vobs() if v.applies_to(pd.id, pd.version)
+                ],
                 human_gate=list(pd.protected_actions),
             )
         with self.ctx.commit(f"solution design {self.design.id}") as ps:

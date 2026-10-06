@@ -1,0 +1,97 @@
+{
+  "_comment": "Mock #6 PUBLIC scenario. This is the only scenario content loaded into the Harness at start (via aitop_harness.scenario.load_context). No hidden ground truth here.",
+  "scenario": {
+    "id": "MOCK6-WATER-BILLING",
+    "title": "Lakeside Water — billing dispute surge (Mock #6, not an official contest problem)",
+    "description": "Billing dispute tickets roughly doubled in August-September. Customer Service wants an AI agent. Field reading is contracted out; AMI meters and the meter data management system (MDMS) are run by a vendor.",
+    "initial_request": "Dispute tickets doubled since August. Build an AI agent that auto-answers billing dispute tickets and fixes whatever is causing the wrong bills.",
+    "requested_by": "SH-CS"
+  },
+  "problem": {
+    "organizations": {
+      "ORG-UTIL": {"id": "ORG-UTIL", "name": "Lakeside Water Utility", "role": "operator / biller",
+                   "objectives": ["accurate bills", "dispute volume back to baseline"],
+                   "stakeholders": ["SH-CS", "SH-BILL"], "processes": ["P-M2C"],
+                   "data_assets": ["DA-BILL", "DA-TICKET", "DA-RULES"],
+                   "external_dependencies": ["ORG-FIELD", "ORG-AMI"]},
+      "ORG-FIELD": {"id": "ORG-FIELD", "name": "MeterWorks Field Services", "role": "contracted manual meter reading",
+                    "stakeholders": ["SH-FIELD"], "data_assets": ["DA-ROUTE"]},
+      "ORG-AMI": {"id": "ORG-AMI", "name": "Telemetrix AMI", "role": "AMI network + MDMS vendor",
+                  "stakeholders": ["SH-AMI"], "data_assets": ["DA-MDMS"]}
+    },
+    "stakeholders": {
+      "SH-CS": {"id": "SH-CS", "organization_id": "ORG-UTIL", "role": "Customer Service Director (requester)",
+                "responsibilities": ["dispute tickets", "response SLA"], "authority_scope": ["ticket_response_templates"],
+                "incentives": ["lower ticket backlog"], "potential_bias": ["frames the issue as a response-speed problem"],
+                "information_topics": ["ticket volume", "response times"]},
+      "SH-FIELD": {"id": "SH-FIELD", "organization_id": "ORG-FIELD", "role": "Field Operations Manager",
+                   "responsibilities": ["manual read routes"], "authority_scope": ["field_dispatch_routes"],
+                   "incentives": ["contract headcount increase"], "potential_bias": ["attributes problems to staffing"],
+                   "information_topics": ["route completion", "staffing"]},
+      "SH-BILL": {"id": "SH-BILL", "organization_id": "ORG-UTIL", "role": "Billing Operations Lead",
+                  "responsibilities": ["bill runs", "manual adjustments"], "authority_scope": ["billing_adjustments_manual"],
+                  "information_topics": ["read types", "tariffs", "bill runs"]},
+      "SH-AMI": {"id": "SH-AMI", "organization_id": "ORG-AMI", "role": "AMI Program Engineer",
+                 "responsibilities": ["AMI network", "MDMS exports"], "information_topics": ["AMI read delivery", "MDMS"]}
+    },
+    "processes": {
+      "P-M2C": {"id": "P-M2C", "name": "meter-to-cash", "organization_ids": ["ORG-UTIL", "ORG-FIELD", "ORG-AMI"],
+                "purpose": "turn meter reads into bills",
+                "trigger": "monthly bill cycle",
+                "steps": ["read collection (AMI interval read or field manual read)", "MDMS validation", "billing import + validation",
+                          "estimate substitution when no accepted read", "bill issue", "dispute ticket"],
+                "actors": ["SH-FIELD", "SH-AMI", "SH-BILL", "SH-CS"],
+                "systems": ["MDMS", "billing system", "CRM", "field dispatch"],
+                "data_assets": ["DA-BILL", "DA-TICKET", "DA-ROUTE", "DA-MDMS", "DA-RULES"],
+                "handoff_ids": ["H-FIELD-BILL", "H-MDMS-BILL"],
+                "manual_steps": ["field manual reads"], "pain_points": ["dispute surge since August"]}
+    },
+    "process_handoffs": {
+      "H-FIELD-BILL": {"id": "H-FIELD-BILL", "process_id": "P-M2C", "from_org": "ORG-FIELD", "to_org": "ORG-UTIL",
+                       "payload": "manual meter reads", "channel": "daily upload", "manual_or_automated": "manual",
+                       "delivery_status": "UNKNOWN", "semantic_validity": "UNKNOWN"},
+      "H-MDMS-BILL": {"id": "H-MDMS-BILL", "process_id": "P-M2C", "from_org": "ORG-AMI", "to_org": "ORG-UTIL",
+                      "payload": "AMI register reads", "channel": "nightly export", "manual_or_automated": "automated",
+                      "delivery_status": "UNKNOWN", "semantic_validity": "UNKNOWN"}
+    },
+    "data_assets": {
+      "DA-BILL": {"id": "DA-BILL", "name": "billing system bills + read types", "organization_id": "ORG-UTIL",
+                  "source": "billing-db", "authority": "AUTHORITATIVE"},
+      "DA-TICKET": {"id": "DA-TICKET", "name": "CRM dispute tickets", "organization_id": "ORG-UTIL",
+                    "source": "crm-tickets", "authority": "AUTHORITATIVE"},
+      "DA-ROUTE": {"id": "DA-ROUTE", "name": "field route completion log", "organization_id": "ORG-FIELD",
+                   "source": "route-log", "authority": "AUTHORITATIVE"},
+      "DA-MDMS": {"id": "DA-MDMS", "name": "MDMS AMI read event log (system of record for AMI reads)", "organization_id": "ORG-AMI",
+                  "source": "mdms-export", "acquisition": "vendor must provision export access", "authority": "AUTHORITATIVE"},
+      "DA-RULES": {"id": "DA-RULES", "name": "billing import validation rule change log", "organization_id": "ORG-UTIL",
+                   "source": "billing-config", "authority": "AUTHORITATIVE"}
+    },
+    "constraints": {
+      "K-DISPATCH": {"id": "K-DISPATCH", "type": "HUMAN_APPROVAL",
+                     "description": "Changes to field dispatch routes are executed only after runtime confirmation by the Field Operations Manager (service contract §4.2).",
+                     "actor": "SH-FIELD", "protected_action": "push_route_update", "approval_required": true,
+                     "runtime_confirmation_required": true, "status": "ACTIVE", "criticality": "HIGH"},
+      "K-BILLWRITE": {"id": "K-BILLWRITE", "type": "AUTHORITY",
+                      "description": "Writes to customer bills (re-bill, credit) require Billing Operations authority; no automated bill writes.",
+                      "actor": "SH-BILL", "protected_action": "write_bill_adjustment", "approval_required": true,
+                      "status": "ACTIVE", "criticality": "HIGH"}
+    },
+    "goals": {
+      "G-1": {"id": "G-1", "statement": "dispute volume back to pre-August baseline with correct bills", "owner": "ORG-UTIL"}
+    }
+  },
+  "tool_surface": [
+    {"tool_id": "billing-db", "read_only": true, "authority": "AUTHORITATIVE", "describes": "bills, read types, tariffs, import status"},
+    {"tool_id": "crm-tickets", "read_only": true, "authority": "AUTHORITATIVE", "describes": "dispute tickets, response times"},
+    {"tool_id": "route-log", "read_only": true, "authority": "AUTHORITATIVE", "describes": "field route completion"},
+    {"tool_id": "mdms-export", "read_only": true, "authority": "AUTHORITATIVE", "describes": "AMI read events (requires vendor-provisioned access)"},
+    {"tool_id": "billing-config", "read_only": true, "authority": "AUTHORITATIVE", "describes": "billing validation rule change log"},
+    {"tool_id": "field-dispatch", "read_only": false, "authority": "AUTHORITATIVE", "describes": "push route priority changes (protected mutation)"}
+  ],
+  "public_rules": [
+    "Stakeholder statements are claims, not facts.",
+    "Field dispatch changes need runtime confirmation by SH-FIELD (K-DISPATCH).",
+    "No automated writes to customer bills (K-BILLWRITE).",
+    "Contest budget: 300 minutes, release reserve 30 minutes."
+  ]
+}

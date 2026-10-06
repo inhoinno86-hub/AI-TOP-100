@@ -55,6 +55,19 @@ class TransitionKind(StrEnum):
     FINISH = "FINISH"
 
 
+# Transition-candidate precedence (IDR-REDEFINE-08): a lower-ranked candidate never overwrites a
+# higher-ranked one, so a Problem-invalidating REDEFINE cannot silently become a REPLAN.
+TRANSITION_PRECEDENCE: dict[TransitionKind, int] = {
+    TransitionKind.ABORT: 5,
+    TransitionKind.REDEFINE: 4,
+    TransitionKind.REPROFILE: 3,
+    TransitionKind.REPLAN: 2,
+    TransitionKind.RETRY: 1,
+    TransitionKind.ADVANCE: 0,
+    TransitionKind.FINISH: 0,
+}
+
+
 class RecoveryKind(StrEnum):
     """Tool-failure recovery outcomes (Design Freeze §2 conditional runtime flows).
 
@@ -241,9 +254,19 @@ class EvidenceRelation(StrEnum):
 
 
 class EvidenceStatus(StrEnum):
+    """Validity of the *observation*. An interpretation-only revision keeps the observation ACTIVE."""
+
     ACTIVE = "ACTIVE"
     REVISED = "REVISED"
     SUPERSEDED = "SUPERSEDED"
+
+
+class RevisionKind(StrEnum):
+    """What an Evidence Revision changes (IDR-REDEFINE-06)."""
+
+    INTERPRETATION_ONLY = "INTERPRETATION_ONLY"  # observation still valid, its meaning changed
+    OBSERVATION_INVALIDATED = "OBSERVATION_INVALIDATED"  # the observation itself is contradicted
+    SCOPE_REVISED = "SCOPE_REVISED"  # observation valid for a narrower scope
 
 
 class ClaimStatus(StrEnum):
@@ -469,12 +492,32 @@ class VOBStatus(StrEnum):
     OPEN = "OPEN"
     RESOLVED = "RESOLVED"
     DEFERRED = "DEFERRED"
+    # retired by redefine: tied to an invalidated Problem version (IDR-REDEFINE-04)
+    INVALIDATED = "INVALIDATED"
+    SUPERSEDED = "SUPERSEDED"
 
 
 class ProblemDefinitionStatus(StrEnum):
     DRAFT = "DRAFT"
     ACTIVE = "ACTIVE"
     INVALIDATED = "INVALIDATED"
+
+
+class ChallengeStatus(StrEnum):
+    """Lifecycle of a canonical-premise challenge (IDR-REDEFINE-01). Challenge ≠ invalidation."""
+
+    OPEN = "OPEN"
+    REDEFINED = "REDEFINED"
+    DISMISSED = "DISMISSED"
+
+
+class DependencyClassification(StrEnum):
+    """Dependency Review vocabulary for objects downstream of a redefined Problem."""
+
+    STILL_VALID = "STILL_VALID"
+    NEEDS_REEVALUATION = "NEEDS_REEVALUATION"
+    INVALIDATED = "INVALIDATED"
+    SUPERSEDED = "SUPERSEDED"
 
 
 class AgentRole(StrEnum):

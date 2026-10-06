@@ -9,6 +9,7 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 
 from ..core.enums import (
+    TRANSITION_PRECEDENCE,
     ArtifactStatus,
     ExecutionStatus,
     FallbackStatus,
@@ -205,6 +206,10 @@ class PendingProtectedAction:
     packet_event_seq: int | None = None
     context_requests: int = 0
     answered_topics: list[str] = field(default_factory=list)
+    problem_ref: str | None = None  # canonical Problem the action was proposed under ("PD-1@v1")
+    # set when the Problem's premise is challenged: the packet the Human saw is no longer valid
+    revalidation_required: bool = False
+    revalidation_reason: str | None = None
 
 
 @dataclass
@@ -241,6 +246,17 @@ class RuntimeState:
     transition_candidate: TransitionCandidate | None = None
     event_refs: list[int] = field(default_factory=list)
     reprofile_targets: list[str] = field(default_factory=list)
+
+    def propose_transition(self, candidate: TransitionCandidate) -> bool:
+        """Set the transition candidate unless a higher-precedence one is pending (IDR-REDEFINE-08)."""
+        current = self.transition_candidate
+        if (
+            current is not None
+            and TRANSITION_PRECEDENCE[current.kind] > TRANSITION_PRECEDENCE[candidate.kind]
+        ):
+            return False
+        self.transition_candidate = candidate
+        return True
 
     def tool(self, tool_id: str) -> ToolRuntime:
         if tool_id not in self.tool_runtime:

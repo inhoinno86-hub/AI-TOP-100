@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from pathlib import Path
 
-from builders import grant, make_ctx, seed_org, tool_evidence
+from builders import grant, make_ctx, pass_define, problem, seed_org, seed_success, tool_evidence
 
 from aitop_harness.adapters.base import SubmissionExecutor
 from aitop_harness.adapters.local import LocalDirectoryAdapter
@@ -41,7 +41,10 @@ def test_submission_goes_through_mandatory_human_gate(tmp_path):
     executor = SubmissionExecutor(adapter, pkg)
     ctx = make_ctx()
     seed_org(ctx)
+    seed_success(ctx)
     integrate_evidence(ctx, tool_evidence("E-rules", "contest rules allow one submission per team"))
+    # protected actions require an ACTIVE canonical Problem (Mock #6 patch, IDR-REDEFINE-02)
+    pass_define(ctx, problem(["E-rules"]))
     grant(ctx, "DA-SUB", "submit", "contest", Scope.of(("submit", "package")), "E-rules")
     proposal = ProtectedActionProposal(
         "SUB-1",

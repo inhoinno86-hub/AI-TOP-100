@@ -26,10 +26,13 @@ from ..core.enums import (
     Phase,
     ProblemDefinitionStatus,
     RequiredBefore,
+    RevisionKind,
     SemanticValidity,
     ToolHealth,
     UnknownStatus,
+    VOBStatus,
 )
+from ..core.errors import IllegalTransitionError
 from ..core.events import EventType
 from ..core.scope import Scope, ScopeItem
 from ..domain.design import DecisionRecord, ProblemDefinition
@@ -37,6 +40,7 @@ from ..domain.verification import VerificationObligation
 from ..engine.context import HarnessContext
 from ..supervision.monitoring import SignalKind
 from ..tools.base import ToolRegistry
+from .redefine import bind_successor
 
 
 class Severity(StrEnum):
@@ -72,10 +76,53 @@ _CRITICAL = (Criticality.CRITICAL, Criticality.HIGH)
 
 
 def define_problem(ctx: HarnessContext, definition: ProblemDefinition) -> ProblemDefinition:
-    """Record (or replace after redefine) the canonical Problem draft."""
+    """Record (or replace after redefine) the canonical Problem draft.
+
+    Version and lineage are Harness-owned (IDR-REDEFINE-05): first definition = v1, a draft replaces
+    the current draft in place, a definition after redefine = previous version + 1 and ``supersedes``
+    the invalidated one. A caller-supplied version is ignored (recorded in the event). An ACTIVE
+    canonical Problem can only be replaced through ``redefine``.
+    """
+    ps = ctx.problem
+    prev = ps.problem_definition
+    requested = definition.version
+    if prev is None:
+        version, supersedes = 1, None
+    elif prev.status is ProblemDefinitionStatus.DRAFT:
+        version, supersedes = prev.version, prev.supersedes
+    elif prev.status is ProblemDefinitionStatus.INVALIDATED:
+        version = max([prev.version] + [h.version for h in ps.meta.problem_definition_history]) + 1
+        supersedes = prev.ref
+    else:
+        ctx.emit(
+            EventType.TRANSITION_REJECTED,
+            {"kind": "DEFINE", "reason": f"{prev.ref} is ACTIVE; replace only through redefine"},
+        )
+        raise IllegalTransitionError(
+            f"canonical Problem {prev.ref} is ACTIVE: it can only be replaced through redefine "
+            "(authoritative evidence contradicting its premise)"
+        )
+    definition.version = version
+    definition.supersedes = supersedes
+    definition.superseded_by = None
+    definition.status = ProblemDefinitionStatus.DRAFT
+    definition.gate_result = None
+    definition.invalidated_by = []
+    definition.challenges = []
     with ctx.commit(f"problem definition {definition.id} v{definition.version}") as ps:
         ps.problem_definition = definition
         ctx.supervision.current_problem = definition.root_problem
+    if requested != version or supersedes is not None:
+        ctx.emit(
+            EventType.PROBLEM_VERSION_ASSIGNED,
+            {
+                "problem": definition.id,
+                "version": version,
+                "requested_version": requested,
+                "supersedes": supersedes,
+            },
+            importance=Importance.HIGH if requested != version else Importance.NORMAL,
+        )
     return definition
 
 
@@ -125,6 +172,29 @@ def evaluate_define_gate(ctx: HarnessContext, registry: ToolRegistry | None = No
         stale = [e for e in committed if ps.evidence[e].status is not EvidenceStatus.ACTIVE]
         if stale:
             add("evidence", Severity.BLOCKING, "problem definition cites revised/superseded evidence", stale)
+        reinterpreted = [
+            r
+            for r in ps.evidence_revisions.values()
+            if r.evidence_id in committed and r.revision_kind is not RevisionKind.OBSERVATION_INVALIDATED
+        ]
+        for r in reinterpreted:
+            add(
+                "evidence",
+                Severity.INFO,
+                f"cites {r.evidence_id} whose interpretation was revised ({r.id}): observation only, "
+                f"read as '{r.revised_interpretation}'",
+                [r.evidence_id, r.id],
+            )
+    if pd.supersedes:
+        for v in ps.verification_obligations.values():
+            if v.status is VOBStatus.INVALIDATED and v.linked_unknown and v.problem_version is not None:
+                add(
+                    "unknown",
+                    Severity.INFO,
+                    f"{v.linked_unknown} was deferred to {v.id}, retired with {pd.supersedes}: "
+                    "re-raise it as an open unknown if it still matters",
+                    [v.linked_unknown, v.id],
+                )
 
     # --- Handoff (only the ones the solution depends on — lazy)
     for hid in pd.depends_on_handoffs:
@@ -319,13 +389,16 @@ def apply_define_gate(ctx: HarnessContext, outcome: DefineGateOutcome) -> Define
         pd = ps.problem_definition
         assert pd is not None
         pd.gate_result = outcome.result
+        vob_changes: list[tuple[str, str, str]] = []
         if outcome.result is not DefineGateResult.FAIL:
             pd.status = ProblemDefinitionStatus.ACTIVE
             for vob in outcome.vobs_to_create:
+                vob.problem_definition_id, vob.problem_version = pd.id, pd.version
                 ps.verification_obligations[vob.id] = vob
             for uid, vob_id in outcome.unknowns_to_defer.items():
                 ps.unknowns[uid].status = UnknownStatus.DEFERRED
                 ps.unknowns[uid].deferred_to_vob = vob_id
+            vob_changes = bind_successor(ps, pd)
         ps.decision_log.append(
             DecisionRecord(
                 id=f"D-{len(ps.decision_log) + 1}",
@@ -358,6 +431,12 @@ def apply_define_gate(ctx: HarnessContext, outcome: DefineGateOutcome) -> Define
         )
     for uid in outcome.unknowns_to_defer:
         ctx.emit(EventType.UNKNOWN_DEFERRED, {"unknown": uid, "vob": outcome.unknowns_to_defer[uid]})
+    for vid, frm, to in vob_changes:
+        ctx.emit(
+            EventType.VOB_STATUS_CHANGED,
+            {"vob": vid, "from": frm, "to": to, "reason": "successor gate"},
+            refs=[vid],
+        )
     rationale = [f"{f.check}: {f.message}" for f in outcome.findings if f.severity is not Severity.OK]
     ctx.supervision.gate_rationale = [f"DEFINE {outcome.result.value}"] + rationale
     ctx.signal(

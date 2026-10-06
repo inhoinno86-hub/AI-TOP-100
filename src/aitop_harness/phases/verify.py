@@ -428,9 +428,13 @@ def run_verify(
             l2.append(c)
     report.checks.extend(l2)
     report.human_review = layer3(ctx, release_scope)
+    pd = ctx.problem.problem_definition
     with ctx.commit("VERIFY run") as ps:
         ps.validation.verify_runs.append(
             {
+                "problem_ref": pd.ref
+                if pd
+                else None,  # a run only counts for the Problem version it verified
                 "minute": ctx.clock.now(),
                 "layer1_passed": report.layer1_passed,
                 "failed": [c.name for c in report.failed()],

@@ -73,7 +73,9 @@ def assess_minimum_useful_release(
     aligned = [
         w
         for w in (plan.work_items if plan else [])
-        if w.root_problem_aligned and w.status != "DROPPED" and any(i in release_scope for i in w.scope_items)
+        if w.root_problem_aligned
+        and w.status not in ("DROPPED", "INVALIDATED")
+        and any(i in release_scope for i in w.scope_items)
     ]
     sd = ctx.problem.solution_design
     if sd and sd.minimum_useful_scope:
@@ -108,6 +110,11 @@ def evaluate_release_gate(
         limits.append("DEFINE Gate CONDITIONAL_PASS (deferred items tracked as VOBs)")
     if pd is not None and pd.status.value == "INVALIDATED":
         hold.append("canonical problem invalidated; redefine pending")
+    if pd is not None and pd.open_challenges():
+        hold.append(
+            f"canonical problem {pd.id} v{pd.version} challenged by "
+            f"{[c.evidence_id for c in pd.open_challenges()]}; redefine pending"
+        )
     if rt.execution_status is ExecutionStatus.WAITING_APPROVAL:
         hold.append("a protected action is still WAITING_APPROVAL")
 

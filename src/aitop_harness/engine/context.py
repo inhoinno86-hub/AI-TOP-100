@@ -115,6 +115,31 @@ class HarnessContext:
         )
         self.safe_point(SafePointKind.AFTER_STATE_COMMIT, event_seq=event.seq)
 
+    @contextmanager
+    def atomic(self, reason: str) -> Iterator[None]:
+        """All-or-nothing across the three canonical states (IDR-REDEFINE-03).
+
+        On exception Problem/Runtime/Supervision are restored and a ``transition_rolled_back`` event
+        records which (append-only) events belong to the rolled-back attempt.
+        """
+        backup = (copy.deepcopy(self.problem), copy.deepcopy(self.runtime), copy.deepcopy(self.supervision))
+        first_seq = len(self.events) + 1
+        try:
+            yield
+        except BaseException as exc:
+            last_seq = len(self.events)
+            self.problem, self.runtime, self.supervision = backup
+            self.emit(
+                EventType.TRANSITION_ROLLED_BACK,
+                {
+                    "reason": reason,
+                    "error": f"{type(exc).__name__}: {exc}",
+                    "rolled_back_event_seqs": [first_seq, last_seq] if last_seq >= first_seq else [],
+                },
+                importance=Importance.CRITICAL,
+            )
+            raise
+
     def safe_point(self, kind: SafePointKind, *, event_seq: int | None = None) -> SafePoint:
         if event_seq is None:
             event_seq = self.emit(EventType.SAFE_POINT_REACHED, {"kind": kind.value}).seq
@@ -149,17 +174,21 @@ class HarnessContext:
     # ------------------------------------------------------------------ persistence
 
     def snapshot(self) -> dict[str, Any]:
+        """Three canonical states + the append-only Event Log (persisted since the Mock #6 patch, D16)."""
         return {
             "problem": to_dict(self.problem),
             "runtime": to_dict(self.runtime),
             "supervision": to_dict(self.supervision),
+            "events": [to_dict(e) for e in self.events],
         }
 
     @classmethod
     def restore(cls, data: dict[str, Any], events: EventLog | None = None) -> HarnessContext:
+        if events is None:
+            events = EventLog.from_events(from_dict(Event, e) for e in data.get("events", []))
         return cls(
             problem=from_dict(ProblemState, data["problem"]),
             runtime=from_dict(RuntimeState, data["runtime"]),
             supervision=from_dict(SupervisionState, data["supervision"]),
-            events=events or EventLog(),
+            events=events,
         )

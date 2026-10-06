@@ -33,9 +33,19 @@ class VerificationObligation:
     status: VOBStatus = VOBStatus.OPEN
     resolution: str | None = None
     linked_unknown: str | None = None
+    # Problem dependency (IDR-REDEFINE-04): the Problem version whose solution this VOB constrains.
+    # ``None`` = not bound to a Problem version (applies regardless of version).
+    problem_definition_id: str | None = None
+    problem_version: int | None = None
 
     def is_open(self) -> bool:
-        return self.status is not VOBStatus.RESOLVED
+        """OPEN / DEFERRED obligations are live; RESOLVED / INVALIDATED / SUPERSEDED are not."""
+        return self.status in (VOBStatus.OPEN, VOBStatus.DEFERRED)
+
+    def applies_to(self, problem_id: str, version: int) -> bool:
+        if self.problem_version is None:
+            return True
+        return self.problem_version == version and self.problem_definition_id in (None, problem_id)
 
     def is_critical(self) -> bool:
         return self.decision_impact in (Criticality.CRITICAL, Criticality.HIGH)

@@ -48,6 +48,7 @@ from ..supervision.monitoring import SignalKind
 from ..tools.base import ToolResult
 from .discover import integrate_evidence
 from .recovery import fallback_permits
+from .redefine import problem_reasons
 
 
 class GateStatus(StrEnum):
@@ -125,12 +126,34 @@ def interpret_human_input(text: str) -> HumanDecisionKind:
 # --------------------------------------------------------------------------- pre-checks
 
 
+def _stale_reasons(ctx: HarnessContext, pending: PendingProtectedAction | None) -> list[str]:
+    """Active canonical Problem guard (IDR-REDEFINE-02/07): no protected action under a Problem that is
+    not ACTIVE, is challenged, or is not the Problem the action was proposed under."""
+    reasons = problem_reasons(ctx.problem)
+    pd = ctx.problem.problem_definition
+    if pending is not None:
+        if pending.problem_ref is not None and pd is not None and pending.problem_ref != pd.ref:
+            reasons.append(
+                f"PROBLEM: action proposed under {pending.problem_ref}; "
+                f"active Problem is {pd.ref} (stale action)"
+            )
+        if pending.revalidation_required and not reasons:
+            reasons.append(f"PROBLEM: revalidation required: {pending.revalidation_reason}")
+    return reasons
+
+
 def _precheck(
-    ctx: HarnessContext, proposal: ProtectedActionProposal, scope: list[ScopeItem]
+    ctx: HarnessContext,
+    proposal: ProtectedActionProposal,
+    scope: list[ScopeItem],
+    pending: PendingProtectedAction | None = None,
 ) -> tuple[list[str], str | None]:
-    """Domain authorization + scope + VOB + constraint + fallback checks. Returns (reasons, auth id)."""
+    """Problem + domain authorization + scope + VOB + constraint + fallback checks.
+
+    Returns (reasons, auth id).
+    """
     ps = ctx.problem
-    reasons: list[str] = []
+    reasons: list[str] = _stale_reasons(ctx, pending)
     auth = ps.authorization_for(proposal.action, proposal.protected_resource)
     if auth is None or not auth.is_effective():
         reasons.append(
@@ -218,7 +241,10 @@ def propose_protected_action(
         requested_at=ctx.clock.now(),
     )
     gate_id = f"GATE-{proposal.action_id}"
-    pending = PendingProtectedAction(gate_id, proposal, confirmation, auth_id)
+    pd = ctx.problem.problem_definition
+    pending = PendingProtectedAction(
+        gate_id, proposal, confirmation, auth_id, problem_ref=pd.ref if pd else None
+    )
 
     # 4. Canonical state commit
     with ctx.commit(f"protected action proposed {proposal.action_id}") as ps:
@@ -294,8 +320,8 @@ def decide(
             {"gate": pending.gate_id, "approval_kind": "RUNTIME_EXECUTION_CONFIRMATION"},
             importance=Importance.HIGH,
         )
-        # re-check domain authorization + scope: APPROVE cannot repair either
-        reasons, _ = _precheck(ctx, pending.proposal, pending.proposal.requested_scope)
+        # re-check Problem validity + domain authorization + scope: APPROVE cannot repair any of them
+        reasons, _ = _precheck(ctx, pending.proposal, pending.proposal.requested_scope, pending)
         if reasons:
             return _blocked_after_decision(ctx, pending, reasons)
         pending.confirmation.decision = HumanDecisionKind.APPROVE
@@ -326,7 +352,7 @@ def _modify(
     )
     if not scope:
         return _blocked_after_decision(ctx, pending, ["MODIFY without a modified scope"])
-    reasons, _ = _precheck(ctx, pending.proposal, scope)
+    reasons, _ = _precheck(ctx, pending.proposal, scope, pending)
     if reasons:
         return _blocked_after_decision(ctx, pending, reasons)
     original = pending.proposal.requested_scope
@@ -365,13 +391,54 @@ def _reject(ctx: HarnessContext, pending: PendingProtectedAction, decision: Huma
         )
     gate_id = pending.gate_id
     _clear_pending(ctx)
-    ctx.runtime.transition_candidate = TransitionCandidate(
-        TransitionKind.REPLAN,
-        Phase.EXECUTE,
-        "protected action rejected: alternate / manual / reduced-scope path",
+    replan = ctx.runtime.propose_transition(
+        TransitionCandidate(
+            TransitionKind.REPLAN,
+            Phase.EXECUTE,
+            "protected action rejected: alternate / manual / reduced-scope path",
+        )
     )
-    ctx.signal(SignalKind.STRATEGY_CHANGING_FAILURE, f"{gate_id} rejected → replan", event_seq=ev.seq)
+    retained = ctx.runtime.transition_candidate
+    follow = "replan" if replan or retained is None else f"{retained.kind.value} candidate retained"
+    ctx.signal(SignalKind.STRATEGY_CHANGING_FAILURE, f"{gate_id} rejected → {follow}", event_seq=ev.seq)
     return GateOutcome(GateStatus.REJECTED, gate_id=gate_id, reasons=["rejected by human"])
+
+
+def cancel_pending_for_invalidation(
+    ctx: HarnessContext, reason: str, refs: list[str]
+) -> PendingProtectedAction | None:
+    """Cancel the pending protected action because its Problem premise was invalidated.
+
+    Nothing executes; the runtime confirmation is not carried to any new Problem / action
+    (IDR-REDEFINE-07). A re-proposal needs a new scope validation, packet and confirmation.
+    """
+    pending = ctx.runtime.pending_protected_action
+    if pending is None:
+        return None
+    with ctx.commit(f"protected action cancelled {pending.proposal.action_id}") as ps:
+        ps.decision_log.append(
+            DecisionRecord(
+                id=f"D-{len(ps.decision_log) + 1}",
+                phase=ctx.runtime.phase,
+                decision=f"CANCEL {pending.proposal.action}",
+                rationale=reason,
+                evidence_refs=list(refs),
+            )
+        )
+    ctx.emit(
+        EventType.PROTECTED_ACTION_CANCELLED,
+        {
+            "gate": pending.gate_id,
+            "action": pending.proposal.action,
+            "problem_ref": pending.problem_ref,
+            "reason": reason,
+            "approval_carried_over": False,
+        },
+        importance=Importance.HIGH,
+        refs=list(refs),
+    )
+    _clear_pending(ctx)
+    return pending
 
 
 def _clear_pending(ctx: HarnessContext) -> None:
@@ -549,7 +616,7 @@ def request_context(
                 reprofiled.append(new_ev.id)
                 lines.append(f"REPROFILE: {new_ev.id}: {new_ev.content}")
     # authority/scope still valid? a revealed mismatch is CRITICAL — but still no execution
-    reasons, _ = _precheck(ctx, pending.proposal, pending.proposal.requested_scope)
+    reasons, _ = _precheck(ctx, pending.proposal, pending.proposal.requested_scope, pending)
     if reasons:
         ctx.signal(SignalKind.REQUEST_CONTEXT_SCOPE_MISMATCH, "; ".join(reasons), event_seq=ev.seq)
         unresolved += reasons

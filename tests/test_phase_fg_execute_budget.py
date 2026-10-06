@@ -36,7 +36,7 @@ from aitop_harness.phases.budget import (
     update_budget,
 )
 from aitop_harness.phases.define import apply_define_gate, define_problem, evaluate_define_gate
-from aitop_harness.phases.discover import integrate_evidence
+from aitop_harness.phases.discover import integrate_evidence, revise_evidence
 from aitop_harness.phases.execute import assess_completeness, evidence_from_outcome, invoke_tool
 from aitop_harness.phases.recovery import (
     FailureContext,
@@ -227,9 +227,11 @@ def test_redefine_on_authoritative_problem_invalidation_versions_state():
     ctx = make_ctx()
     _active_problem(ctx)
     integrate_evidence(ctx, tool_evidence("E-new", "policy registry: process retired"))
-    d = decide_recovery(
-        ctx, FailureContext("x", "y", None, None, None, problem_invalidating_evidence="E-new")
-    )
+    fc = FailureContext("x", "y", None, None, None, problem_invalidating_evidence="E-new")
+    # authoritative alone is not enough: the evidence must contradict a premise of the Problem (D2)
+    assert decide_recovery(ctx, fc).kind is not RecoveryKind.REDEFINE
+    revise_evidence(ctx, "E-1", "E-new", "the process E-1 observed is retired", invalidates_problem=True)
+    d = decide_recovery(ctx, fc)
     assert d.kind is RecoveryKind.REDEFINE
     c = PhaseController(ctx)
     c.redefine("E-new", "authoritative registry shows the process is retired")

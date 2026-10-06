@@ -8,7 +8,9 @@ from typing import Any
 from ..core.enums import (
     AgentRole,
     BudgetSlot,
+    ChallengeStatus,
     DefineGateResult,
+    DependencyClassification,
     DesignStage,
     Phase,
     ProblemDefinitionStatus,
@@ -19,11 +21,29 @@ from ..core.scope import ScopeItem
 
 
 @dataclass
+class CanonicalChallenge:
+    """Strong evidence materially contradicts a premise the ACTIVE canonical Problem depends on.
+
+    Harness-owned (IDR-REDEFINE-01). A challenge makes REDEFINE the transition candidate and blocks
+    progression / protected execution; it is *not* an invalidation until ``redefine`` commits.
+    """
+
+    evidence_id: str
+    contradicted: list[str]  # premise evidence / hypothesis ids the evidence contradicts
+    rationale: str
+    proposed_revisions: list[str] = field(default_factory=list)  # evidence whose interpretation to revise
+    status: ChallengeStatus = ChallengeStatus.OPEN
+    event_seq: int | None = None
+    resolution: str | None = None
+
+
+@dataclass
 class ProblemDefinition:
     """Canonical Problem.
 
     Requested solution / symptom / root problem are kept apart so the harness does not anchor
-    on the initial request (Mock #2).
+    on the initial request (Mock #2). ``version`` and the ``supersedes`` / ``superseded_by``
+    lineage are Harness-owned (IDR-REDEFINE-05): callers cannot choose or reuse a version.
     """
 
     id: str
@@ -43,6 +63,23 @@ class ProblemDefinition:
     status: ProblemDefinitionStatus = ProblemDefinitionStatus.DRAFT
     gate_result: DefineGateResult | None = None
     invalidated_by: list[str] = field(default_factory=list)
+    supersedes: str | None = None  # "PD-1@v1"
+    superseded_by: str | None = None
+    challenges: list[CanonicalChallenge] = field(default_factory=list)
+
+    @property
+    def ref(self) -> str:
+        return f"{self.id}@v{self.version}"
+
+    def is_canonical(self) -> bool:
+        """ACTIVE and gate-valid: the only state in which a Problem may be challenged or redefined."""
+        return self.status is ProblemDefinitionStatus.ACTIVE and self.gate_result in (
+            DefineGateResult.PASS,
+            DefineGateResult.CONDITIONAL_PASS,
+        )
+
+    def open_challenges(self) -> list[CanonicalChallenge]:
+        return [c for c in self.challenges if c.status is ChallengeStatus.OPEN]
 
 
 @dataclass
@@ -240,6 +277,38 @@ class WorkItem:
     root_problem_aligned: bool = False
     release_blocking: bool = False
     status: str = "PENDING"  # PENDING / DONE / DROPPED
+
+
+@dataclass
+class DependencyReviewItem:
+    object_type: str  # Hypothesis / Assumption / VerificationObligation / SolutionDesign / ...
+    object_id: str
+    classification: DependencyClassification
+    reason: str
+    action: str = ""  # what the Harness changed, e.g. "SUPPORTED → REJECTED"
+
+
+@dataclass
+class DependencyReview:
+    """Downstream re-evaluation created by ``redefine`` (IDR-REDEFINE-04).
+
+    Lives in ProblemState as a record — not a fourth canonical state. ``redefine ≠ full reset``:
+    only Problem-dependent objects are classified; unaffected facts are counted in ``preserved``.
+    """
+
+    id: str
+    problem_ref: str  # invalidated Problem, e.g. "PD-1@v1"
+    trigger_evidence: str
+    contradicted_premises: list[str] = field(default_factory=list)
+    evidence_revisions: list[str] = field(default_factory=list)
+    items: list[DependencyReviewItem] = field(default_factory=list)
+    preserved: dict[str, int] = field(default_factory=dict)
+    successor_ref: str | None = None
+    successor_items: list[DependencyReviewItem] = field(default_factory=list)
+    event_seq: int | None = None
+
+    def classified(self, classification: DependencyClassification) -> list[DependencyReviewItem]:
+        return [i for i in self.items if i.classification is classification]
 
 
 @dataclass
