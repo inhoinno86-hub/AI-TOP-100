@@ -1,0 +1,3695 @@
+{
+ "variant": "u1_default_scope",
+ "probes": {
+  "P1_P2_precanonical": {
+   "problem_status": "DRAFT",
+   "gate_result": "None",
+   "evidence_used": "E-06",
+   "decide_recovery_kind_on_draft": "HOLD",
+   "redefine_on_draft_error": "IllegalTransitionError: PD-1 v1 is DRAFT (gate None), not an ACTIVE canonical Problem: pre-canonical changes are hypothesis_changed / continue DEFINE, never redefine",
+   "redefine_on_draft_accepted": false,
+   "problem_status_after": "DRAFT",
+   "problem_invalidated_events": 0
+  }
+ },
+ "checkpoints": {
+  "phase1": {
+   "ok": true,
+   "problem": "PD-1 v1 ACTIVE",
+   "solution_design": true,
+   "agent_spec": true,
+   "vobs": [
+    "VOB-U-U1"
+   ],
+   "success_criteria": [
+    "SC-S1",
+    "SC-S2"
+   ],
+   "plan": "PLAN-1"
+  }
+ },
+ "catalog": {
+  "discover": [
+   "crm-tickets:dispute_response_times",
+   "crm-tickets:dispute_volume_monthly",
+   "billing-db:disputed_bills_by_read_type",
+   "route-log:route_completion_aug_sep",
+   "mdms-export:read_events_for_disputed_estimated",
+   "billing-db:tariff_change_log",
+   "interview:SH-FIELD",
+   "interview:SH-BILL"
+  ],
+  "reprofile": [
+   "billing-config:validation_rule_changes",
+   "mdms-export:meter_firmware_units"
+  ],
+  "execute@v1": [
+   "route-log:lagging_routes",
+   "billing-db:accounts_estimated_last_cycle"
+  ],
+  "execute@v2": [
+   "billing-db:import_status_estimated_disputed",
+   "billing-db:affected_accounts_v42",
+   "mdms-export:reads_for_accounts"
+  ]
+ },
+ "late_ref": "mdms-export:read_events_for_disputed_estimated",
+ "provider": {
+  "mode": "replay",
+  "model": null,
+  "transcript": "artifacts/reliability/RV-2/A-01/scoped/reasoning_transcript.jsonl",
+  "config": {
+   "name": "nvidia-nim",
+   "model": "nvidia/nemotron-3-super-120b-a12b",
+   "base_url": "https://integrate.api.nvidia.com/v1",
+   "api_key_env": "NVIDIA_API_KEY",
+   "structured_mode": "json_schema",
+   "temperature": 0.2,
+   "max_tokens": 8192,
+   "timeout_seconds": 240.0
+  },
+  "faults": null
+ },
+ "define_gate_v1": {
+  "result": "CONDITIONAL_PASS",
+  "findings": [
+   [
+    "handoff",
+    "CONDITIONAL",
+    "handoff H-FIELD-BILL delivery/semantic validity unknown"
+   ],
+   [
+    "handoff",
+    "CONDITIONAL",
+    "handoff H-MDMS-BILL delivery/semantic validity unknown"
+   ],
+   [
+    "unknown",
+    "CONDITIONAL",
+    "critical unknown U-U1 deferred to VOB-U-U1"
+   ],
+   [
+    "tool",
+    "CONDITIONAL",
+    "required tool mdms-export DEGRADED without fallback"
+   ]
+  ],
+  "vobs": [
+   "VOB-U-U1"
+  ]
+ },
+ "inventory_define_v1": {
+  "problem_meta_version": 25,
+  "phase": "DEFINE",
+  "execution_status": "RUNNING",
+  "active_problem": {
+   "id": "PD-1",
+   "version": 1,
+   "requested_solution": "Not applicable",
+   "symptoms": [
+    "Dispute ticket volume doubled since August (E-03)"
+   ],
+   "root_problem": "Insufficient field meter reading coverage (route completion below target) leads to missed reads, causing estimation and incorrect bills, which drives the increase in dispute tickets.",
+   "evidence_refs": [
+    "E-02",
+    "E-03",
+    "E-04"
+   ],
+   "intended_scope": [
+    {
+     "action": "increase_field_reader_headcount",
+     "target": "SH-FIELD"
+    },
+    {
+     "action": "optimize_route_scheduling",
+     "target": "DA-ROUTE"
+    },
+    {
+     "action": "push_route_update",
+     "target": "field-dispatch"
+    },
+    {
+     "action": "monitor_ami_read_quality",
+     "target": "mdms-export"
+    },
+    {
+     "action": "validate_billing_import_rules",
+     "target": "billing-config"
+    }
+   ],
+   "protected_actions": [
+    "push_route_update"
+   ],
+   "depends_on_mappings": [],
+   "depends_on_handoffs": [
+    "H-FIELD-BILL",
+    "H-MDMS-BILL"
+   ],
+   "depends_on_exports": [],
+   "required_tools": [
+    "route-log",
+    "mdms-export",
+    "billing-config",
+    "field-dispatch",
+    "crm-tickets"
+   ],
+   "success_criteria": [
+    "SC-S1",
+    "SC-S2"
+   ],
+   "metric_ids": [
+    "M-M1",
+    "M-M2"
+   ],
+   "status": "ACTIVE",
+   "gate_result": "CONDITIONAL_PASS",
+   "invalidated_by": [],
+   "supersedes": null,
+   "superseded_by": null,
+   "challenges": []
+  },
+  "problem_definition_history": [],
+  "solution_design": null,
+  "agent_spec": null,
+  "verification_obligations": {
+   "VOB-U-U1": {
+    "status": "OPEN",
+    "required_before": "BEFORE_PROTECTED_ACTION",
+    "blocking_scope": "ENTIRE",
+    "question": "Do AMI read errors contribute significantly to wrong bills beyond missed manual reads?",
+    "linked_unknown": "U-U1"
+   }
+  },
+  "hypotheses": {
+   "H-REQUESTER-FRAME": {
+    "status": "REJECTED",
+    "supporting": [
+     "E-03"
+    ],
+    "contradicting": [
+     "E-05"
+    ]
+   },
+   "H-METER-READ-ERROR": {
+    "status": "CONFIRMED",
+    "supporting": [
+     "E-02",
+     "E-03",
+     "E-04"
+    ],
+    "contradicting": []
+   },
+   "H-BILLING-RULE-CHANGE": {
+    "status": "CONFIRMED",
+    "supporting": [
+     "E-02",
+     "E-03"
+    ],
+    "contradicting": []
+   },
+   "H-HANDOFF-FAILURE": {
+    "status": "REJECTED",
+    "supporting": [
+     "E-03",
+     "E-04",
+     "E-05"
+    ],
+    "contradicting": [
+     "E-02"
+    ]
+   }
+  },
+  "assumptions": {
+   "A-A1": "ACTIVE",
+   "A-A2": "ACTIVE"
+  },
+  "unknowns": {
+   "U-U1": "DEFERRED",
+   "U-U2": "OPEN"
+  },
+  "success_criteria": [
+   "SC-S1",
+   "SC-S2"
+  ],
+  "active_problem_success_criteria": [
+   "SC-S1",
+   "SC-S2"
+  ],
+  "claims": {
+   "CL-01": {
+    "status": "UNVERIFIED",
+    "evidence_refs": []
+   },
+   "CL-02": {
+    "status": "UNVERIFIED",
+    "evidence_refs": []
+   },
+   "CL-03": {
+    "status": "UNVERIFIED",
+    "evidence_refs": []
+   }
+  },
+  "conflicts": {
+   "C-1": {
+    "type": "DATA_CONFLICT",
+    "assertion": "route_completion.meets_target",
+    "sides": [
+     "E-04",
+     "CL-02"
+    ],
+    "decision_impact": "MEDIUM",
+    "status": "OPEN",
+    "gate_blocking": false
+   },
+   "C-2": {
+    "type": "DATA_CONFLICT",
+    "assertion": "route_completion.meets_target",
+    "sides": [
+     "E-04",
+     "E-05"
+    ],
+    "decision_impact": "MEDIUM",
+    "status": "OPEN",
+    "gate_blocking": false
+   }
+  },
+  "evidence": {
+   "E-01": {
+    "status": "ACTIVE",
+    "authority": "AUTHORITATIVE",
+    "source": "billing-db",
+    "content": "billing-db.tariff_change_log → 0 record(s): none",
+    "interpretation_history": [
+     {
+      "interpretation": "The tariff change log contains no entries, indicating that no tariff changes were recorded during the period. This suggests tariff changes are unlikely to be the source of the wrong bills driving dispute tickets.",
+      "reason": "proposed by reasoner R-3 (replay/transcript)",
+      "event_seq": null
+     }
+    ],
+    "provenance": {
+     "source_type": "TOOL",
+     "source_id": "billing-db",
+     "method": "tariff_change_log",
+     "derived_from": [
+      "billing-db:tariff_change_log",
+      "R-3"
+     ],
+     "event_seq": 11,
+     "recorded_at_minute": 16.0
+    }
+   },
+   "E-02": {
+    "status": "ACTIVE",
+    "authority": "AUTHORITATIVE",
+    "source": "billing-db",
+    "content": "billing-db.disputed_bills_by_read_type → 2 record(s): {\"count\": 1240, \"read_type\": \"ESTIMATED\"}; {\"count\": 1785, \"read_type\": \"ACTUAL\"}",
+    "interpretation_history": [
+     {
+      "interpretation": "The observation shows that disputed bills are higher for actual reads (1785) than for estimated reads (1240), indicating that errors are not limited to estimation and that actual meter reads are also being disputed.",
+      "reason": "proposed by reasoner R-4 (replay/transcript)",
+      "event_seq": null
+     }
+    ],
+    "provenance": {
+     "source_type": "TOOL",
+     "source_id": "billing-db",
+     "method": "disputed_bills_by_read_type",
+     "derived_from": [
+      "billing-db:disputed_bills_by_read_type",
+      "R-4"
+     ],
+     "event_seq": 22,
+     "recorded_at_minute": 21.0
+    }
+   },
+   "E-03": {
+    "status": "ACTIVE",
+    "authority": "AUTHORITATIVE",
+    "source": "crm-tickets",
+    "content": "crm-tickets.dispute_volume_monthly → 4 record(s): {\"disputes\": 610, \"month\": \"2026-06\"}; {\"disputes\": 590, \"month\": \"2026-07\"}; {\"disputes\": 1180, \"month\": \"2026-08\"}; {\"disputes\": 1260, \"month\": \"2026-09\"}",
+    "interpretation_history": [
+     {
+      "interpretation": "Dispute ticket volume rose from ~600 per month in June‑July to over 1100 in August and 1260 in September, indicating a roughly two‑fold increase since August.",
+      "reason": "proposed by reasoner R-5 (replay/transcript)",
+      "event_seq": null
+     }
+    ],
+    "provenance": {
+     "source_type": "TOOL",
+     "source_id": "crm-tickets",
+     "method": "dispute_volume_monthly",
+     "derived_from": [
+      "crm-tickets:dispute_volume_monthly",
+      "R-5"
+     ],
+     "event_seq": 34,
+     "recorded_at_minute": 26.0
+    }
+   },
+   "E-04": {
+    "status": "ACTIVE",
+    "authority": "AUTHORITATIVE",
+    "source": "route-log",
+    "content": "route-log.route_completion_aug_sep → 1 record(s): {\"completion\": 0.88, \"manual_read_accounts\": 9200, \"period\": \"2026-08..09\", \"target\": 0.95}",
+    "interpretation_history": [
+     {
+      "interpretation": "The route completion for August‑September is 0.88, below the target of 0.95, indicating insufficient field meter reading coverage. This shortfall may contribute to estimation errors and the rise in dispute tickets.",
+      "reason": "proposed by reasoner R-7 (replay/transcript)",
+      "event_seq": null
+     }
+    ],
+    "provenance": {
+     "source_type": "TOOL",
+     "source_id": "route-log",
+     "method": "route_completion_aug_sep",
+     "derived_from": [
+      "route-log:route_completion_aug_sep",
+      "R-7"
+     ],
+     "event_seq": 54,
+     "recorded_at_minute": 34.0
+    }
+   },
+   "E-05": {
+    "status": "ACTIVE",
+    "authority": "NON_AUTHORITATIVE",
+    "source": "SH-FIELD",
+    "content": "We are short three readers since July; routes run late, so those customers get estimated bills.",
+    "interpretation_history": [
+     {
+      "interpretation": "Indicates that insufficient field reader staffing since July results in late route completion and reliance on estimated bills, which may drive disputes.",
+      "reason": "proposed by reasoner R-8 (replay/transcript)",
+      "event_seq": null
+     }
+    ],
+    "provenance": {
+     "source_type": "STAKEHOLDER",
+     "source_id": "SH-FIELD",
+     "method": "interview",
+     "derived_from": [
+      "interview:SH-FIELD",
+      "R-8"
+     ],
+     "event_seq": 66,
+     "recorded_at_minute": 36.0
+    }
+   },
+   "E-06": {
+    "status": "ACTIVE",
+    "authority": "AUTHORITATIVE",
+    "source": "crm-tickets",
+    "content": "crm-tickets.dispute_response_times → 1 record(s): {\"median_days\": 1.6, \"p90_days\": 2.8, \"sla_days\": 3.0, \"tickets\": 2440}",
+    "interpretation_history": [
+     {
+      "interpretation": "The observation shows dispute response times are within SLA (median 1.6 days, p90 2.8 days) despite a high volume of 2,440 tickets, indicating the response process is functioning but not addressing the underlying cause of disputes.",
+      "reason": "proposed by reasoner R-10 (replay/transcript)",
+      "event_seq": null
+     }
+    ],
+    "provenance": {
+     "source_type": "TOOL",
+     "source_id": "crm-tickets",
+     "method": "dispute_response_times",
+     "derived_from": [
+      "crm-tickets:dispute_response_times",
+      "R-10"
+     ],
+     "event_seq": 75,
+     "recorded_at_minute": 41.0
+    }
+   },
+   "E-07": {
+    "status": "ACTIVE",
+    "authority": "NON_AUTHORITATIVE",
+    "source": "SH-BILL",
+    "content": "There has been no tariff change this year.",
+    "interpretation_history": [
+     {
+      "interpretation": "The stakeholder reports no tariff change this year, indicating tariff changes are unlikely to be the source of wrong bills driving the dispute ticket increase.",
+      "reason": "proposed by reasoner R-11 (replay/transcript)",
+      "event_seq": null
+     }
+    ],
+    "provenance": {
+     "source_type": "STAKEHOLDER",
+     "source_id": "SH-BILL",
+     "method": "interview",
+     "derived_from": [
+      "interview:SH-BILL",
+      "R-11"
+     ],
+     "event_seq": 85,
+     "recorded_at_minute": 43.0
+    }
+   },
+   "E-08": {
+    "status": "ACTIVE",
+    "authority": "AUTHORITATIVE",
+    "source": "fieldco-service-contract",
+    "content": "Service contract §4.2: utility may request route priority changes; executed after Field Operations Manager confirmation.",
+    "interpretation_history": [
+     {
+      "interpretation": "The service contract confirms that route priority changes (e.g., push_route_update) require Field Operations Manager confirmation, reinforcing the existing authorization constraint K-DISPATCH.",
+      "reason": "proposed by reasoner R-15 (replay/transcript)",
+      "event_seq": null
+     }
+    ],
+    "provenance": {
+     "source_type": "DOCUMENT",
+     "source_id": "fieldco-service-contract",
+     "method": "document review",
+     "derived_from": [
+      "R-15"
+     ],
+     "event_seq": 107,
+     "recorded_at_minute": 55.0
+    }
+   }
+  },
+  "evidence_revisions": {},
+  "decision_log": [
+   {
+    "id": "D-1",
+    "phase": "DISCOVER",
+    "decision": "DEFINE proposal R-14",
+    "rationale": "causal chain: Insufficient field reader staffing since July → low route completion (0.88 < 0.95) (E-04, E-05) → Low route completion → missed manual meter reads for some accounts → Missed reads → billing system substitutes estimated reads (process step 'estimate substitution when no accepted read') → Estimated (or erroneous AMI/manual) reads produce incorrect bill amounts → Incorrect bills → customers file dispute tickets → Increased dispute tickets volume (doubled since August) (E-03); rejected framings: [('H-HANDOFF-FAILURE', 'Contradicted by evidence E-02 showing disputed bills higher for actual reads, indicating the problem is not missing reads due to handoff failures.'), ('H-REQUESTER-FRAME', \"Contradicted by stakeholder evidence E-05 attributing issues to staffing; the requester's framing of an AI agent as solution ignores root cause.\")]",
+    "evidence_refs": [
+     "E-02",
+     "E-03",
+     "E-04"
+    ],
+    "event_seq": null
+   },
+   {
+    "id": "D-2",
+    "phase": "DEFINE",
+    "decision": "DEFINE Gate CONDITIONAL_PASS",
+    "rationale": "[CONDITIONAL] handoff H-FIELD-BILL delivery/semantic validity unknown; [CONDITIONAL] handoff H-MDMS-BILL delivery/semantic validity unknown; [CONDITIONAL] critical unknown U-U1 deferred to VOB-U-U1; [CONDITIONAL] required tool mdms-export DEGRADED without fallback",
+    "evidence_refs": [],
+    "event_seq": null
+   }
+  ],
+  "domain_authorizations": {
+   "DA-PUSH-ROUTE-UPDATE": "GRANTED"
+  },
+  "plan": null,
+  "pending_protected_action": null,
+  "executed_actions": [],
+  "transition_candidate": null,
+  "recovery": {
+   "candidate_transition": "REPLAN",
+   "rationale": "retry stopped (NOT_TRANSIENT); alternate path crm-tickets:dispute_response_times"
+  },
+  "release_decisions": [],
+  "supervision": {
+   "current_problem": "Insufficient field meter reading coverage (route completion below target) leads to missed reads, causing estimation and incorrect bills, which drives the increase in dispute tickets.",
+   "top_hypotheses": [],
+   "evidence_revisions": [],
+   "pending_verification_obligations": [],
+   "intervention": {
+    "required": false,
+    "reason": null,
+    "gate_id": null
+   },
+   "live_summary_tail": [
+    "[HIGH] STRATEGY_CHANGING_FAILURE: retry stopped (NOT_TRANSIENT); alternate path crm-tickets:dispute_response_times",
+    "[HIGH] DEFINE_GATE_RESULT: CONDITIONAL_PASS (4 findings)"
+   ]
+  }
+ },
+ "dispatch_gate_v1": {
+  "status": "RUNNING",
+  "pending": null,
+  "packet": null,
+  "blocked_reasons": [
+   "VOB required before protected action intersects scope: ['VOB-U-U1']"
+  ]
+ },
+ "inventory_v1": {
+  "problem_meta_version": 33,
+  "phase": "EXECUTE",
+  "execution_status": "RUNNING",
+  "active_problem": {
+   "id": "PD-1",
+   "version": 1,
+   "requested_solution": "Not applicable",
+   "symptoms": [
+    "Dispute ticket volume doubled since August (E-03)"
+   ],
+   "root_problem": "Insufficient field meter reading coverage (route completion below target) leads to missed reads, causing estimation and incorrect bills, which drives the increase in dispute tickets.",
+   "evidence_refs": [
+    "E-02",
+    "E-03",
+    "E-04"
+   ],
+   "intended_scope": [
+    {
+     "action": "increase_field_reader_headcount",
+     "target": "SH-FIELD"
+    },
+    {
+     "action": "optimize_route_scheduling",
+     "target": "DA-ROUTE"
+    },
+    {
+     "action": "push_route_update",
+     "target": "field-dispatch"
+    },
+    {
+     "action": "monitor_ami_read_quality",
+     "target": "mdms-export"
+    },
+    {
+     "action": "validate_billing_import_rules",
+     "target": "billing-config"
+    }
+   ],
+   "protected_actions": [
+    "push_route_update"
+   ],
+   "depends_on_mappings": [],
+   "depends_on_handoffs": [
+    "H-FIELD-BILL",
+    "H-MDMS-BILL"
+   ],
+   "depends_on_exports": [],
+   "required_tools": [
+    "route-log",
+    "mdms-export",
+    "billing-config",
+    "field-dispatch",
+    "crm-tickets"
+   ],
+   "success_criteria": [
+    "SC-S1",
+    "SC-S2"
+   ],
+   "metric_ids": [
+    "M-M1",
+    "M-M2"
+   ],
+   "status": "ACTIVE",
+   "gate_result": "CONDITIONAL_PASS",
+   "invalidated_by": [],
+   "supersedes": null,
+   "superseded_by": null,
+   "challenges": []
+  },
+  "problem_definition_history": [],
+  "solution_design": {
+   "id": "SD-1",
+   "problem_ref": "PD-1",
+   "problem_version": 1,
+   "agent_roles": [
+    "CONTROL_DETECTION",
+    "EXCEPTION_HANDLER"
+   ],
+   "structural_remedies": [
+    "SR-R1",
+    "SR-R2",
+    "SR-R3"
+   ],
+   "release_scope": [
+    "optimize_route_scheduling:DA-ROUTE",
+    "push_route_update:field-dispatch"
+   ]
+  },
+  "agent_spec": {
+   "identity": "agent-SD-1",
+   "problem_reference": "PD-1@v1",
+   "structural_role": [
+    "CONTROL_DETECTION",
+    "EXCEPTION_HANDLER"
+   ],
+   "verification_obligations": [
+    "VOB-U-U1"
+   ],
+   "success_criteria": [
+    "SC-S1",
+    "SC-S2"
+   ]
+  },
+  "verification_obligations": {
+   "VOB-U-U1": {
+    "status": "OPEN",
+    "required_before": "BEFORE_PROTECTED_ACTION",
+    "blocking_scope": "ENTIRE",
+    "question": "Do AMI read errors contribute significantly to wrong bills beyond missed manual reads?",
+    "linked_unknown": "U-U1"
+   }
+  },
+  "hypotheses": {
+   "H-REQUESTER-FRAME": {
+    "status": "REJECTED",
+    "supporting": [
+     "E-03"
+    ],
+    "contradicting": [
+     "E-05"
+    ]
+   },
+   "H-METER-READ-ERROR": {
+    "status": "CONFIRMED",
+    "supporting": [
+     "E-02",
+     "E-03",
+     "E-04",
+     "E-09",
+     "E-10"
+    ],
+    "contradicting": []
+   },
+   "H-BILLING-RULE-CHANGE": {
+    "status": "CONFIRMED",
+    "supporting": [
+     "E-02",
+     "E-03"
+    ],
+    "contradicting": []
+   },
+   "H-HANDOFF-FAILURE": {
+    "status": "REJECTED",
+    "supporting": [
+     "E-03",
+     "E-04",
+     "E-05",
+     "E-10"
+    ],
+    "contradicting": [
+     "E-02"
+    ]
+   }
+  },
+  "assumptions": {
+   "A-A1": "ACTIVE",
+   "A-A2": "ACTIVE"
+  },
+  "unknowns": {
+   "U-U1": "DEFERRED",
+   "U-U2": "OPEN"
+  },
+  "success_criteria": [
+   "SC-S1",
+   "SC-S2"
+  ],
+  "active_problem_success_criteria": [
+   "SC-S1",
+   "SC-S2"
+  ],
+  "claims": {
+   "CL-01": {
+    "status": "UNVERIFIED",
+    "evidence_refs": []
+   },
+   "CL-02": {
+    "status": "UNVERIFIED",
+    "evidence_refs": []
+   },
+   "CL-03": {
+    "status": "UNVERIFIED",
+    "evidence_refs": []
+   }
+  },
+  "conflicts": {
+   "C-1": {
+    "type": "DATA_CONFLICT",
+    "assertion": "route_completion.meets_target",
+    "sides": [
+     "E-04",
+     "CL-02"
+    ],
+    "decision_impact": "MEDIUM",
+    "status": "OPEN",
+    "gate_blocking": false
+   },
+   "C-2": {
+    "type": "DATA_CONFLICT",
+    "assertion": "route_completion.meets_target",
+    "sides": [
+     "E-04",
+     "E-05"
+    ],
+    "decision_impact": "MEDIUM",
+    "status": "OPEN",
+    "gate_blocking": false
+   }
+  },
+  "evidence": {
+   "E-01": {
+    "status": "ACTIVE",
+    "authority": "AUTHORITATIVE",
+    "source": "billing-db",
+    "content": "billing-db.tariff_change_log → 0 record(s): none",
+    "interpretation_history": [
+     {
+      "interpretation": "The tariff change log contains no entries, indicating that no tariff changes were recorded during the period. This suggests tariff changes are unlikely to be the source of the wrong bills driving dispute tickets.",
+      "reason": "proposed by reasoner R-3 (replay/transcript)",
+      "event_seq": null
+     }
+    ],
+    "provenance": {
+     "source_type": "TOOL",
+     "source_id": "billing-db",
+     "method": "tariff_change_log",
+     "derived_from": [
+      "billing-db:tariff_change_log",
+      "R-3"
+     ],
+     "event_seq": 11,
+     "recorded_at_minute": 16.0
+    }
+   },
+   "E-02": {
+    "status": "ACTIVE",
+    "authority": "AUTHORITATIVE",
+    "source": "billing-db",
+    "content": "billing-db.disputed_bills_by_read_type → 2 record(s): {\"count\": 1240, \"read_type\": \"ESTIMATED\"}; {\"count\": 1785, \"read_type\": \"ACTUAL\"}",
+    "interpretation_history": [
+     {
+      "interpretation": "The observation shows that disputed bills are higher for actual reads (1785) than for estimated reads (1240), indicating that errors are not limited to estimation and that actual meter reads are also being disputed.",
+      "reason": "proposed by reasoner R-4 (replay/transcript)",
+      "event_seq": null
+     }
+    ],
+    "provenance": {
+     "source_type": "TOOL",
+     "source_id": "billing-db",
+     "method": "disputed_bills_by_read_type",
+     "derived_from": [
+      "billing-db:disputed_bills_by_read_type",
+      "R-4"
+     ],
+     "event_seq": 22,
+     "recorded_at_minute": 21.0
+    }
+   },
+   "E-03": {
+    "status": "ACTIVE",
+    "authority": "AUTHORITATIVE",
+    "source": "crm-tickets",
+    "content": "crm-tickets.dispute_volume_monthly → 4 record(s): {\"disputes\": 610, \"month\": \"2026-06\"}; {\"disputes\": 590, \"month\": \"2026-07\"}; {\"disputes\": 1180, \"month\": \"2026-08\"}; {\"disputes\": 1260, \"month\": \"2026-09\"}",
+    "interpretation_history": [
+     {
+      "interpretation": "Dispute ticket volume rose from ~600 per month in June‑July to over 1100 in August and 1260 in September, indicating a roughly two‑fold increase since August.",
+      "reason": "proposed by reasoner R-5 (replay/transcript)",
+      "event_seq": null
+     }
+    ],
+    "provenance": {
+     "source_type": "TOOL",
+     "source_id": "crm-tickets",
+     "method": "dispute_volume_monthly",
+     "derived_from": [
+      "crm-tickets:dispute_volume_monthly",
+      "R-5"
+     ],
+     "event_seq": 34,
+     "recorded_at_minute": 26.0
+    }
+   },
+   "E-04": {
+    "status": "ACTIVE",
+    "authority": "AUTHORITATIVE",
+    "source": "route-log",
+    "content": "route-log.route_completion_aug_sep → 1 record(s): {\"completion\": 0.88, \"manual_read_accounts\": 9200, \"period\": \"2026-08..09\", \"target\": 0.95}",
+    "interpretation_history": [
+     {
+      "interpretation": "The route completion for August‑September is 0.88, below the target of 0.95, indicating insufficient field meter reading coverage. This shortfall may contribute to estimation errors and the rise in dispute tickets.",
+      "reason": "proposed by reasoner R-7 (replay/transcript)",
+      "event_seq": null
+     }
+    ],
+    "provenance": {
+     "source_type": "TOOL",
+     "source_id": "route-log",
+     "method": "route_completion_aug_sep",
+     "derived_from": [
+      "route-log:route_completion_aug_sep",
+      "R-7"
+     ],
+     "event_seq": 54,
+     "recorded_at_minute": 34.0
+    }
+   },
+   "E-05": {
+    "status": "ACTIVE",
+    "authority": "NON_AUTHORITATIVE",
+    "source": "SH-FIELD",
+    "content": "We are short three readers since July; routes run late, so those customers get estimated bills.",
+    "interpretation_history": [
+     {
+      "interpretation": "Indicates that insufficient field reader staffing since July results in late route completion and reliance on estimated bills, which may drive disputes.",
+      "reason": "proposed by reasoner R-8 (replay/transcript)",
+      "event_seq": null
+     }
+    ],
+    "provenance": {
+     "source_type": "STAKEHOLDER",
+     "source_id": "SH-FIELD",
+     "method": "interview",
+     "derived_from": [
+      "interview:SH-FIELD",
+      "R-8"
+     ],
+     "event_seq": 66,
+     "recorded_at_minute": 36.0
+    }
+   },
+   "E-06": {
+    "status": "ACTIVE",
+    "authority": "AUTHORITATIVE",
+    "source": "crm-tickets",
+    "content": "crm-tickets.dispute_response_times → 1 record(s): {\"median_days\": 1.6, \"p90_days\": 2.8, \"sla_days\": 3.0, \"tickets\": 2440}",
+    "interpretation_history": [
+     {
+      "interpretation": "The observation shows dispute response times are within SLA (median 1.6 days, p90 2.8 days) despite a high volume of 2,440 tickets, indicating the response process is functioning but not addressing the underlying cause of disputes.",
+      "reason": "proposed by reasoner R-10 (replay/transcript)",
+      "event_seq": null
+     }
+    ],
+    "provenance": {
+     "source_type": "TOOL",
+     "source_id": "crm-tickets",
+     "method": "dispute_response_times",
+     "derived_from": [
+      "crm-tickets:dispute_response_times",
+      "R-10"
+     ],
+     "event_seq": 75,
+     "recorded_at_minute": 41.0
+    }
+   },
+   "E-07": {
+    "status": "ACTIVE",
+    "authority": "NON_AUTHORITATIVE",
+    "source": "SH-BILL",
+    "content": "There has been no tariff change this year.",
+    "interpretation_history": [
+     {
+      "interpretation": "The stakeholder reports no tariff change this year, indicating tariff changes are unlikely to be the source of wrong bills driving the dispute ticket increase.",
+      "reason": "proposed by reasoner R-11 (replay/transcript)",
+      "event_seq": null
+     }
+    ],
+    "provenance": {
+     "source_type": "STAKEHOLDER",
+     "source_id": "SH-BILL",
+     "method": "interview",
+     "derived_from": [
+      "interview:SH-BILL",
+      "R-11"
+     ],
+     "event_seq": 85,
+     "recorded_at_minute": 43.0
+    }
+   },
+   "E-08": {
+    "status": "ACTIVE",
+    "authority": "AUTHORITATIVE",
+    "source": "fieldco-service-contract",
+    "content": "Service contract §4.2: utility may request route priority changes; executed after Field Operations Manager confirmation.",
+    "interpretation_history": [
+     {
+      "interpretation": "The service contract confirms that route priority changes (e.g., push_route_update) require Field Operations Manager confirmation, reinforcing the existing authorization constraint K-DISPATCH.",
+      "reason": "proposed by reasoner R-15 (replay/transcript)",
+      "event_seq": null
+     }
+    ],
+    "provenance": {
+     "source_type": "DOCUMENT",
+     "source_id": "fieldco-service-contract",
+     "method": "document review",
+     "derived_from": [
+      "R-15"
+     ],
+     "event_seq": 107,
+     "recorded_at_minute": 55.0
+    }
+   },
+   "E-09": {
+    "status": "ACTIVE",
+    "authority": "AUTHORITATIVE",
+    "source": "route-log",
+    "content": "route-log.lagging_routes → 14 record(s); fields ['completion', 'route'] | completion: 14 distinct values | route: 14 distinct values | sample: {\"completion\": 0.7, \"route\": \"R-00\"}",
+    "interpretation_history": [
+     {
+      "interpretation": "The observation identifies 14 lagging routes with distinct completion values, including a sample completion of 0.7 for route R-00, indicating localized low coverage that could cause missed reads and estimation.",
+      "reason": "proposed by reasoner R-19 (replay/transcript)",
+      "event_seq": null
+     }
+    ],
+    "provenance": {
+     "source_type": "TOOL",
+     "source_id": "route-log",
+     "method": "lagging_routes",
+     "derived_from": [
+      "route-log:lagging_routes",
+      "R-19"
+     ],
+     "event_seq": 139,
+     "recorded_at_minute": 103.0
+    }
+   },
+   "E-10": {
+    "status": "ACTIVE",
+    "authority": "AUTHORITATIVE",
+    "source": "billing-db",
+    "content": "billing-db.accounts_estimated_last_cycle → 320 record(s); fields ['account_id', 'route'] | account_id: 320 distinct values | route: 40 distinct values | sample: {\"account_id\": \"AC-20000\", \"route\": \"R-00\"}",
+    "interpretation_history": [
+     {
+      "interpretation": "The observation shows that 320 accounts across 40 routes relied on estimated reads in the last billing cycle, indicating widespread estimation consistent with missed field reads.",
+      "reason": "proposed by reasoner R-20 (replay/transcript)",
+      "event_seq": null
+     }
+    ],
+    "provenance": {
+     "source_type": "TOOL",
+     "source_id": "billing-db",
+     "method": "accounts_estimated_last_cycle",
+     "derived_from": [
+      "billing-db:accounts_estimated_last_cycle",
+      "R-20"
+     ],
+     "event_seq": 148,
+     "recorded_at_minute": 106.0
+    }
+   }
+  },
+  "evidence_revisions": {},
+  "decision_log": [
+   {
+    "id": "D-1",
+    "phase": "DISCOVER",
+    "decision": "DEFINE proposal R-14",
+    "rationale": "causal chain: Insufficient field reader staffing since July → low route completion (0.88 < 0.95) (E-04, E-05) → Low route completion → missed manual meter reads for some accounts → Missed reads → billing system substitutes estimated reads (process step 'estimate substitution when no accepted read') → Estimated (or erroneous AMI/manual) reads produce incorrect bill amounts → Incorrect bills → customers file dispute tickets → Increased dispute tickets volume (doubled since August) (E-03); rejected framings: [('H-HANDOFF-FAILURE', 'Contradicted by evidence E-02 showing disputed bills higher for actual reads, indicating the problem is not missing reads due to handoff failures.'), ('H-REQUESTER-FRAME', \"Contradicted by stakeholder evidence E-05 attributing issues to staffing; the requester's framing of an AI agent as solution ignores root cause.\")]",
+    "evidence_refs": [
+     "E-02",
+     "E-03",
+     "E-04"
+    ],
+    "event_seq": null
+   },
+   {
+    "id": "D-2",
+    "phase": "DEFINE",
+    "decision": "DEFINE Gate CONDITIONAL_PASS",
+    "rationale": "[CONDITIONAL] handoff H-FIELD-BILL delivery/semantic validity unknown; [CONDITIONAL] handoff H-MDMS-BILL delivery/semantic validity unknown; [CONDITIONAL] critical unknown U-U1 deferred to VOB-U-U1; [CONDITIONAL] required tool mdms-export DEGRADED without fallback",
+    "evidence_refs": [],
+    "event_seq": null
+   }
+  ],
+  "domain_authorizations": {
+   "DA-PUSH-ROUTE-UPDATE": "GRANTED"
+  },
+  "plan": {
+   "id": "PLAN-1",
+   "version": 1,
+   "work_items": {
+    "W-WI-1": {
+     "status": "DONE",
+     "description": "Generate optimized manual-read route schedule using lagging routes analysis"
+    },
+    "W-VERIFY": {
+     "status": "PENDING",
+     "description": "release-blocking verification"
+    },
+    "W-PACK": {
+     "status": "PENDING",
+     "description": "packaging + submission"
+    }
+   }
+  },
+  "pending_protected_action": null,
+  "executed_actions": [],
+  "transition_candidate": null,
+  "recovery": {
+   "candidate_transition": "REPLAN",
+   "rationale": "retry stopped (NOT_TRANSIENT); alternate path crm-tickets:dispute_response_times"
+  },
+  "release_decisions": [],
+  "supervision": {
+   "current_problem": "Insufficient field meter reading coverage (route completion below target) leads to missed reads, causing estimation and incorrect bills, which drives the increase in dispute tickets. (v1, ACTIVE)",
+   "top_hypotheses": [
+    "H-METER-READ-ERROR: Meter reading errors (AMI or manual) produce incorrect consumption values, leading to wrong bills and dispute tickets. [CONFIRMED]",
+    "H-BILLING-RULE-CHANGE: Recent changes to billing import validation rules have introduced defects that generate incorrect bills. [CONFIRMED]"
+   ],
+   "evidence_revisions": [],
+   "pending_verification_obligations": [
+    "VOB-U-U1 [BEFORE_PROTECTED_ACTION] Do AMI read errors contribute significantly to wrong bills beyond missed manual reads?"
+   ],
+   "intervention": {
+    "required": false,
+    "reason": null,
+    "gate_id": null
+   },
+   "live_summary_tail": [
+    "[HIGH] STRATEGY_CHANGING_FAILURE: retry stopped (NOT_TRANSIENT); alternate path crm-tickets:dispute_response_times",
+    "[HIGH] DEFINE_GATE_RESULT: CONDITIONAL_PASS (4 findings)",
+    "[HIGH] PROTECTED_ACTION_PROPOSAL: push_route_update on field-dispatch",
+    "[CRITICAL] RELEASE_BLOCKING_VOB: push_route_update blocked: VOB required before protected action intersects scope: ['VOB-U-U1']"
+   ]
+  }
+ },
+ "late_evidence_provisioned_at_minute": 106.0,
+ "release_v1": {
+  "decision": "HOLD",
+  "hold": [
+   "critical VOB-U-U1 intersects release scope at ['optimize_route_scheduling:DA-ROUTE', 'push_route_update:field-dispatch']"
+  ],
+  "limitations": [
+   "DEFINE Gate CONDITIONAL_PASS (deferred items tracked as VOBs)",
+   "unfinished: Increase field reader headcount by three FTEs to address the staffing shortage reported by SH‑FIELD (E‑05), thereby raising route completion toward the target of 0.95 (E‑04)."
+  ],
+  "minimum_useful": {
+   "ok": true,
+   "reasons": []
+  }
+ },
+ "result": {
+  "release_decision": "HOLD",
+  "halt_reason": "Release Gate HOLD",
+  "phase": "RELEASE",
+  "execution_status": "HOLD",
+  "problem_ref": "PD-1@v1",
+  "operator_reasoner_calls": 0,
+  "trace_actors": [
+   "ENVIRONMENT",
+   "HARNESS",
+   "REASONER"
+  ],
+  "wall_seconds": 44.7
+ },
+ "tool_failure_recovery": {
+  "kind": "REPLAN",
+  "rationale": "retry stopped (NOT_TRANSIENT); alternate path crm-tickets:dispute_response_times",
+  "stop_reason": "NOT_TRANSIENT"
+ },
+ "transition_decision": {
+  "kind": null
+ },
+ "inventory_final": {
+  "problem_meta_version": 39,
+  "phase": "RELEASE",
+  "execution_status": "HOLD",
+  "active_problem": {
+   "id": "PD-1",
+   "version": 1,
+   "requested_solution": "Not applicable",
+   "symptoms": [
+    "Dispute ticket volume doubled since August (E-03)"
+   ],
+   "root_problem": "Insufficient field meter reading coverage (route completion below target) leads to missed reads, causing estimation and incorrect bills, which drives the increase in dispute tickets.",
+   "evidence_refs": [
+    "E-02",
+    "E-03",
+    "E-04"
+   ],
+   "intended_scope": [
+    {
+     "action": "increase_field_reader_headcount",
+     "target": "SH-FIELD"
+    },
+    {
+     "action": "optimize_route_scheduling",
+     "target": "DA-ROUTE"
+    },
+    {
+     "action": "push_route_update",
+     "target": "field-dispatch"
+    },
+    {
+     "action": "monitor_ami_read_quality",
+     "target": "mdms-export"
+    },
+    {
+     "action": "validate_billing_import_rules",
+     "target": "billing-config"
+    }
+   ],
+   "protected_actions": [
+    "push_route_update"
+   ],
+   "depends_on_mappings": [],
+   "depends_on_handoffs": [
+    "H-FIELD-BILL",
+    "H-MDMS-BILL"
+   ],
+   "depends_on_exports": [],
+   "required_tools": [
+    "route-log",
+    "mdms-export",
+    "billing-config",
+    "field-dispatch",
+    "crm-tickets"
+   ],
+   "success_criteria": [
+    "SC-S1",
+    "SC-S2"
+   ],
+   "metric_ids": [
+    "M-M1",
+    "M-M2"
+   ],
+   "status": "ACTIVE",
+   "gate_result": "CONDITIONAL_PASS",
+   "invalidated_by": [],
+   "supersedes": null,
+   "superseded_by": null,
+   "challenges": []
+  },
+  "problem_definition_history": [],
+  "solution_design": {
+   "id": "SD-1",
+   "problem_ref": "PD-1",
+   "problem_version": 1,
+   "agent_roles": [
+    "CONTROL_DETECTION",
+    "EXCEPTION_HANDLER"
+   ],
+   "structural_remedies": [
+    "SR-R1",
+    "SR-R2",
+    "SR-R3"
+   ],
+   "release_scope": [
+    "optimize_route_scheduling:DA-ROUTE",
+    "push_route_update:field-dispatch"
+   ]
+  },
+  "agent_spec": {
+   "identity": "agent-SD-1",
+   "problem_reference": "PD-1@v1",
+   "structural_role": [
+    "CONTROL_DETECTION",
+    "EXCEPTION_HANDLER"
+   ],
+   "verification_obligations": [
+    "VOB-U-U1"
+   ],
+   "success_criteria": [
+    "SC-S1",
+    "SC-S2"
+   ]
+  },
+  "verification_obligations": {
+   "VOB-U-U1": {
+    "status": "OPEN",
+    "required_before": "BEFORE_PROTECTED_ACTION",
+    "blocking_scope": "ENTIRE",
+    "question": "Do AMI read errors contribute significantly to wrong bills beyond missed manual reads?",
+    "linked_unknown": "U-U1"
+   }
+  },
+  "hypotheses": {
+   "H-REQUESTER-FRAME": {
+    "status": "REJECTED",
+    "supporting": [
+     "E-03"
+    ],
+    "contradicting": [
+     "E-05"
+    ]
+   },
+   "H-METER-READ-ERROR": {
+    "status": "CONFIRMED",
+    "supporting": [
+     "E-02",
+     "E-03",
+     "E-04",
+     "E-09",
+     "E-10",
+     "E-12"
+    ],
+    "contradicting": []
+   },
+   "H-BILLING-RULE-CHANGE": {
+    "status": "CONFIRMED",
+    "supporting": [
+     "E-02",
+     "E-03",
+     "E-12"
+    ],
+    "contradicting": []
+   },
+   "H-HANDOFF-FAILURE": {
+    "status": "REJECTED",
+    "supporting": [
+     "E-03",
+     "E-04",
+     "E-05",
+     "E-10",
+     "E-12"
+    ],
+    "contradicting": [
+     "E-02",
+     "E-11"
+    ]
+   }
+  },
+  "assumptions": {
+   "A-A1": "ACTIVE",
+   "A-A2": "ACTIVE"
+  },
+  "unknowns": {
+   "U-U1": "DEFERRED",
+   "U-U2": "OPEN"
+  },
+  "success_criteria": [
+   "SC-S1",
+   "SC-S2"
+  ],
+  "active_problem_success_criteria": [
+   "SC-S1",
+   "SC-S2"
+  ],
+  "claims": {
+   "CL-01": {
+    "status": "UNVERIFIED",
+    "evidence_refs": []
+   },
+   "CL-02": {
+    "status": "UNVERIFIED",
+    "evidence_refs": []
+   },
+   "CL-03": {
+    "status": "UNVERIFIED",
+    "evidence_refs": []
+   },
+   "CL-04": {
+    "status": "UNVERIFIED",
+    "evidence_refs": []
+   }
+  },
+  "conflicts": {
+   "C-1": {
+    "type": "DATA_CONFLICT",
+    "assertion": "route_completion.meets_target",
+    "sides": [
+     "E-04",
+     "CL-02"
+    ],
+    "decision_impact": "MEDIUM",
+    "status": "OPEN",
+    "gate_blocking": false
+   },
+   "C-2": {
+    "type": "DATA_CONFLICT",
+    "assertion": "route_completion.meets_target",
+    "sides": [
+     "E-04",
+     "E-05"
+    ],
+    "decision_impact": "MEDIUM",
+    "status": "OPEN",
+    "gate_blocking": false
+   }
+  },
+  "evidence": {
+   "E-01": {
+    "status": "ACTIVE",
+    "authority": "AUTHORITATIVE",
+    "source": "billing-db",
+    "content": "billing-db.tariff_change_log → 0 record(s): none",
+    "interpretation_history": [
+     {
+      "interpretation": "The tariff change log contains no entries, indicating that no tariff changes were recorded during the period. This suggests tariff changes are unlikely to be the source of the wrong bills driving dispute tickets.",
+      "reason": "proposed by reasoner R-3 (replay/transcript)",
+      "event_seq": null
+     }
+    ],
+    "provenance": {
+     "source_type": "TOOL",
+     "source_id": "billing-db",
+     "method": "tariff_change_log",
+     "derived_from": [
+      "billing-db:tariff_change_log",
+      "R-3"
+     ],
+     "event_seq": 11,
+     "recorded_at_minute": 16.0
+    }
+   },
+   "E-02": {
+    "status": "ACTIVE",
+    "authority": "AUTHORITATIVE",
+    "source": "billing-db",
+    "content": "billing-db.disputed_bills_by_read_type → 2 record(s): {\"count\": 1240, \"read_type\": \"ESTIMATED\"}; {\"count\": 1785, \"read_type\": \"ACTUAL\"}",
+    "interpretation_history": [
+     {
+      "interpretation": "The observation shows that disputed bills are higher for actual reads (1785) than for estimated reads (1240), indicating that errors are not limited to estimation and that actual meter reads are also being disputed.",
+      "reason": "proposed by reasoner R-4 (replay/transcript)",
+      "event_seq": null
+     }
+    ],
+    "provenance": {
+     "source_type": "TOOL",
+     "source_id": "billing-db",
+     "method": "disputed_bills_by_read_type",
+     "derived_from": [
+      "billing-db:disputed_bills_by_read_type",
+      "R-4"
+     ],
+     "event_seq": 22,
+     "recorded_at_minute": 21.0
+    }
+   },
+   "E-03": {
+    "status": "ACTIVE",
+    "authority": "AUTHORITATIVE",
+    "source": "crm-tickets",
+    "content": "crm-tickets.dispute_volume_monthly → 4 record(s): {\"disputes\": 610, \"month\": \"2026-06\"}; {\"disputes\": 590, \"month\": \"2026-07\"}; {\"disputes\": 1180, \"month\": \"2026-08\"}; {\"disputes\": 1260, \"month\": \"2026-09\"}",
+    "interpretation_history": [
+     {
+      "interpretation": "Dispute ticket volume rose from ~600 per month in June‑July to over 1100 in August and 1260 in September, indicating a roughly two‑fold increase since August.",
+      "reason": "proposed by reasoner R-5 (replay/transcript)",
+      "event_seq": null
+     }
+    ],
+    "provenance": {
+     "source_type": "TOOL",
+     "source_id": "crm-tickets",
+     "method": "dispute_volume_monthly",
+     "derived_from": [
+      "crm-tickets:dispute_volume_monthly",
+      "R-5"
+     ],
+     "event_seq": 34,
+     "recorded_at_minute": 26.0
+    }
+   },
+   "E-04": {
+    "status": "ACTIVE",
+    "authority": "AUTHORITATIVE",
+    "source": "route-log",
+    "content": "route-log.route_completion_aug_sep → 1 record(s): {\"completion\": 0.88, \"manual_read_accounts\": 9200, \"period\": \"2026-08..09\", \"target\": 0.95}",
+    "interpretation_history": [
+     {
+      "interpretation": "The route completion for August‑September is 0.88, below the target of 0.95, indicating insufficient field meter reading coverage. This shortfall may contribute to estimation errors and the rise in dispute tickets.",
+      "reason": "proposed by reasoner R-7 (replay/transcript)",
+      "event_seq": null
+     }
+    ],
+    "provenance": {
+     "source_type": "TOOL",
+     "source_id": "route-log",
+     "method": "route_completion_aug_sep",
+     "derived_from": [
+      "route-log:route_completion_aug_sep",
+      "R-7"
+     ],
+     "event_seq": 54,
+     "recorded_at_minute": 34.0
+    }
+   },
+   "E-05": {
+    "status": "ACTIVE",
+    "authority": "NON_AUTHORITATIVE",
+    "source": "SH-FIELD",
+    "content": "We are short three readers since July; routes run late, so those customers get estimated bills.",
+    "interpretation_history": [
+     {
+      "interpretation": "Indicates that insufficient field reader staffing since July results in late route completion and reliance on estimated bills, which may drive disputes.",
+      "reason": "proposed by reasoner R-8 (replay/transcript)",
+      "event_seq": null
+     }
+    ],
+    "provenance": {
+     "source_type": "STAKEHOLDER",
+     "source_id": "SH-FIELD",
+     "method": "interview",
+     "derived_from": [
+      "interview:SH-FIELD",
+      "R-8"
+     ],
+     "event_seq": 66,
+     "recorded_at_minute": 36.0
+    }
+   },
+   "E-06": {
+    "status": "ACTIVE",
+    "authority": "AUTHORITATIVE",
+    "source": "crm-tickets",
+    "content": "crm-tickets.dispute_response_times → 1 record(s): {\"median_days\": 1.6, \"p90_days\": 2.8, \"sla_days\": 3.0, \"tickets\": 2440}",
+    "interpretation_history": [
+     {
+      "interpretation": "The observation shows dispute response times are within SLA (median 1.6 days, p90 2.8 days) despite a high volume of 2,440 tickets, indicating the response process is functioning but not addressing the underlying cause of disputes.",
+      "reason": "proposed by reasoner R-10 (replay/transcript)",
+      "event_seq": null
+     }
+    ],
+    "provenance": {
+     "source_type": "TOOL",
+     "source_id": "crm-tickets",
+     "method": "dispute_response_times",
+     "derived_from": [
+      "crm-tickets:dispute_response_times",
+      "R-10"
+     ],
+     "event_seq": 75,
+     "recorded_at_minute": 41.0
+    }
+   },
+   "E-07": {
+    "status": "ACTIVE",
+    "authority": "NON_AUTHORITATIVE",
+    "source": "SH-BILL",
+    "content": "There has been no tariff change this year.",
+    "interpretation_history": [
+     {
+      "interpretation": "The stakeholder reports no tariff change this year, indicating tariff changes are unlikely to be the source of wrong bills driving the dispute ticket increase.",
+      "reason": "proposed by reasoner R-11 (replay/transcript)",
+      "event_seq": null
+     }
+    ],
+    "provenance": {
+     "source_type": "STAKEHOLDER",
+     "source_id": "SH-BILL",
+     "method": "interview",
+     "derived_from": [
+      "interview:SH-BILL",
+      "R-11"
+     ],
+     "event_seq": 85,
+     "recorded_at_minute": 43.0
+    }
+   },
+   "E-08": {
+    "status": "ACTIVE",
+    "authority": "AUTHORITATIVE",
+    "source": "fieldco-service-contract",
+    "content": "Service contract §4.2: utility may request route priority changes; executed after Field Operations Manager confirmation.",
+    "interpretation_history": [
+     {
+      "interpretation": "The service contract confirms that route priority changes (e.g., push_route_update) require Field Operations Manager confirmation, reinforcing the existing authorization constraint K-DISPATCH.",
+      "reason": "proposed by reasoner R-15 (replay/transcript)",
+      "event_seq": null
+     }
+    ],
+    "provenance": {
+     "source_type": "DOCUMENT",
+     "source_id": "fieldco-service-contract",
+     "method": "document review",
+     "derived_from": [
+      "R-15"
+     ],
+     "event_seq": 107,
+     "recorded_at_minute": 55.0
+    }
+   },
+   "E-09": {
+    "status": "ACTIVE",
+    "authority": "AUTHORITATIVE",
+    "source": "route-log",
+    "content": "route-log.lagging_routes → 14 record(s); fields ['completion', 'route'] | completion: 14 distinct values | route: 14 distinct values | sample: {\"completion\": 0.7, \"route\": \"R-00\"}",
+    "interpretation_history": [
+     {
+      "interpretation": "The observation identifies 14 lagging routes with distinct completion values, including a sample completion of 0.7 for route R-00, indicating localized low coverage that could cause missed reads and estimation.",
+      "reason": "proposed by reasoner R-19 (replay/transcript)",
+      "event_seq": null
+     }
+    ],
+    "provenance": {
+     "source_type": "TOOL",
+     "source_id": "route-log",
+     "method": "lagging_routes",
+     "derived_from": [
+      "route-log:lagging_routes",
+      "R-19"
+     ],
+     "event_seq": 139,
+     "recorded_at_minute": 103.0
+    }
+   },
+   "E-10": {
+    "status": "ACTIVE",
+    "authority": "AUTHORITATIVE",
+    "source": "billing-db",
+    "content": "billing-db.accounts_estimated_last_cycle → 320 record(s); fields ['account_id', 'route'] | account_id: 320 distinct values | route: 40 distinct values | sample: {\"account_id\": \"AC-20000\", \"route\": \"R-00\"}",
+    "interpretation_history": [
+     {
+      "interpretation": "The observation shows that 320 accounts across 40 routes relied on estimated reads in the last billing cycle, indicating widespread estimation consistent with missed field reads.",
+      "reason": "proposed by reasoner R-20 (replay/transcript)",
+      "event_seq": null
+     }
+    ],
+    "provenance": {
+     "source_type": "TOOL",
+     "source_id": "billing-db",
+     "method": "accounts_estimated_last_cycle",
+     "derived_from": [
+      "billing-db:accounts_estimated_last_cycle",
+      "R-20"
+     ],
+     "event_seq": 148,
+     "recorded_at_minute": 106.0
+    }
+   },
+   "E-11": {
+    "status": "ACTIVE",
+    "authority": "NON_AUTHORITATIVE",
+    "source": "SH-AMI",
+    "content": "MDMS export access for Lakeside is provisioned as of today (vendor ticket TX-4471).",
+    "interpretation_history": [
+     {
+      "interpretation": "MDMS export access for Lakeside has been provisioned, removing a potential barrier to the AMI-to-billing handoff.",
+      "reason": "proposed by reasoner R-21 (replay/transcript)",
+      "event_seq": null
+     }
+    ],
+    "provenance": {
+     "source_type": "STAKEHOLDER",
+     "source_id": "SH-AMI",
+     "method": "message",
+     "derived_from": [
+      "R-21"
+     ],
+     "event_seq": 165,
+     "recorded_at_minute": 106.0
+    }
+   },
+   "E-12": {
+    "status": "ACTIVE",
+    "authority": "AUTHORITATIVE",
+    "source": "mdms-export",
+    "content": "mdms-export.read_events_for_disputed_estimated → 2 record(s): {\"ami_read_before_cutoff\": true, \"billing_import_status\": \"REJECTED_HIGH_CONSUMPTION\", \"count\": 1184, \"exported_to_billing\": true, \"firmware\": \"v4.2\", \"read_channel\": \"AMI\"}; {\"ami_read_before_cutoff\": false, \"billing_import_status\": \"NO_READ_RECEIVED\", \"count\": 56, \"exported_to_billing\": false, \"firmware\": \"mixed\", \"read_channel\": \"AMI\"}",
+    "interpretation_history": [
+     {
+      "interpretation": "Among disputed estimated bills, many AMI reads were taken before cutoff but rejected for high consumption, while others had no read received, indicating AMI read quality problems contributing to disputes.",
+      "reason": "proposed by reasoner R-22 (replay/transcript)",
+      "event_seq": null
+     }
+    ],
+    "provenance": {
+     "source_type": "TOOL",
+     "source_id": "mdms-export",
+     "method": "read_events_for_disputed_estimated",
+     "derived_from": [
+      "mdms-export:read_events_for_disputed_estimated",
+      "R-22"
+     ],
+     "event_seq": 173,
+     "recorded_at_minute": 110.0
+    }
+   }
+  },
+  "evidence_revisions": {},
+  "decision_log": [
+   {
+    "id": "D-1",
+    "phase": "DISCOVER",
+    "decision": "DEFINE proposal R-14",
+    "rationale": "causal chain: Insufficient field reader staffing since July → low route completion (0.88 < 0.95) (E-04, E-05) → Low route completion → missed manual meter reads for some accounts → Missed reads → billing system substitutes estimated reads (process step 'estimate substitution when no accepted read') → Estimated (or erroneous AMI/manual) reads produce incorrect bill amounts → Incorrect bills → customers file dispute tickets → Increased dispute tickets volume (doubled since August) (E-03); rejected framings: [('H-HANDOFF-FAILURE', 'Contradicted by evidence E-02 showing disputed bills higher for actual reads, indicating the problem is not missing reads due to handoff failures.'), ('H-REQUESTER-FRAME', \"Contradicted by stakeholder evidence E-05 attributing issues to staffing; the requester's framing of an AI agent as solution ignores root cause.\")]",
+    "evidence_refs": [
+     "E-02",
+     "E-03",
+     "E-04"
+    ],
+    "event_seq": null
+   },
+   {
+    "id": "D-2",
+    "phase": "DEFINE",
+    "decision": "DEFINE Gate CONDITIONAL_PASS",
+    "rationale": "[CONDITIONAL] handoff H-FIELD-BILL delivery/semantic validity unknown; [CONDITIONAL] handoff H-MDMS-BILL delivery/semantic validity unknown; [CONDITIONAL] critical unknown U-U1 deferred to VOB-U-U1; [CONDITIONAL] required tool mdms-export DEGRADED without fallback",
+    "evidence_refs": [],
+    "event_seq": null
+   }
+  ],
+  "domain_authorizations": {
+   "DA-PUSH-ROUTE-UPDATE": "GRANTED"
+  },
+  "plan": {
+   "id": "PLAN-1",
+   "version": 1,
+   "work_items": {
+    "W-WI-1": {
+     "status": "DONE",
+     "description": "Generate optimized manual-read route schedule using lagging routes analysis"
+    },
+    "W-VERIFY": {
+     "status": "PENDING",
+     "description": "release-blocking verification"
+    },
+    "W-PACK": {
+     "status": "PENDING",
+     "description": "packaging + submission"
+    }
+   }
+  },
+  "pending_protected_action": null,
+  "executed_actions": [],
+  "transition_candidate": null,
+  "recovery": {
+   "candidate_transition": "REPLAN",
+   "rationale": "retry stopped (NOT_TRANSIENT); alternate path crm-tickets:dispute_response_times"
+  },
+  "release_decisions": [
+   "HOLD"
+  ],
+  "supervision": {
+   "current_problem": "Insufficient field meter reading coverage (route completion below target) leads to missed reads, causing estimation and incorrect bills, which drives the increase in dispute tickets. (v1, ACTIVE)",
+   "top_hypotheses": [
+    "H-METER-READ-ERROR: Meter reading errors (AMI or manual) produce incorrect consumption values, leading to wrong bills and dispute tickets. [CONFIRMED]",
+    "H-BILLING-RULE-CHANGE: Recent changes to billing import validation rules have introduced defects that generate incorrect bills. [CONFIRMED]"
+   ],
+   "evidence_revisions": [],
+   "pending_verification_obligations": [
+    "VOB-U-U1 [BEFORE_PROTECTED_ACTION] Do AMI read errors contribute significantly to wrong bills beyond missed manual reads?"
+   ],
+   "intervention": {
+    "required": false,
+    "reason": null,
+    "gate_id": null
+   },
+   "live_summary_tail": [
+    "[HIGH] STRATEGY_CHANGING_FAILURE: retry stopped (NOT_TRANSIENT); alternate path crm-tickets:dispute_response_times",
+    "[HIGH] DEFINE_GATE_RESULT: CONDITIONAL_PASS (4 findings)",
+    "[HIGH] PROTECTED_ACTION_PROPOSAL: push_route_update on field-dispatch",
+    "[CRITICAL] RELEASE_BLOCKING_VOB: push_route_update blocked: VOB required before protected action intersects scope: ['VOB-U-U1']",
+    "[CRITICAL] RELEASE_GATE_RESULT: HOLD",
+    "[CRITICAL] RELEASE_BLOCKING_VOB: critical VOB-U-U1 intersects release scope at ['optimize_route_scheduling:DA-ROUTE', 'push_route_update:field-dispatch']",
+    "[CRITICAL] HUMAN_INTERVENTION_REQUIRED: autonomous run halted: Release Gate HOLD"
+   ]
+  }
+ },
+ "final_live_summary": [
+  "[HIGH] STRATEGY_CHANGING_FAILURE: retry stopped (NOT_TRANSIENT); alternate path crm-tickets:dispute_response_times",
+  "[HIGH] DEFINE_GATE_RESULT: CONDITIONAL_PASS (4 findings)",
+  "[HIGH] PROTECTED_ACTION_PROPOSAL: push_route_update on field-dispatch",
+  "[CRITICAL] RELEASE_BLOCKING_VOB: push_route_update blocked: VOB required before protected action intersects scope: ['VOB-U-U1']",
+  "[CRITICAL] RELEASE_GATE_RESULT: HOLD",
+  "[CRITICAL] RELEASE_BLOCKING_VOB: critical VOB-U-U1 intersects release scope at ['optimize_route_scheduling:DA-ROUTE', 'push_route_update:field-dispatch']",
+  "[CRITICAL] HUMAN_INTERVENTION_REQUIRED: autonomous run halted: Release Gate HOLD"
+ ],
+ "human": [],
+ "release_summary": {
+  "summary": "Insufficient field meter reading coverage (route completion below target) leads to missed reads, causing estimation and incorrect bills, which drives the increase in dispute tickets. [E-02][E-03][E-04] This is shown by higher disputed bills for actual reads [E-02], dispute ticket volume doubling since August [E-03], and route completion measured at 0.88 versus the 0.95 target [E-04]. The release scope included optimizing route scheduling and pushing route updates, but no changes were released due to the hold. Decision: HOLD. The release was held due to a critical VOB-U-U1 intersecting the release scope (optimize_route_scheduling:DA-ROUTE, push_route_update:field-dispatch) [U-U1]. Limitations: The hold cites unfinished work to increase field reader headcount by three FTEs to address staffing shortage [E-05] and raise route completion toward the target of 0.95 [E-04].",
+  "key_points": [],
+  "limitations_explained": []
+ },
+ "reasoning": [
+  {
+   "reasoning_id": "R-1",
+   "skill": "hypothesis_init",
+   "status": "SUCCESS",
+   "provider": "replay",
+   "model": "transcript",
+   "input_state_version": 0,
+   "schema_version": "1.0",
+   "order": 1,
+   "attempts": 1,
+   "input_digest": "83d36969fc6dc068",
+   "evidence_refs": [
+    "H-FIELD-BILL",
+    "H-MDMS-BILL"
+   ],
+   "confidence": 0.8,
+   "errors": [],
+   "output": null,
+   "fallback_used": null
+  },
+  {
+   "reasoning_id": "R-2",
+   "skill": "discover_actions",
+   "status": "SUCCESS",
+   "provider": "replay",
+   "model": "transcript",
+   "input_state_version": 2,
+   "schema_version": "1.0",
+   "order": 2,
+   "attempts": 1,
+   "input_digest": "e3aaa129ed863e74",
+   "evidence_refs": [
+    "H-BILLING-RULE-CHANGE",
+    "H-HANDOFF-FAILURE",
+    "H-METER-READ-ERROR",
+    "H-REQUESTER-FRAME"
+   ],
+   "confidence": null,
+   "errors": [],
+   "output": null,
+   "fallback_used": null
+  },
+  {
+   "reasoning_id": "R-3",
+   "skill": "interpret_evidence",
+   "status": "SUCCESS",
+   "provider": "replay",
+   "model": "transcript",
+   "input_state_version": 2,
+   "schema_version": "1.0",
+   "order": 3,
+   "attempts": 1,
+   "input_digest": "4457a2dbf1e5de53",
+   "evidence_refs": [
+    "E-01",
+    "H-BILLING-RULE-CHANGE",
+    "H-HANDOFF-FAILURE",
+    "H-METER-READ-ERROR",
+    "H-REQUESTER-FRAME"
+   ],
+   "confidence": 0.9,
+   "errors": [],
+   "output": null,
+   "fallback_used": null
+  },
+  {
+   "reasoning_id": "R-4",
+   "skill": "interpret_evidence",
+   "status": "SUCCESS",
+   "provider": "replay",
+   "model": "transcript",
+   "input_state_version": 4,
+   "schema_version": "1.0",
+   "order": 4,
+   "attempts": 1,
+   "input_digest": "920c810b178d5aa6",
+   "evidence_refs": [
+    "E-02",
+    "H-BILLING-RULE-CHANGE",
+    "H-HANDOFF-FAILURE",
+    "H-METER-READ-ERROR",
+    "H-REQUESTER-FRAME"
+   ],
+   "confidence": 0.9,
+   "errors": [],
+   "output": null,
+   "fallback_used": null
+  },
+  {
+   "reasoning_id": "R-5",
+   "skill": "interpret_evidence",
+   "status": "SUCCESS",
+   "provider": "replay",
+   "model": "transcript",
+   "input_state_version": 6,
+   "schema_version": "1.0",
+   "order": 5,
+   "attempts": 1,
+   "input_digest": "2da3f74e877d32db",
+   "evidence_refs": [
+    "E-03",
+    "H-BILLING-RULE-CHANGE",
+    "H-HANDOFF-FAILURE",
+    "H-METER-READ-ERROR",
+    "H-REQUESTER-FRAME"
+   ],
+   "confidence": 0.95,
+   "errors": [],
+   "output": null,
+   "fallback_used": null
+  },
+  {
+   "reasoning_id": "R-6",
+   "skill": "discover_actions",
+   "status": "SUCCESS",
+   "provider": "replay",
+   "model": "transcript",
+   "input_state_version": 8,
+   "schema_version": "1.0",
+   "order": 6,
+   "attempts": 1,
+   "input_digest": "1b0a8b9b82fead02",
+   "evidence_refs": [
+    "H-BILLING-RULE-CHANGE",
+    "H-HANDOFF-FAILURE",
+    "H-METER-READ-ERROR"
+   ],
+   "confidence": null,
+   "errors": [],
+   "output": null,
+   "fallback_used": null
+  },
+  {
+   "reasoning_id": "R-7",
+   "skill": "interpret_evidence",
+   "status": "SUCCESS",
+   "provider": "replay",
+   "model": "transcript",
+   "input_state_version": 8,
+   "schema_version": "1.0",
+   "order": 7,
+   "attempts": 1,
+   "input_digest": "abcc6bee66142e6e",
+   "evidence_refs": [
+    "E-04",
+    "H-BILLING-RULE-CHANGE",
+    "H-HANDOFF-FAILURE",
+    "H-METER-READ-ERROR",
+    "H-REQUESTER-FRAME"
+   ],
+   "confidence": 0.9,
+   "errors": [],
+   "output": null,
+   "fallback_used": null
+  },
+  {
+   "reasoning_id": "R-8",
+   "skill": "interpret_evidence",
+   "status": "SUCCESS",
+   "provider": "replay",
+   "model": "transcript",
+   "input_state_version": 10,
+   "schema_version": "1.0",
+   "order": 8,
+   "attempts": 1,
+   "input_digest": "6d32416a46bdb7c0",
+   "evidence_refs": [
+    "H-BILLING-RULE-CHANGE",
+    "H-HANDOFF-FAILURE",
+    "H-METER-READ-ERROR",
+    "H-REQUESTER-FRAME"
+   ],
+   "confidence": 0.9,
+   "errors": [],
+   "output": null,
+   "fallback_used": null
+  },
+  {
+   "reasoning_id": "R-9",
+   "skill": "discover_actions",
+   "status": "SUCCESS",
+   "provider": "replay",
+   "model": "transcript",
+   "input_state_version": 12,
+   "schema_version": "1.0",
+   "order": 9,
+   "attempts": 1,
+   "input_digest": "4032b079c628c27e",
+   "evidence_refs": [
+    "H-BILLING-RULE-CHANGE",
+    "H-HANDOFF-FAILURE",
+    "H-METER-READ-ERROR"
+   ],
+   "confidence": null,
+   "errors": [],
+   "output": null,
+   "fallback_used": null
+  },
+  {
+   "reasoning_id": "R-10",
+   "skill": "interpret_evidence",
+   "status": "SUCCESS",
+   "provider": "replay",
+   "model": "transcript",
+   "input_state_version": 12,
+   "schema_version": "1.0",
+   "order": 10,
+   "attempts": 1,
+   "input_digest": "87ce397086fda348",
+   "evidence_refs": [
+    "E-06",
+    "H-BILLING-RULE-CHANGE",
+    "H-HANDOFF-FAILURE",
+    "H-METER-READ-ERROR",
+    "H-REQUESTER-FRAME"
+   ],
+   "confidence": 0.9,
+   "errors": [],
+   "output": null,
+   "fallback_used": null
+  },
+  {
+   "reasoning_id": "R-11",
+   "skill": "interpret_evidence",
+   "status": "SUCCESS",
+   "provider": "replay",
+   "model": "transcript",
+   "input_state_version": 14,
+   "schema_version": "1.0",
+   "order": 11,
+   "attempts": 1,
+   "input_digest": "05569f6406919d89",
+   "evidence_refs": [
+    "H-BILLING-RULE-CHANGE",
+    "H-HANDOFF-FAILURE",
+    "H-METER-READ-ERROR",
+    "H-REQUESTER-FRAME"
+   ],
+   "confidence": 0.9,
+   "errors": [],
+   "output": null,
+   "fallback_used": null
+  },
+  {
+   "reasoning_id": "R-12",
+   "skill": "discover_actions",
+   "status": "SUCCESS",
+   "provider": "replay",
+   "model": "transcript",
+   "input_state_version": 16,
+   "schema_version": "1.0",
+   "order": 12,
+   "attempts": 1,
+   "input_digest": "fb49dc667f489e63",
+   "evidence_refs": [],
+   "confidence": null,
+   "errors": [],
+   "output": null,
+   "fallback_used": null
+  },
+  {
+   "reasoning_id": "R-13",
+   "skill": "assess_hypotheses",
+   "status": "SUCCESS",
+   "provider": "replay",
+   "model": "transcript",
+   "input_state_version": 16,
+   "schema_version": "1.0",
+   "order": 13,
+   "attempts": 1,
+   "input_digest": "728fc08e74d55cb2",
+   "evidence_refs": [
+    "E-02",
+    "E-03",
+    "E-04",
+    "E-05",
+    "H-BILLING-RULE-CHANGE",
+    "H-HANDOFF-FAILURE",
+    "H-METER-READ-ERROR",
+    "H-REQUESTER-FRAME"
+   ],
+   "confidence": null,
+   "errors": [],
+   "output": null,
+   "fallback_used": null
+  },
+  {
+   "reasoning_id": "R-14",
+   "skill": "define_problem",
+   "status": "SUCCESS",
+   "provider": "replay",
+   "model": "transcript",
+   "input_state_version": 20,
+   "schema_version": "1.0",
+   "order": 14,
+   "attempts": 1,
+   "input_digest": "7189fdeb4e7ac5fb",
+   "evidence_refs": [
+    "E-02",
+    "E-03",
+    "E-04",
+    "E-05",
+    "H-FIELD-BILL",
+    "H-HANDOFF-FAILURE",
+    "H-MDMS-BILL",
+    "H-METER-READ-ERROR",
+    "H-REQUESTER-FRAME"
+   ],
+   "confidence": 0.88,
+   "errors": [],
+   "output": null,
+   "fallback_used": null
+  },
+  {
+   "reasoning_id": "R-15",
+   "skill": "interpret_evidence",
+   "status": "SUCCESS",
+   "provider": "replay",
+   "model": "transcript",
+   "input_state_version": 22,
+   "schema_version": "1.0",
+   "order": 15,
+   "attempts": 1,
+   "input_digest": "ce54d3fa23dd1838",
+   "evidence_refs": [
+    "H-BILLING-RULE-CHANGE",
+    "H-HANDOFF-FAILURE",
+    "H-METER-READ-ERROR",
+    "H-REQUESTER-FRAME"
+   ],
+   "confidence": 0.95,
+   "errors": [],
+   "output": null,
+   "fallback_used": null
+  },
+  {
+   "reasoning_id": "R-16",
+   "skill": "structural_remedy",
+   "status": "SUCCESS",
+   "provider": "replay",
+   "model": "transcript",
+   "input_state_version": 25,
+   "schema_version": "1.0",
+   "order": 16,
+   "attempts": 1,
+   "input_digest": "af49bbe49b48cc40",
+   "evidence_refs": [],
+   "confidence": 0.88,
+   "errors": [],
+   "output": null,
+   "fallback_used": null
+  },
+  {
+   "reasoning_id": "R-17",
+   "skill": "agent_design",
+   "status": "SUCCESS",
+   "provider": "replay",
+   "model": "transcript",
+   "input_state_version": 25,
+   "schema_version": "1.0",
+   "order": 17,
+   "attempts": 1,
+   "input_digest": "4d7e39371285373b",
+   "evidence_refs": [],
+   "confidence": 0.85,
+   "errors": [],
+   "output": null,
+   "fallback_used": null
+  },
+  {
+   "reasoning_id": "R-18",
+   "skill": "plan_execution",
+   "status": "SUCCESS",
+   "provider": "replay",
+   "model": "transcript",
+   "input_state_version": 27,
+   "schema_version": "1.0",
+   "order": 18,
+   "attempts": 1,
+   "input_digest": "cf638f5ce2e5d663",
+   "evidence_refs": [
+    "E-04",
+    "E-05",
+    "E-08"
+   ],
+   "confidence": null,
+   "errors": [],
+   "output": null,
+   "fallback_used": null
+  },
+  {
+   "reasoning_id": "R-19",
+   "skill": "interpret_evidence",
+   "status": "SUCCESS",
+   "provider": "replay",
+   "model": "transcript",
+   "input_state_version": 27,
+   "schema_version": "1.0",
+   "order": 19,
+   "attempts": 1,
+   "input_digest": "44752bc7ef6e1b85",
+   "evidence_refs": [
+    "E-09",
+    "H-BILLING-RULE-CHANGE",
+    "H-HANDOFF-FAILURE",
+    "H-METER-READ-ERROR",
+    "H-REQUESTER-FRAME"
+   ],
+   "confidence": 0.95,
+   "errors": [],
+   "output": null,
+   "fallback_used": null
+  },
+  {
+   "reasoning_id": "R-20",
+   "skill": "interpret_evidence",
+   "status": "SUCCESS",
+   "provider": "replay",
+   "model": "transcript",
+   "input_state_version": 29,
+   "schema_version": "1.0",
+   "order": 20,
+   "attempts": 1,
+   "input_digest": "57568b1844059728",
+   "evidence_refs": [
+    "E-10",
+    "H-BILLING-RULE-CHANGE",
+    "H-HANDOFF-FAILURE",
+    "H-METER-READ-ERROR",
+    "H-REQUESTER-FRAME"
+   ],
+   "confidence": 0.95,
+   "errors": [],
+   "output": null,
+   "fallback_used": null
+  },
+  {
+   "reasoning_id": "R-21",
+   "skill": "interpret_evidence",
+   "status": "SUCCESS",
+   "provider": "replay",
+   "model": "transcript",
+   "input_state_version": 33,
+   "schema_version": "1.0",
+   "order": 21,
+   "attempts": 1,
+   "input_digest": "a395f799deb26e8a",
+   "evidence_refs": [
+    "H-BILLING-RULE-CHANGE",
+    "H-HANDOFF-FAILURE",
+    "H-METER-READ-ERROR",
+    "H-REQUESTER-FRAME"
+   ],
+   "confidence": 0.95,
+   "errors": [],
+   "output": null,
+   "fallback_used": null
+  },
+  {
+   "reasoning_id": "R-22",
+   "skill": "interpret_evidence",
+   "status": "SUCCESS",
+   "provider": "replay",
+   "model": "transcript",
+   "input_state_version": 35,
+   "schema_version": "1.0",
+   "order": 22,
+   "attempts": 1,
+   "input_digest": "c320b62a300e0bcd",
+   "evidence_refs": [
+    "E-12",
+    "H-BILLING-RULE-CHANGE",
+    "H-HANDOFF-FAILURE",
+    "H-METER-READ-ERROR",
+    "H-REQUESTER-FRAME"
+   ],
+   "confidence": 0.92,
+   "errors": [],
+   "output": null,
+   "fallback_used": null
+  },
+  {
+   "reasoning_id": "R-23",
+   "skill": "semantic_judge",
+   "status": "SUCCESS",
+   "provider": "replay",
+   "model": "transcript",
+   "input_state_version": 37,
+   "schema_version": "1.0",
+   "order": 23,
+   "attempts": 1,
+   "input_digest": "f04ac112fb156937",
+   "evidence_refs": [
+    "E-04",
+    "E-08",
+    "E-09",
+    "E-10"
+   ],
+   "confidence": null,
+   "errors": [],
+   "output": null,
+   "fallback_used": null
+  },
+  {
+   "reasoning_id": "R-24",
+   "skill": "release_summary",
+   "status": "SUCCESS",
+   "provider": "replay",
+   "model": "transcript",
+   "input_state_version": 39,
+   "schema_version": "1.0",
+   "order": 24,
+   "attempts": 1,
+   "input_digest": "8e9ff29d147086b3",
+   "evidence_refs": [
+    "E-02",
+    "E-03",
+    "E-04",
+    "E-05",
+    "U-U1",
+    "VOB-U-U1"
+   ],
+   "confidence": null,
+   "errors": [],
+   "output": null,
+   "fallback_used": null
+  }
+ ],
+ "proposals": {
+  "R-1": {
+   "skill": "hypothesis_init",
+   "status": "SUCCESS",
+   "output": {
+    "framing_assertion": {
+     "key": "dispute_tickets.cause",
+     "value": "wrong_bills",
+     "rationale": "Customer Service frames the dispute surge as being caused by wrong bills and seeks an AI agent to auto-answer tickets and fix the underlying billing errors."
+    },
+    "hypotheses": [
+     {
+      "key": "REQUESTER_FRAME",
+      "statement": "Dispute tickets doubled since August due to wrong bills; an AI agent that auto-answers tickets and fixes billing errors will restore baseline.",
+      "origin": "REQUESTER_FRAMING",
+      "decision_impact": "LOW",
+      "rationale": "If the requester's framing is correct, the proposed AI agent addresses the root cause and little change to the solution is needed.",
+      "discriminating_evidence": [
+       "DA-TICKET",
+       "DA-BILL"
+      ]
+     },
+     {
+      "key": "METER_READ_ERROR",
+      "statement": "Meter reading errors (AMI or manual) produce incorrect consumption values, leading to wrong bills and dispute tickets.",
+      "origin": "ALTERNATIVE",
+      "decision_impact": "HIGH",
+      "rationale": "If meter errors are the cause, an AI agent that only answers tickets does not fix the root cause; solution must address reading processes.",
+      "discriminating_evidence": [
+       "DA-MDMS",
+       "DA-ROUTE",
+       "H-MDMS-BILL",
+       "H-FIELD-BILL",
+       "mdms-export",
+       "route-log"
+      ]
+     },
+     {
+      "key": "BILLING_RULE_CHANGE",
+      "statement": "Recent changes to billing import validation rules have introduced defects that generate incorrect bills.",
+      "origin": "ALTERNATIVE",
+      "decision_impact": "HIGH",
+      "rationale": "If rule changes are responsible, fixing the AI agent's ticket responses does not correct the billing engine; solution must revert or correct validation rules.",
+      "discriminating_evidence": [
+       "DA-RULES",
+       "billing-config"
+      ]
+     },
+     {
+      "key": "HANDOFF_FAILURE",
+      "statement": "Failures in the nightly AMI-to-billing or manual-read-to-billing handoffs cause missing reads, triggering estimation and wrong bills.",
+      "origin": "ALTERNATIVE",
+      "decision_impact": "HIGH",
+      "rationale": "If handoff breakdowns are the root cause, an AI agent that answers tickets does not restore accurate data flow; solution must fix the handoff mechanisms.",
+      "discriminating_evidence": [
+       "H-FIELD-BILL",
+       "H-MDMS-BILL",
+       "route-log",
+       "mdms-export"
+      ]
+     }
+    ],
+    "confidence": 0.8
+   }
+  },
+  "R-2": {
+   "skill": "discover_actions",
+   "status": "SUCCESS",
+   "output": {
+    "actions": [
+     {
+      "catalog_ref": "crm-tickets:dispute_volume_monthly",
+      "question": "Dispute ticket volume monthly",
+      "decision_impact": 0.9,
+      "uncertainty": 0.6,
+      "discriminative_power": 0.3,
+      "answerability": 0.9,
+      "process_data_handoff_impact": 0.2,
+      "action_proximity": 0.5,
+      "constraint_risk": 0.1,
+      "estimated_cost_minutes": 15,
+      "expected_information_gain": ":",
+      "decision_impact_rationale": "If dispute volume did not double, the premise for an AI agent changes.",
+      "discriminates_hypotheses": [
+       "H-REQUESTER-FRAME"
+      ],
+      "resolves_unknowns": [],
+      "addresses": [],
+      "why_now": "Baseline check before deeper diagnostics"
+     },
+     {
+      "catalog_ref": "billing-db:disputed_bills_by_read_type",
+      "question": "Disputed bills by read type",
+      "decision_impact": 0.8,
+      "uncertainty": 0.7,
+      "discriminative_power": 0.7,
+      "answerability": 0.9,
+      "process_data_handoff_impact": 0.5,
+      "action_proximity": 0.5,
+      "constraint_risk": 0.1,
+      "estimated_cost_minutes": 20,
+      "expected_information_gain": "Shows whether estimated vs actual reads drive disputes",
+      "decision_impact_rationale": "If disputes cluster on estimated reads, handoff or meter error likely; if uniform, rule change more plausible.",
+      "discriminates_hypotheses": [
+       "H-HANDOFF-FAILURE",
+       "H-METER-READ-ERROR",
+       "H-BILLING-RULE-CHANGE"
+      ],
+      "resolves_unknowns": [],
+      "addresses": [],
+      "why_now": "Directly tests read-type link to disputes"
+     },
+     {
+      "catalog_ref": "route-log:route_completion_aug_sep",
+      "question": "Field route completion Aug‑Sep",
+      "decision_impact": 0.7,
+      "uncertainty": 0.6,
+      "discriminative_power": 0.6,
+      "answerability": 0.8,
+      "process_data_handoff_impact": 0.8,
+      "action_proximity": 0.5,
+      "constraint_risk": 0.1,
+      "estimated_cost_minutes": 20,
+      "expected_information_gain": "Percentage of manual routes completed",
+      "decision_impact_rationale": "Low completion points to handoff failure; high completion shifts focus to AMI or rule issues.",
+      "discriminates_hypotheses": [
+       "H-HANDOFF-FAILURE",
+       "H-METER-READ-ERROR"
+      ],
+      "resolves_unknowns": [],
+      "addresses": [],
+      "why_now": "Manual‑read handoff is a key suspect"
+     },
+     {
+      "catalog_ref": "mdms-export:read_events_for_disputed_estimated",
+      "question": "AMI read events for disputed estimated bills",
+      "decision_impact": 0.8,
+      "uncertainty": 0.7,
+      "discriminative_power": 0.7,
+      "answerability": 0.6,
+      "process_data_handoff_impact": 0.8,
+      "action_proximity": 0.5,
+      "constraint_risk": 0.2,
+      "estimated_cost_minutes": 25,
+      "expected_information_gain": "Presence/absence of AMI reads for bills that were estimated",
+      "decision_impact_rationale": "Missing AMI reads indicate handoff failure; present but wrong values point to meter error.",
+      "discriminates_hypotheses": [
+       "H-HANDOFF-FAILURE",
+       "H-METER-READ-ERROR"
+      ],
+      "resolves_unknowns": [],
+      "addresses": [],
+      "why_now": "Direct AMI‑to‑billing handoff evidence"
+     },
+     {
+      "catalog_ref": "billing-db:tariff_change_log",
+      "question": "Billing import validation rule change log",
+      "decision_impact": 0.8,
+      "uncertainty": 0.5,
+      "discriminative_power": 0.8,
+      "answerability": 0.9,
+      "process_data_handoff_impact": 0.5,
+      "action_proximity": 0.5,
+      "constraint_risk": 0.1,
+      "estimated_cost_minutes": 15,
+      "expected_information_gain": "List of rule changes with timestamps",
+      "decision_impact_rationale": "Any change in Aug‑Sep supports rule‑change hypothesis; absence weakens it.",
+      "discriminates_hypotheses": [
+       "H-BILLING-RULE-CHANGE"
+      ],
+      "resolves_unknowns": [],
+      "addresses": [],
+      "why_now": "Rules are a distinct causal bucket"
+     },
+     {
+      "catalog_ref": "interview:SH-FIELD",
+      "question": "Interview Field Operations Manager",
+      "decision_impact": 0.6,
+      "uncertainty": 0.5,
+      "discriminative_power": 0.5,
+      "answerability": 0.8,
+      "process_data_handoff_impact": 0.1,
+      "action_proximity": 0.5,
+      "constraint_risk": 0.1,
+      "estimated_cost_minutes": 30,
+      "expected_information_gain": "Insights on route adherence, staffing, issues with manual reads",
+      "decision_impact_rationale": "Can confirm or refute handoff‑failure and meter‑error stories from the field side.",
+      "discriminates_hypotheses": [
+       "H-HANDOFF-FAILURE",
+       "H-METER-READ-ERROR"
+      ],
+      "resolves_unknowns": [],
+      "addresses": [],
+      "why_now": "Field perspective validates log data"
+     },
+     {
+      "catalog_ref": "interview:SH-BILL",
+      "question": "Interview Billing Operations Lead",
+      "decision_impact": 0.6,
+      "uncertainty": 0.5,
+      "discriminative_power": 0.5,
+      "answerability": 0.8,
+      "process_data_handoff_impact": 0.1,
+      "action_proximity": 0.5,
+      "constraint_risk": 0.1,
+      "estimated_cost_minutes": 30,
+      "expected_information_gain": "Knowledge of recent rule changes, import error logs, manual‑read handling",
+      "decision_impact_rationale": "Can confirm rule‑change timing and handoff‑failure symptoms from billing side.",
+      "discriminates_hypotheses": [
+       "H-BILLING-RULE-CHANGE",
+       "H-HANDOFF-FAILURE"
+      ],
+      "resolves_unknowns": [],
+      "addresses": [],
+      "why_now": "Billing perspective validates rule and handoff data"
+     }
+    ],
+    "stop": false,
+    "stop_reason": "Several high‑value catalog actions remain that could shift the hypothesis balance and thus the next decision."
+   }
+  },
+  "R-3": {
+   "skill": "interpret_evidence",
+   "status": "SUCCESS",
+   "output": {
+    "interpretation": "The tariff change log contains no entries, indicating that no tariff changes were recorded during the period. This suggests tariff changes are unlikely to be the source of the wrong bills driving dispute tickets.",
+    "assertion_key": "tariff_change_log.has_records",
+    "assertion_value": false,
+    "claim_assertion_key": "",
+    "claim_assertion_value": "",
+    "hypothesis_effects": [
+     {
+      "hypothesis": "H-BILLING-RULE-CHANGE",
+      "effect": "NEUTRAL",
+      "rationale": "Observation about tariff change log does not inform on billing import validation rule changes."
+     },
+     {
+      "hypothesis": "H-HANDOFF-FAILURE",
+      "effect": "NEUTRAL",
+      "rationale": "Observation about tariff change log does not inform on AMI-to-billing or manual-read handoff failures."
+     },
+     {
+      "hypothesis": "H-METER-READ-ERROR",
+      "effect": "NEUTRAL",
+      "rationale": "Observation about tariff change log does not inform on meter reading errors."
+     },
+     {
+      "hypothesis": "H-REQUESTER-FRAME",
+      "effect": "NEUTRAL",
+      "rationale": "Observation about tariff change log does not inform on the requester's framing of wrong bills and AI agent."
+     }
+    ],
+    "new_hypotheses": [],
+    "fact_candidates": [
+     {
+      "statement": "Tariff change log contains no entries",
+      "assertion_key": "tariff_change_log.has_records",
+      "value": false,
+      "evidence_refs": [
+       "E-01"
+      ]
+     }
+    ],
+    "unknown_resolutions": [],
+    "authorization_candidates": [],
+    "contradiction_assessment": {
+     "relation": "UNRELATED",
+     "target_type": "NONE",
+     "target_refs": [],
+     "materiality": "LOW",
+     "problem_invalidating": false,
+     "rationale": "No problem definition present to assess against."
+    },
+    "vob_proposals": [],
+    "follow_up_actions": [
+     "billing-config:billing_validation_rule_change_log"
+    ],
+    "confidence": 0.9
+   }
+  },
+  "R-4": {
+   "skill": "interpret_evidence",
+   "status": "SUCCESS",
+   "output": {
+    "interpretation": "The observation shows that disputed bills are higher for actual reads (1785) than for estimated reads (1240), indicating that errors are not limited to estimation and that actual meter reads are also being disputed.",
+    "assertion_key": "disputed_bills.actual_vs_estimated",
+    "assertion_value": "actual_greater",
+    "claim_assertion_key": "",
+    "claim_assertion_value": "",
+    "hypothesis_effects": [
+     {
+      "hypothesis": "H-BILLING-RULE-CHANGE",
+      "effect": "SUPPORTS",
+      "rationale": "Both estimated and actual reads are disputed, consistent with a billing rule change affecting all bills."
+     },
+     {
+      "hypothesis": "H-HANDOFF-FAILURE",
+      "effect": "CONTRADICTS",
+      "rationale": "Handoff failures would mainly increase estimated disputes, but actual disputes are higher."
+     },
+     {
+      "hypothesis": "H-METER-READ-ERROR",
+      "effect": "SUPPORTS",
+      "rationale": "Higher disputes on actual reads aligns with meter reading errors producing wrong consumption values."
+     },
+     {
+      "hypothesis": "H-REQUESTER-FRAME",
+      "effect": "NEUTRAL",
+      "rationale": "The observation does not confirm or refute the claim that wrong bills alone drive the dispute surge."
+     }
+    ],
+    "new_hypotheses": [],
+    "fact_candidates": [
+     {
+      "statement": "Disputed bills: 1240 estimated, 1785 actual",
+      "assertion_key": "disputed_bills.actual_vs_estimated",
+      "value": "actual_greater",
+      "evidence_refs": [
+       "E-02"
+      ]
+     }
+    ],
+    "unknown_resolutions": [],
+    "authorization_candidates": [],
+    "contradiction_assessment": {
+     "relation": "UNRELATED",
+     "target_type": "NONE",
+     "target_refs": [],
+     "materiality": "LOW",
+     "problem_invalidating": false,
+     "rationale": "No problem definition present to assess against."
+    },
+    "vob_proposals": [],
+    "follow_up_actions": [
+     "crm-tickets:dispute_volume_monthly",
+     "crm-tickets:dispute_response_times",
+     "route-log:route_completion_aug_sep",
+     "mdms-export:read_events_for_disputed_estimated"
+    ],
+    "confidence": 0.9
+   }
+  },
+  "R-5": {
+   "skill": "interpret_evidence",
+   "status": "SUCCESS",
+   "output": {
+    "interpretation": "Dispute ticket volume rose from ~600 per month in June‑July to over 1100 in August and 1260 in September, indicating a roughly two‑fold increase since August.",
+    "assertion_key": "dispute_tickets.volume_increase_since_august",
+    "assertion_value": "doubled",
+    "claim_assertion_key": "",
+    "claim_assertion_value": "",
+    "hypothesis_effects": [
+     {
+      "hypothesis": "H-BILLING-RULE-CHANGE",
+      "effect": "SUPPORTS",
+      "rationale": "Higher dispute volume is consistent with defective billing rules generating wrong bills."
+     },
+     {
+      "hypothesis": "H-HANDOFF-FAILURE",
+      "effect": "SUPPORTS",
+      "rationale": "Higher dispute volume aligns with missed reads from handoff failures leading to estimation errors."
+     },
+     {
+      "hypothesis": "H-METER-READ-ERROR",
+      "effect": "SUPPORTS",
+      "rationale": "Higher dispute volume matches increased meter‑read errors producing incorrect consumption."
+     },
+     {
+      "hypothesis": "H-REQUESTER-FRAME",
+      "effect": "SUPPORTS",
+      "rationale": "The observed doubling of dispute tickets since August directly matches the claim."
+     }
+    ],
+    "new_hypotheses": [],
+    "fact_candidates": [
+     {
+      "statement": "Dispute ticket volumes: June 610, July 590, August 1180, September 1260",
+      "assertion_key": "dispute_tickets.volume_increase_since_august",
+      "value": "doubled",
+      "evidence_refs": [
+       "E-03"
+      ]
+     }
+    ],
+    "unknown_resolutions": [],
+    "authorization_candidates": [],
+    "contradiction_assessment": {
+     "relation": "UNRELATED",
+     "target_type": "NONE",
+     "target_refs": [],
+     "materiality": "LOW",
+     "problem_invalidating": false,
+     "rationale": "No problem definition present to assess against."
+    },
+    "vob_proposals": [],
+    "follow_up_actions": [
+     "crm-tickets:dispute_response_times",
+     "route-log:route_completion_aug_sep",
+     "mdms-export:read_events_for_disputed_estimated"
+    ],
+    "confidence": 0.95
+   }
+  },
+  "R-6": {
+   "skill": "discover_actions",
+   "status": "SUCCESS",
+   "output": {
+    "actions": [
+     {
+      "catalog_ref": "mdms-export:read_events_for_disputed_estimated",
+      "question": "AMI read events for disputed estimated bills",
+      "decision_impact": 0.8,
+      "uncertainty": 0.7,
+      "discriminative_power": 0.7,
+      "answerability": 0.5,
+      "process_data_handoff_impact": 0.8,
+      "action_proximity": 0.9,
+      "constraint_risk": 0.1,
+      "estimated_cost_minutes": 10,
+      "expected_information_gain": ": not required",
+      "decision_impact_rationale": "Result could rule in/out handoff failure vs meter error",
+      "discriminates_hypotheses": [
+       "H-HANDOFF-FAILURE",
+       "H-METER-READ-ERROR"
+      ],
+      "resolves_unknowns": [],
+      "addresses": [],
+      "why_now": "High relevance to handoff and meter error hypotheses"
+     },
+     {
+      "catalog_ref": "route-log:route_completion_aug_sep",
+      "question": "Field route completion for Aug-Sep",
+      "decision_impact": 0.7,
+      "uncertainty": 0.7,
+      "discriminative_power": 0.6,
+      "answerability": 0.5,
+      "process_data_handoff_impact": 0.7,
+      "action_proximity": 0.8,
+      "constraint_risk": 0.1,
+      "estimated_cost_minutes": 10,
+      "expected_information_gain": ": not required",
+      "decision_impact_rationale": "Low completion would indicate missing manual reads",
+      "discriminates_hypotheses": [
+       "H-HANDOFF-FAILURE"
+      ],
+      "resolves_unknowns": [],
+      "addresses": [],
+      "why_now": "Directly tests handoff failure for manual reads"
+     },
+     {
+      "catalog_ref": "interview:SH-FIELD",
+      "question": "Interview stakeholder SH-FIELD",
+      "decision_impact": 0.8,
+      "uncertainty": 0.6,
+      "discriminative_power": 0.7,
+      "answerability": 0.8,
+      "process_data_handoff_impact": 0.6,
+      "action_proximity": 0.5,
+      "constraint_risk": 0.1,
+      "estimated_cost_minutes": 30,
+      "expected_information_gain": ": not required",
+      "decision_impact_rationale": "Can reveal manual read errors, handoff issues, staffing impacts",
+      "discriminates_hypotheses": [
+       "H-HANDOFF-FAILURE",
+       "H-METER-READ-ERROR"
+      ],
+      "resolves_unknowns": [],
+      "addresses": [],
+      "why_now": "Field perspective on read collection and handoff"
+     },
+     {
+      "catalog_ref": "interview:SH-BILL",
+      "question": "Interview stakeholder SH-BILL",
+      "decision_impact": 0.8,
+      "uncertainty": 0.6,
+      "discriminative_power": 0.7,
+      "answerability": 0.8,
+      "process_data_handoff_impact": 0.5,
+      "action_proximity": 0.5,
+      "constraint_risk": 0.1,
+      "estimated_cost_minutes": 30,
+      "expected_information_gain": ": not required",
+      "decision_impact_rationale": "Can uncover billing rule change defects or handoff problems",
+      "discriminates_hypotheses": [
+       "H-BILLING-RULE-CHANGE"
+      ],
+      "resolves_unknowns": [],
+      "addresses": [],
+      "why_now": "Billing perspective on validation rules and AMI handoff"
+     }
+    ],
+    "stop": false,
+    "stop_reason": "Remaining catalog actions (e.g., dispute response times, SH-CS interview) unlikely to change causal decision but could be considered later"
+   }
+  },
+  "R-7": {
+   "skill": "interpret_evidence",
+   "status": "SUCCESS",
+   "output": {
+    "interpretation": "The route completion for August‑September is 0.88, below the target of 0.95, indicating insufficient field meter reading coverage. This shortfall may contribute to estimation errors and the rise in dispute tickets.",
+    "assertion_key": "route_completion.meets_target",
+    "assertion_value": false,
+    "claim_assertion_key": "",
+    "claim_assertion_value": "",
+    "hypothesis_effects": [
+     {
+      "hypothesis": "H-BILLING-RULE-CHANGE",
+      "effect": "NEUTRAL",
+      "rationale": "Route completion data does not speak to billing import validation rules."
+     },
+     {
+      "hypothesis": "H-HANDOFF-FAILURE",
+      "effect": "SUPPORTS",
+      "rationale": "Low route completion suggests manual reads are not being collected, consistent with handoff failures causing missing reads."
+     },
+     {
+      "hypothesis": "H-METER-READ-ERROR",
+      "effect": "SUPPORTS",
+      "rationale": "Missing manual reads constitute meter‑read errors that can produce incorrect consumption values."
+     },
+     {
+      "hypothesis": "H-REQUESTER-FRAME",
+      "effect": "NEUTRAL",
+      "rationale": "The observation does not address the claim that wrong bills alone drive dispute volume or that an AI agent would resolve it."
+     }
+    ],
+    "new_hypotheses": [],
+    "fact_candidates": [
+     {
+      "statement": "Route completion for Aug‑Sep is 0.88 vs target 0.95",
+      "assertion_key": "route_completion.meets_target",
+      "value": false,
+      "evidence_refs": [
+       "E-04"
+      ]
+     }
+    ],
+    "unknown_resolutions": [],
+    "authorization_candidates": [],
+    "contradiction_assessment": {
+     "relation": "UNRELATED",
+     "target_type": "NONE",
+     "target_refs": [],
+     "materiality": "LOW",
+     "problem_invalidating": false,
+     "rationale": "No problem definition present to assess against."
+    },
+    "vob_proposals": [],
+    "follow_up_actions": [
+     "crm-tickets:dispute_response_times"
+    ],
+    "confidence": 0.9
+   }
+  },
+  "R-8": {
+   "skill": "interpret_evidence",
+   "status": "SUCCESS",
+   "output": {
+    "interpretation": "Indicates that insufficient field reader staffing since July results in late route completion and reliance on estimated bills, which may drive disputes.",
+    "assertion_key": "route_completion.meets_target",
+    "assertion_value": "False",
+    "claim_assertion_key": "route_completion.meets_target",
+    "claim_assertion_value": "False",
+    "hypothesis_effects": [
+     {
+      "hypothesis": "H-BILLING-RULE-CHANGE",
+      "effect": "NEUTRAL",
+      "rationale": "Observation concerns staffing and route timeliness, not billing import validation rules."
+     },
+     {
+      "hypothesis": "H-HANDOFF-FAILURE",
+      "effect": "SUPPORTS",
+      "rationale": "Staff shortage leads to missed manual reads, causing missing handoffs and estimation, aligning with the handoff failure hypothesis."
+     },
+     {
+      "hypothesis": "H-METER-READ-ERROR",
+      "effect": "NEUTRAL",
+      "rationale": "Observation describes missing reads due to staffing, not erroneous meter readings."
+     },
+     {
+      "hypothesis": "H-REQUESTER-FRAME",
+      "effect": "CONTRADICTS",
+      "rationale": "Observation provides an alternative cause (staff shortage) for estimated bills, challenging the claim that wrong bills alone drive the dispute surge."
+     }
+    ],
+    "new_hypotheses": [],
+    "fact_candidates": [],
+    "unknown_resolutions": [],
+    "authorization_candidates": [],
+    "contradiction_assessment": {
+     "relation": "UNRELATED",
+     "target_type": "NONE",
+     "target_refs": [],
+     "materiality": "LOW",
+     "problem_invalidating": false,
+     "rationale": "No explicit problem definition present to assess against."
+    },
+    "vob_proposals": [],
+    "follow_up_actions": [],
+    "confidence": 0.9
+   }
+  },
+  "R-9": {
+   "skill": "discover_actions",
+   "status": "SUCCESS",
+   "output": {
+    "actions": [
+     {
+      "catalog_ref": "interview:SH-BILL",
+      "question": "interview stakeholder SH-BILL",
+      "decision_impact": 0.9,
+      "uncertainty": 0.6,
+      "discriminative_power": 0.8,
+      "answerability": 0.9,
+      "process_data_handoff_impact": 0.5,
+      "action_proximity": 0.8,
+      "constraint_risk": 0.1,
+      "estimated_cost_minutes": 30,
+      "expected_information_gain": ":",
+      "decision_impact_rationale": "Interview can reveal billing rule changes, handoff failures, or meter‑read errors that directly affect the choice of remediation (AI agent vs process fix).",
+      "discriminates_hypotheses": [
+       "H-BILLING-RULE-CHANGE",
+       "H-HANDOFF-FAILURE",
+       "H-METER-READ-ERROR"
+      ],
+      "resolves_unknowns": [],
+      "addresses": [],
+      "why_now": "High impact, low risk, fits remaining budget."
+     },
+     {
+      "catalog_ref": "crm-tickets:dispute_response_times",
+      "question": "dispute tickets, response times",
+      "decision_impact": 0.3,
+      "uncertainty": 0.4,
+      "discriminative_power": 0.2,
+      "answerability": 0.9,
+      "process_data_handoff_impact": 0.1,
+      "action_proximity": 0.7,
+      "constraint_risk": 0.05,
+      "estimated_cost_minutes": 5,
+      "expected_information_gain": ":",
+      "decision_impact_rationale": "Response‑time data may inform whether an AI agent for ticket answering is needed, but does not distinguish root‑cause hypotheses.",
+      "discriminates_hypotheses": [],
+      "resolves_unknowns": [],
+      "addresses": [],
+      "why_now": "Low cost, can be run if time permits."
+     }
+    ],
+    "stop": false,
+    "stop_reason": ""
+   }
+  },
+  "R-10": {
+   "skill": "interpret_evidence",
+   "status": "SUCCESS",
+   "output": {
+    "interpretation": "The observation shows dispute response times are within SLA (median 1.6 days, p90 2.8 days) despite a high volume of 2,440 tickets, indicating the response process is functioning but not addressing the underlying cause of disputes.",
+    "assertion_key": "dispute_response_times.median_days",
+    "assertion_value": 1.6,
+    "claim_assertion_key": "",
+    "claim_assertion_value": "",
+    "hypothesis_effects": [
+     {
+      "hypothesis": "H-BILLING-RULE-CHANGE",
+      "effect": "NEUTRAL",
+      "rationale": "Response time data does not inform whether billing rule changes cause wrong bills."
+     },
+     {
+      "hypothesis": "H-HANDOFF-FAILURE",
+      "effect": "NEUTRAL",
+      "rationale": "Response time data does not inform about handoff failures causing missing reads."
+     },
+     {
+      "hypothesis": "H-METER-READ-ERROR",
+      "effect": "NEUTRAL",
+      "rationale": "Response time data does not inform about meter reading errors."
+     },
+     {
+      "hypothesis": "H-REQUESTER-FRAME",
+      "effect": "NEUTRAL",
+      "rationale": "Response time data does not address the claim that wrong bills drive dispute volume."
+     }
+    ],
+    "new_hypotheses": [],
+    "fact_candidates": [
+     {
+      "statement": "Dispute response times: median 1.6 days, p90 2.8 days, SLA 3.0 days, total tickets 2,440",
+      "assertion_key": "dispute_response_times.median_days",
+      "value": 1.6,
+      "evidence_refs": [
+       "E-06"
+      ]
+     }
+    ],
+    "unknown_resolutions": [],
+    "authorization_candidates": [],
+    "contradiction_assessment": {
+     "relation": "UNRELATED",
+     "target_type": "NONE",
+     "target_refs": [],
+     "materiality": "LOW",
+     "problem_invalidating": false,
+     "rationale": "The observation does not affect the problem premise or causal chain; it only describes response performance."
+    },
+    "vob_proposals": [],
+    "follow_up_actions": [],
+    "confidence": 0.9
+   }
+  },
+  "R-11": {
+   "skill": "interpret_evidence",
+   "status": "SUCCESS",
+   "output": {
+    "interpretation": "The stakeholder reports no tariff change this year, indicating tariff changes are unlikely to be the source of wrong bills driving the dispute ticket increase.",
+    "assertion_key": "tariff_change_log.has_records",
+    "assertion_value": false,
+    "claim_assertion_key": "tariff_change_log.has_records",
+    "claim_assertion_value": false,
+    "hypothesis_effects": [
+     {
+      "hypothesis": "H-BILLING-RULE-CHANGE",
+      "effect": "NEUTRAL",
+      "rationale": "Observation about tariff change does not inform billing import validation rule changes."
+     },
+     {
+      "hypothesis": "H-HANDOFF-FAILURE",
+      "effect": "NEUTRAL",
+      "rationale": "Observation about tariff change does not inform handoff failures between AMI and billing or manual reads."
+     },
+     {
+      "hypothesis": "H-METER-READ-ERROR",
+      "effect": "NEUTRAL",
+      "rationale": "Observation about tariff change does not inform meter reading errors."
+     },
+     {
+      "hypothesis": "H-REQUESTER-FRAME",
+      "effect": "NEUTRAL",
+      "rationale": "Observation about tariff change does not inform the claim that wrong bills cause dispute increase."
+     }
+    ],
+    "new_hypotheses": [],
+    "fact_candidates": [],
+    "unknown_resolutions": [],
+    "authorization_candidates": [],
+    "contradiction_assessment": {
+     "relation": "UNRELATED",
+     "target_type": "NONE",
+     "target_refs": [],
+     "materiality": "LOW",
+     "problem_invalidating": false,
+     "rationale": "No problem definition present to assess against."
+    },
+    "vob_proposals": [],
+    "follow_up_actions": [],
+    "confidence": 0.9
+   }
+  },
+  "R-12": {
+   "skill": "discover_actions",
+   "status": "SUCCESS",
+   "output": {
+    "actions": [],
+    "stop": true,
+    "stop_reason": "catalog empty"
+   }
+  },
+  "R-13": {
+   "skill": "assess_hypotheses",
+   "status": "SUCCESS",
+   "output": {
+    "updates": [
+     {
+      "hypothesis": "H-BILLING-RULE-CHANGE",
+      "status": "CONFIRMED",
+      "rationale": "Supported by authoritative complete evidence E-02 and E-03 with no contradiction.",
+      "evidence_refs": [
+       "E-02",
+       "E-03"
+      ]
+     },
+     {
+      "hypothesis": "H-HANDOFF-FAILURE",
+      "status": "REJECTED",
+      "rationale": "Contradicted by authoritative complete evidence E-02 showing higher disputes for actual reads, inconsistent with handoff-failure explanation.",
+      "evidence_refs": [
+       "E-02"
+      ]
+     },
+     {
+      "hypothesis": "H-METER-READ-ERROR",
+      "status": "CONFIRMED",
+      "rationale": "Supported by authoritative complete evidence E-02, E-03, E-04 with no contradiction.",
+      "evidence_refs": [
+       "E-02",
+       "E-03",
+       "E-04"
+      ]
+     },
+     {
+      "hypothesis": "H-REQUESTER-FRAME",
+      "status": "REJECTED",
+      "rationale": "Contradicted by stakeholder evidence E-05 indicating staffing shortage as alternative cause.",
+      "evidence_refs": [
+       "E-05"
+      ]
+     }
+    ],
+    "ready_to_define": false,
+    "rationale": "Only hypotheses with status changes are reported."
+   }
+  },
+  "R-14": {
+   "skill": "define_problem",
+   "status": "SUCCESS",
+   "output": {
+    "root_problem": "Insufficient field meter reading coverage (route completion below target) leads to missed reads, causing estimation and incorrect bills, which drives the increase in dispute tickets.",
+    "requested_solution": "Not applicable",
+    "symptoms": [
+     "Dispute ticket volume doubled since August (E-03)"
+    ],
+    "affected_process": "meter-to-cash (P-M2C)",
+    "causal_chain": [
+     "Insufficient field reader staffing since July → low route completion (0.88 < 0.95) (E-04, E-05)",
+     "Low route completion → missed manual meter reads for some accounts",
+     "Missed reads → billing system substitutes estimated reads (process step 'estimate substitution when no accepted read')",
+     "Estimated (or erroneous AMI/manual) reads produce incorrect bill amounts",
+     "Incorrect bills → customers file dispute tickets",
+     "Increased dispute tickets volume (doubled since August) (E-03)"
+    ],
+    "premise_hypotheses": [
+     "H-METER-READ-ERROR"
+    ],
+    "evidence_refs": [
+     "E-02",
+     "E-03",
+     "E-04"
+    ],
+    "assumptions": [
+     {
+      "key": "A1",
+      "statement": "The billing system substitutes estimated reads when no accepted read is available.",
+      "evidence_refs": [
+       "P-M2C"
+      ],
+      "risk_if_wrong": "MEDIUM"
+     },
+     {
+      "key": "A2",
+      "statement": "Estimated reads produce bill amounts that differ sufficiently from actual consumption to generate customer disputes.",
+      "evidence_refs": [
+       "E-02"
+      ],
+      "risk_if_wrong": "MEDIUM"
+     }
+    ],
+    "unknowns": [
+     {
+      "key": "U1",
+      "question": "Do AMI read errors contribute significantly to wrong bills beyond missed manual reads?",
+      "criticality": "HIGH",
+      "decision_impact": "HIGH",
+      "affects_scope": [
+       {
+        "action": "monitor_ami_read_quality",
+        "target": "mdms-export"
+       },
+       {
+        "action": "validate_billing_import_rules",
+        "target": "billing-config"
+       }
+      ],
+      "resolution_path": "Analyze mdms-export AMI read error logs and compare with disputed bills; review billing-config change log for rule impacts.",
+      "safe_placeholder": "Proceed with field staffing and route optimization improvements while AMI and rule analyses are ongoing."
+     },
+     {
+      "key": "U2",
+      "question": "Are recent billing rule changes a primary driver of incorrect bills despite being marked CONFIRMED?",
+      "criticality": "MEDIUM",
+      "decision_impact": "MEDIUM",
+      "affects_scope": [
+       {
+        "action": "validate_billing_import_rules",
+        "target": "billing-config"
+       }
+      ],
+      "resolution_path": "Perform A/B test billing runs with current vs prior rule set to measure impact on bill accuracy.",
+      "safe_placeholder": "Assume current rules are correct; monitor dispute volume after route fixes; revert if disputes remain high."
+     }
+    ],
+    "metrics": [
+     {
+      "key": "M1",
+      "name": "dispute_tickets_per_month",
+      "metric_type": "RATE",
+      "numerator": "dispute_tickets_count",
+      "denominator": "month",
+      "current_value": 1260,
+      "current_value_evidence_refs": [
+       "E-03"
+      ]
+     },
+     {
+      "key": "M2",
+      "name": "route_completion_rate",
+      "metric_type": "RATE",
+      "numerator": "completed_routes",
+      "denominator": "total_routes",
+      "current_value": 0.88,
+      "current_value_evidence_refs": [
+       "E-04"
+      ]
+     }
+    ],
+    "success_criteria": [
+     {
+      "key": "S1",
+      "statement": "Dispute ticket volume returns to pre-August baseline (<=600 per month)",
+      "kind": "TARGET",
+      "metric": "dispute_tickets_per_month",
+      "threshold": ", <=600",
+      "validation_method": "Monthly dispute ticket count from crm-tickets tool <= 600"
+     },
+     {
+      "key": "S2",
+      "statement": "Field route completion meets or exceeds target of 0.95",
+      "kind": "TARGET",
+      "metric": "route_completion_rate",
+      "threshold": ">=0.95",
+      "validation_method": "Route completion metric from route-log tool >= 0.95"
+     }
+    ],
+    "intended_scope": [
+     {
+      "action": "increase_field_reader_headcount",
+      "target": "SH-FIELD"
+     },
+     {
+      "action": "optimize_route_scheduling",
+      "target": "DA-ROUTE"
+     },
+     {
+      "action": "push_route_update",
+      "target": "field-dispatch"
+     },
+     {
+      "action": "monitor_ami_read_quality",
+      "target": "mdms-export"
+     },
+     {
+      "action": "validate_billing_import_rules",
+      "target": "billing-config"
+     }
+    ],
+    "protected_actions": [
+     "push_route_update"
+    ],
+    "required_tools": [
+     "route-log",
+     "mdms-export",
+     "billing-config",
+     "field-dispatch",
+     "crm-tickets"
+    ],
+    "depends_on_handoffs": [
+     "H-FIELD-BILL",
+     "H-MDMS-BILL"
+    ],
+    "constraint_refs": [
+     "K-BILLWRITE",
+     "K-DISPATCH"
+    ],
+    "rejected_framings": [
+     {
+      "hypothesis": "H-HANDOFF-FAILURE",
+      "why": "Contradicted by evidence E-02 showing disputed bills higher for actual reads, indicating the problem is not missing reads due to handoff failures."
+     },
+     {
+      "hypothesis": "H-REQUESTER-FRAME",
+      "why": "Contradicted by stakeholder evidence E-05 attributing issues to staffing; the requester's framing of an AI agent as solution ignores root cause."
+     }
+    ],
+    "vob_reevaluation": [],
+    "confidence": 0.88
+   }
+  },
+  "R-15": {
+   "skill": "interpret_evidence",
+   "status": "SUCCESS",
+   "output": {
+    "interpretation": "The service contract confirms that route priority changes (e.g., push_route_update) require Field Operations Manager confirmation, reinforcing the existing authorization constraint K-DISPATCH.",
+    "assertion_key": "route_update.requires_field_ops_confirmation",
+    "assertion_value": true,
+    "claim_assertion_key": "",
+    "claim_assertion_value": "",
+    "hypothesis_effects": [
+     {
+      "hypothesis": "H-BILLING-RULE-CHANGE",
+      "effect": "NEUTRAL",
+      "rationale": "Observation does not address billing import validation rules."
+     },
+     {
+      "hypothesis": "H-HANDOFF-FAILURE",
+      "effect": "NEUTRAL",
+      "rationale": "Observation does not address AMI-to-billing or manual-read-to-billing handoffs."
+     },
+     {
+      "hypothesis": "H-METER-READ-ERROR",
+      "effect": "NEUTRAL",
+      "rationale": "Observation does not address meter reading errors."
+     },
+     {
+      "hypothesis": "H-REQUESTER-FRAME",
+      "effect": "NEUTRAL",
+      "rationale": "Observation does not address the requester's framing of wrong bills or AI agent solution."
+     }
+    ],
+    "new_hypotheses": [],
+    "fact_candidates": [],
+    "unknown_resolutions": [],
+    "authorization_candidates": [
+     {
+      "action": "push_route_update",
+      "resource": "field-dispatch",
+      "authority_holder": "SH-FIELD",
+      "scope_target": "field-dispatch",
+      "conditions": [
+       "Field Operations Manager confirmation required"
+      ],
+      "rationale": "Service contract §4.2 states route priority changes are executed after Field Operations Manager confirmation."
+     }
+    ],
+    "contradiction_assessment": {
+     "relation": "UNRELATED",
+     "target_type": "NONE",
+     "target_refs": [],
+     "materiality": "LOW",
+     "problem_invalidating": false,
+     "rationale": "Observation does not affect the problem definition's root problem, causal chain, cited evidence, or premise hypotheses."
+    },
+    "vob_proposals": [],
+    "follow_up_actions": [],
+    "confidence": 0.95
+   }
+  },
+  "R-16": {
+   "skill": "structural_remedy",
+   "status": "SUCCESS",
+   "output": {
+    "root_cause": "Insufficient field meter reading coverage (route completion below target) leads to missed reads, causing estimation and incorrect bills, which drives the increase in dispute tickets (PD-1).",
+    "remedies": [
+     {
+      "key": "R1",
+      "description": "Increase field reader headcount by three FTEs to address the staffing shortage reported by SH‑FIELD (E‑05), thereby raising route completion toward the target of 0.95 (E‑04).",
+      "removes_root_cause": true,
+      "feasible_in_contest_time": false,
+      "constraint_feasible": true,
+      "feasibility_rationale": "Hiring and training exceed the remaining 225‑minute contest window.",
+      "residual_gap": "If hired, route completion may still fall short if other issues persist; gap remains until headcount is fully onboarded and routes adjusted."
+     },
+     {
+      "key": "R2",
+      "description": "Optimize manual‑read route sequencing and push priority updates (push_route_update) to achieve ≥0.95 completion without adding staff, using existing route‑log data (E‑04) and confirming changes with Field Operations Manager as required by K‑DISPATCH (E‑08).",
+      "removes_root_cause": true,
+      "feasible_in_contest_time": true,
+      "constraint_feasible": true,
+      "feasibility_rationale": "Analysis and scheduling can be completed within the remaining 225 minutes; runtime confirmation is permitted.",
+      "residual_gap": "Residual gap depends on whether optimized routes can overcome the three‑reader shortfall; if not, some missed reads may persist."
+     },
+     {
+      "key": "R3",
+      "description": "Enhance AMI‑to‑billing handoff reliability and monitor AMI read quality to reduce reliance on manual reads, addressing the unknown U‑U1 about AMI read errors contributing to wrong bills (U‑U1, E‑02).",
+      "removes_root_cause": false,
+      "feasible_in_contest_time": true,
+      "constraint_feasible": true,
+      "feasibility_rationale": "Monitoring and vendor coordination can be initiated within the time window; no constraints prohibit these actions.",
+      "residual_gap": "Even with perfect AMI reads, manual reads for non‑AMI meters would still be needed; gap remains for those segments."
+     }
+    ],
+    "why_agent_needed": "If route completion remains below the 0.95 target after implementing structural remedies, an agent may be needed to handle residual dispute tickets; otherwise, no agent is required.",
+    "confidence": 0.88
+   }
+  },
+  "R-17": {
+   "skill": "agent_design",
+   "status": "SUCCESS",
+   "output": {
+    "deterministic_rules_cover_cases": true,
+    "llm_reasoning_adds_value": true,
+    "autonomous_iteration_adds_value": false,
+    "residual_exceptions": true,
+    "detection_needed": true,
+    "why_agent": "If route completion remains below the 0.95 target after implementing structural remedies, an agent may be needed to handle residual dispute tickets; otherwise, no agent is required.",
+    "bridge_sunset_condition": "",
+    "deterministic_components": [],
+    "release_scope": [
+     {
+      "action": "optimize_route_scheduling",
+      "target": "DA-ROUTE"
+     },
+     {
+      "action": "push_route_update",
+      "target": "field-dispatch"
+     }
+    ],
+    "minimum_useful_scope": [
+     {
+      "action": "optimize_route_scheduling",
+      "target": "DA-ROUTE"
+     }
+    ],
+    "scope_dependencies": [
+     {
+      "action": "optimize_route_scheduling",
+      "depends_on": [
+       "DA-ROUTE"
+      ]
+     },
+     {
+      "action": "push_route_update",
+      "depends_on": [
+       "DA-ROUTE"
+      ]
+     }
+    ],
+    "role_suggestion": [
+     "CONTROL_DETECTION"
+    ],
+    "capabilities": [],
+    "llm_required_for": [],
+    "tools": [],
+    "authority_boundary": [],
+    "human_gate": [
+     "push_route_update"
+    ],
+    "termination": "none",
+    "validation": [],
+    "known_limitations": [],
+    "vob_proposals": [],
+    "confidence": 0.85
+   }
+  },
+  "R-18": {
+   "skill": "plan_execution",
+   "status": "SUCCESS",
+   "output": {
+    "work_items": [
+     {
+      "key": "WI-1",
+      "description": "Generate optimized manual-read route schedule using lagging routes analysis",
+      "work_class": "CORE_FEATURE",
+      "est_minutes": 30,
+      "scope_items": [
+       {
+        "action": "optimize_route_scheduling",
+        "target": "DA-ROUTE"
+       }
+      ],
+      "root_problem_aligned": true,
+      "release_blocking": true,
+      "data_ops": [
+       "route-log:lagging_routes",
+       "billing-db:accounts_estimated_last_cycle"
+      ],
+      "output_name": "optimized_route_schedule",
+      "output_key_fields": [
+       "route_id",
+       "schedule_date"
+      ],
+      "output_join": true,
+      "output_constant_fields": [
+       {
+        "field": "schedule_version",
+        "value": "v1"
+       }
+      ]
+     }
+    ],
+    "protected_actions": [
+     {
+      "key": "PA-1",
+      "action": "push_route_update",
+      "resource": "field-dispatch",
+      "subject": "push_route_update:field-dispatch",
+      "scope": [
+       {
+        "action": "push_route_update",
+        "target": "field-dispatch"
+       }
+      ],
+      "why": "Route completion below target (E-04) and stakeholder confirmation of staffing shortage (E-05) indicate need to adjust route priorities; field‑dispatch tool requires protected action push_route_update (K-DISPATCH, E-08).",
+      "side_effect": "Alters the order in which routes are assigned to field crews.",
+      "reversibility": "PARTIALLY_REVERSIBLE",
+      "alternatives": [
+       "Manual route resequencing",
+       "Increase field reader headcount"
+      ],
+      "key_evidence": [
+       "E-04",
+       "E-05",
+       "E-08"
+      ],
+      "work_item": "WI-2"
+     }
+    ],
+    "rationale": "The two work items directly implement the release‑scope actions: (1) optimize_route_scheduling uses lagging‑routes and billing data to produce a revised schedule that should lift route completion toward the 0.95 target; (2) push_route_update prepares the protected mutation that will enact the new schedule in the field‑dispatch system after required Field Operations Manager confirmation. Both items are marked CORE_FEATURE because they are in the release scope, and the protected action is proposed for human approval as required by K‑DISPATCH."
+   }
+  },
+  "R-19": {
+   "skill": "interpret_evidence",
+   "status": "SUCCESS",
+   "output": {
+    "interpretation": "The observation identifies 14 lagging routes with distinct completion values, including a sample completion of 0.7 for route R-00, indicating localized low coverage that could cause missed reads and estimation.",
+    "assertion_key": "route_lagging.count",
+    "assertion_value": 14,
+    "hypothesis_effects": [
+     {
+      "hypothesis": "H-BILLING-RULE-CHANGE",
+      "effect": "NEUTRAL",
+      "rationale": "Observation concerns field route coverage, not billing rule changes."
+     },
+     {
+      "hypothesis": "H-HANDOFF-FAILURE",
+      "effect": "NEUTRAL",
+      "rationale": "Observation does not address AMI-to-billing or manual-read handoff failures."
+     },
+     {
+      "hypothesis": "H-METER-READ-ERROR",
+      "effect": "SUPPORTS",
+      "rationale": "Low completion values show missed manual reads, leading to estimation and potential wrong bills."
+     },
+     {
+      "hypothesis": "H-REQUESTER-FRAME",
+      "effect": "NEUTRAL",
+      "rationale": "Observation does not speak to the proposed AI agent solution or its effectiveness."
+     }
+    ],
+    "new_hypotheses": [],
+    "fact_candidates": [
+     {
+      "statement": "route-log.lagging_routes → 14 record(s); fields ['completion', 'route'] | completion: 14 distinct values | route: 14 distinct values | sample: {'completion': 0.7, 'route': 'R-00'}",
+      "assertion_key": "route_lagging.count",
+      "value": 14,
+      "evidence_refs": [
+       "E-09"
+      ]
+     }
+    ],
+    "unknown_resolutions": [],
+    "authorization_candidates": [],
+    "contradiction_assessment": {
+     "relation": "UNRELATED",
+     "target_type": "NONE",
+     "target_refs": [],
+     "materiality": "LOW",
+     "problem_invalidating": false,
+     "rationale": "Observation supports the problem premise of insufficient field coverage rather than contradicting it."
+    },
+    "vob_proposals": [],
+    "follow_up_actions": [],
+    "confidence": 0.95
+   }
+  },
+  "R-20": {
+   "skill": "interpret_evidence",
+   "status": "SUCCESS",
+   "output": {
+    "interpretation": "The observation shows that 320 accounts across 40 routes relied on estimated reads in the last billing cycle, indicating widespread estimation consistent with missed field reads.",
+    "assertion_key": "accounts_estimated_last_cycle.count",
+    "assertion_value": 320,
+    "claim_assertion_key": "",
+    "claim_assertion_value": "",
+    "hypothesis_effects": [
+     {
+      "hypothesis": "H-BILLING-RULE-CHANGE",
+      "effect": "NEUTRAL",
+      "rationale": "The observation concerns estimation volume, not billing rule defects."
+     },
+     {
+      "hypothesis": "H-HANDOFF-FAILURE",
+      "effect": "SUPPORTS",
+      "rationale": "High estimation volume is consistent with missing reads due to handoff failures."
+     },
+     {
+      "hypothesis": "H-METER-READ-ERROR",
+      "effect": "SUPPORTS",
+      "rationale": "Widespread estimation aligns with meter read errors causing missed reads."
+     },
+     {
+      "hypothesis": "H-REQUESTER-FRAME",
+      "effect": "NEUTRAL",
+      "rationale": "The observation does not address the requester's framing of wrong bills or AI agent solution."
+     }
+    ],
+    "new_hypotheses": [],
+    "fact_candidates": [
+     {
+      "statement": "320 accounts were estimated in the last billing cycle across 40 routes.",
+      "assertion_key": "accounts_estimated_last_cycle.count",
+      "value": 320,
+      "evidence_refs": [
+       "E-10"
+      ]
+     }
+    ],
+    "unknown_resolutions": [],
+    "authorization_candidates": [],
+    "contradiction_assessment": {
+     "relation": "UNRELATED",
+     "target_type": "NONE",
+     "target_refs": [],
+     "materiality": "LOW",
+     "problem_invalidating": false,
+     "rationale": "The observation supports the problem premise that insufficient field coverage leads to estimation; it does not contradict any premise."
+    },
+    "vob_proposals": [],
+    "follow_up_actions": [
+     "mdms-export:read_events_for_disputed_estimated"
+    ],
+    "confidence": 0.95
+   }
+  },
+  "R-21": {
+   "skill": "interpret_evidence",
+   "status": "SUCCESS",
+   "output": {
+    "interpretation": "MDMS export access for Lakeside has been provisioned, removing a potential barrier to the AMI-to-billing handoff.",
+    "assertion_key": "mdms_export.access_provisioned",
+    "assertion_value": true,
+    "claim_assertion_key": "mdms_export.access_provisioned",
+    "claim_assertion_value": true,
+    "hypothesis_effects": [
+     {
+      "hypothesis": "H-BILLING-RULE-CHANGE",
+      "effect": "NEUTRAL",
+      "rationale": "Observation concerns MDMS access, not billing import validation rules."
+     },
+     {
+      "hypothesis": "H-HANDOFF-FAILURE",
+      "effect": "CONTRADICTS",
+      "rationale": "Provisioned MDMS export access eliminates the lack-of-access cause posited by the handoff-failure hypothesis."
+     },
+     {
+      "hypothesis": "H-METER-READ-ERROR",
+      "effect": "NEUTRAL",
+      "rationale": "Observation does not address meter reading errors."
+     },
+     {
+      "hypothesis": "H-REQUESTER-FRAME",
+      "effect": "NEUTRAL",
+      "rationale": "Observation does not pertain to the claim that wrong bills drive dispute tickets."
+     }
+    ],
+    "new_hypotheses": [],
+    "fact_candidates": [],
+    "unknown_resolutions": [],
+    "authorization_candidates": [],
+    "contradiction_assessment": {
+     "relation": "CONTRADICTS",
+     "target_type": "HYPOTHESIS",
+     "target_refs": [
+      "H-HANDOFF-FAILURE"
+     ],
+     "materiality": "LOW",
+     "problem_invalidating": false,
+     "rationale": "The observation weakens the handoff-failure hypothesis but does not invalidate the core problem premise about insufficient field meter reading coverage."
+    },
+    "vob_proposals": [],
+    "follow_up_actions": [
+     "mdms-export:read_events_for_disputed_estimated"
+    ],
+    "confidence": 0.95
+   }
+  },
+  "R-22": {
+   "skill": "interpret_evidence",
+   "status": "SUCCESS",
+   "output": {
+    "interpretation": "Among disputed estimated bills, many AMI reads were taken before cutoff but rejected for high consumption, while others had no read received, indicating AMI read quality problems contributing to disputes.",
+    "assertion_key": "mdms_export.disputed_ami_read.rejected_high_consumption.present",
+    "assertion_value": true,
+    "claim_assertion_key": "",
+    "claim_assertion_value": "",
+    "hypothesis_effects": [
+     {
+      "hypothesis": "H-BILLING-RULE-CHANGE",
+      "effect": "SUPPORTS",
+      "rationale": "Shows billing import status REJECTED_HIGH_CONSUMPTION for 1184 reads, indicating rule-based rejections."
+     },
+     {
+      "hypothesis": "H-HANDOFF-FAILURE",
+      "effect": "SUPPORTS",
+      "rationale": "Shows 56 reads with NO_READ_RECEIVED and not exported_to_billing, indicating handoff failures."
+     },
+     {
+      "hypothesis": "H-METER-READ-ERROR",
+      "effect": "SUPPORTS",
+      "rationale": "Rejected high consumption and missing reads point to AMI read errors causing incorrect bills."
+     },
+     {
+      "hypothesis": "H-REQUESTER-FRAME",
+      "effect": "NEUTRAL",
+      "rationale": "Observation does not address the effectiveness of an AI agent for dispute resolution."
+     }
+    ],
+    "new_hypotheses": [],
+    "fact_candidates": [
+     {
+      "statement": "AMI reads for disputed estimated bills: 1184 rejected high consumption, 56 no read received.",
+      "assertion_key": "mdms_export.disputed_ami_read.rejected_high_consumption.present",
+      "value": true,
+      "evidence_refs": [
+       "E-12"
+      ]
+     }
+    ],
+    "unknown_resolutions": [],
+    "authorization_candidates": [],
+    "contradiction_assessment": {
+     "relation": "UNRELATED",
+     "target_type": "NONE",
+     "target_refs": [],
+     "materiality": "LOW",
+     "problem_invalidating": false,
+     "rationale": "Observation does not contradict the problem premise; it adds an alternative cause (AMI read errors) rather than invalidating the root cause."
+    },
+    "vob_proposals": [],
+    "follow_up_actions": [],
+    "confidence": 0.92
+   }
+  },
+  "R-23": {
+   "skill": "semantic_judge",
+   "status": "SUCCESS",
+   "output": {
+    "checks": [
+     {
+      "name": "scope_addresses_root_problem",
+      "status": "PASS",
+      "detail": "Release scope includes optimize_route_scheduling and push_route_update, which directly target improving field route completion to address the root problem of insufficient coverage causing estimation and wrong bills.",
+      "refs": [
+       "E-04",
+       "E-08",
+       "E-09",
+       "E-10"
+      ]
+     },
+     {
+      "name": "consistency_with_evidence",
+      "status": "PASS",
+      "detail": "All statements in the release rationale (e.g., push_route_update requires Field Operations Manager confirmation) align with cited evidence; no contradictions found.",
+      "refs": [
+       "E-08"
+      ]
+     },
+     {
+      "name": "limitations_honest",
+      "status": "PASS",
+      "detail": "The design openly notes the infeasibility of adding three FTEs (SR-R1) and that AMI handoff improvements (SR-R3) do not remove the root cause, matching the unfinished scope and remedy attributes.",
+      "refs": [
+       "SR-R1",
+       "SR-R3"
+      ]
+     }
+    ]
+   }
+  },
+  "R-24": {
+   "skill": "release_summary",
+   "status": "SUCCESS",
+   "output": {
+    "summary": "Insufficient field meter reading coverage (route completion below target) leads to missed reads, causing estimation and incorrect bills, which drives the increase in dispute tickets. [E-02][E-03][E-04] This is shown by higher disputed bills for actual reads [E-02], dispute ticket volume doubling since August [E-03], and route completion measured at 0.88 versus the 0.95 target [E-04]. The release scope included optimizing route scheduling and pushing route updates, but no changes were released due to the hold. Decision: HOLD. The release was held due to a critical VOB-U-U1 intersecting the release scope (optimize_route_scheduling:DA-ROUTE, push_route_update:field-dispatch) [U-U1]. Limitations: The hold cites unfinished work to increase field reader headcount by three FTEs to address staffing shortage [E-05] and raise route completion toward the target of 0.95 [E-04].",
+    "key_points": [],
+    "limitations_explained": []
+   }
+  }
+ }
+}

@@ -1,0 +1,3791 @@
+{
+ "variant": "u1_default_scope",
+ "probes": {
+  "P1_P2_precanonical": {
+   "problem_status": "DRAFT",
+   "gate_result": "None",
+   "evidence_used": "E-01",
+   "decide_recovery_kind_on_draft": "HOLD",
+   "redefine_on_draft_error": "IllegalTransitionError: PD-1 v1 is DRAFT (gate None), not an ACTIVE canonical Problem: pre-canonical changes are hypothesis_changed / continue DEFINE, never redefine",
+   "redefine_on_draft_accepted": false,
+   "problem_status_after": "DRAFT",
+   "problem_invalidated_events": 0
+  }
+ },
+ "checkpoints": {
+  "phase1": {
+   "ok": true,
+   "problem": "PD-1 v1 ACTIVE",
+   "solution_design": true,
+   "agent_spec": true,
+   "vobs": [
+    "VOB-U-ACTUAL-READ-VALIDITY",
+    "VOB-U-AMI-READS",
+    "VOB-U-RULE-LOG"
+   ],
+   "success_criteria": [
+    "SC-CAUSE",
+    "SC-VOLUME",
+    "SC-NOWRITE"
+   ],
+   "plan": "PLAN-1"
+  }
+ },
+ "catalog": {
+  "discover": [
+   "crm-tickets:dispute_response_times",
+   "crm-tickets:dispute_volume_monthly",
+   "billing-db:disputed_bills_by_read_type",
+   "route-log:route_completion_aug_sep",
+   "mdms-export:read_events_for_disputed_estimated",
+   "billing-db:tariff_change_log",
+   "interview:SH-FIELD",
+   "interview:SH-BILL"
+  ],
+  "reprofile": [
+   "billing-config:validation_rule_changes",
+   "mdms-export:meter_firmware_units"
+  ],
+  "execute@v1": [
+   "route-log:lagging_routes",
+   "billing-db:accounts_estimated_last_cycle"
+  ],
+  "execute@v2": [
+   "billing-db:import_status_estimated_disputed",
+   "billing-db:affected_accounts_v42",
+   "mdms-export:reads_for_accounts"
+  ]
+ },
+ "late_ref": "mdms-export:read_events_for_disputed_estimated",
+ "provider": {
+  "mode": "replay",
+  "model": "sonnet",
+  "transcript": "artifacts/model_ab/model_b/A-04/scoped/reasoning_transcript.jsonl",
+  "config": {
+   "name": "claude-cli",
+   "model": "sonnet",
+   "timeout_seconds": 420.0,
+   "effort": "medium"
+  },
+  "faults": null
+ },
+ "define_gate_v1": {
+  "result": "CONDITIONAL_PASS",
+  "findings": [
+   [
+    "handoff",
+    "CONDITIONAL",
+    "handoff H-FIELD-BILL delivery/semantic validity unknown"
+   ],
+   [
+    "handoff",
+    "CONDITIONAL",
+    "handoff H-MDMS-BILL delivery/semantic validity unknown"
+   ],
+   [
+    "unknown",
+    "CONDITIONAL",
+    "critical unknown U-RULE-LOG deferred to VOB-U-RULE-LOG"
+   ],
+   [
+    "unknown",
+    "CONDITIONAL",
+    "critical unknown U-AMI-READS deferred to VOB-U-AMI-READS"
+   ],
+   [
+    "unknown",
+    "CONDITIONAL",
+    "critical unknown U-ACTUAL-READ-VALIDITY deferred to VOB-U-ACTUAL-READ-VALIDITY"
+   ],
+   [
+    "tool",
+    "CONDITIONAL",
+    "required tool mdms-export DEGRADED without fallback"
+   ]
+  ],
+  "vobs": [
+   "VOB-U-RULE-LOG",
+   "VOB-U-AMI-READS",
+   "VOB-U-ACTUAL-READ-VALIDITY"
+  ]
+ },
+ "inventory_define_v1": {
+  "problem_meta_version": 24,
+  "phase": "DEFINE",
+  "execution_status": "RUNNING",
+  "active_problem": {
+   "id": "PD-1",
+   "version": 1,
+   "requested_solution": "Build an AI agent to auto-answer billing dispute tickets and fix whatever causes the wrong bills (requester's framing, not adopted as the problem).",
+   "symptoms": [
+    "Dispute tickets rose from 610 (June) and 590 (July) to 1180 (August) and 1260 (September) (E-02).",
+    "1785 of 3025 disputed bills are ACTUAL reads and 1240 are ESTIMATED (E-03).",
+    "Route completion was 0.88 against a 0.95 target in Aug-Sep (E-06)."
+   ],
+   "root_problem": "Billing disputes doubled from about 600/month to 1180-1260 since August (E-02), and most disputed bills (1785 of 3025) are on ACTUAL reads, not estimates (E-03). No tariff change is recorded (E-04). The best-supported mechanism is that a change around August in billing import validation or read-typing handling mishandles valid reads, producing wrong bills. This is falsifiable by the rule change log (DA-RULES) showing no change near August, or by disputed actual-read bills matching their source reads.",
+   "evidence_refs": [
+    "E-02",
+    "E-03",
+    "E-04",
+    "E-06",
+    "E-01"
+   ],
+   "intended_scope": [
+    {
+     "action": "review_rule_change_log",
+     "target": "DA-RULES"
+    },
+    {
+     "action": "analyze_disputed_actual_reads",
+     "target": "DA-BILL"
+    },
+    {
+     "action": "request_mdms_access",
+     "target": "SH-AMI"
+    },
+    {
+     "action": "trace_field_read_handoff",
+     "target": "H-FIELD-BILL"
+    }
+   ],
+   "protected_actions": [],
+   "depends_on_mappings": [],
+   "depends_on_handoffs": [
+    "H-FIELD-BILL",
+    "H-MDMS-BILL"
+   ],
+   "depends_on_exports": [],
+   "required_tools": [
+    "billing-config",
+    "billing-db",
+    "crm-tickets",
+    "route-log",
+    "mdms-export"
+   ],
+   "success_criteria": [
+    "SC-CAUSE",
+    "SC-VOLUME",
+    "SC-NOWRITE"
+   ],
+   "metric_ids": [
+    "M-DISPUTES",
+    "M-ACTUAL-SHARE"
+   ],
+   "status": "ACTIVE",
+   "gate_result": "CONDITIONAL_PASS",
+   "invalidated_by": [],
+   "supersedes": null,
+   "superseded_by": null,
+   "challenges": []
+  },
+  "problem_definition_history": [],
+  "solution_design": null,
+  "agent_spec": null,
+  "verification_obligations": {
+   "VOB-U-RULE-LOG": {
+    "status": "OPEN",
+    "required_before": "BEFORE_RELEASE",
+    "blocking_scope": "ENTIRE",
+    "question": "Does the billing import validation rule change log (DA-RULES) show a change around August that affects read acceptance?",
+    "linked_unknown": "U-RULE-LOG"
+   },
+   "VOB-U-AMI-READS": {
+    "status": "OPEN",
+    "required_before": "BEFORE_RELEASE",
+    "blocking_scope": "ENTIRE",
+    "question": "Are AMI reads from MDMS missing, late or semantically invalid, and does that explain disputes on actual reads?",
+    "linked_unknown": "U-AMI-READS"
+   },
+   "VOB-U-ACTUAL-READ-VALIDITY": {
+    "status": "OPEN",
+    "required_before": "BEFORE_RELEASE",
+    "blocking_scope": "ENTIRE",
+    "question": "Do the disputed ACTUAL-read bills reflect valid reads, or are the reads duplicated, conflicting or mis-typed?",
+    "linked_unknown": "U-ACTUAL-READ-VALIDITY"
+   }
+  },
+  "hypotheses": {
+   "H-RESPONSE-SPEED": {
+    "status": "REJECTED",
+    "supporting": [],
+    "contradicting": [
+     "E-01",
+     "E-02",
+     "E-03"
+    ]
+   },
+   "H-AMI-READ-DELIVERY": {
+    "status": "CANDIDATE",
+    "supporting": [],
+    "contradicting": [
+     "E-03"
+    ]
+   },
+   "H-BILLING-RULE-CHANGE": {
+    "status": "CANDIDATE",
+    "supporting": [
+     "E-03"
+    ],
+    "contradicting": []
+   },
+   "H-FIELD-READ-GAPS": {
+    "status": "CANDIDATE",
+    "supporting": [
+     "E-06",
+     "E-07"
+    ],
+    "contradicting": [
+     "E-03"
+    ]
+   },
+   "H-CROSS-HANDOFF-MISMATCH": {
+    "status": "CANDIDATE",
+    "supporting": [
+     "E-03"
+    ],
+    "contradicting": []
+   },
+   "H-TARIFF-CALC": {
+    "status": "REJECTED",
+    "supporting": [
+     "E-03"
+    ],
+    "contradicting": [
+     "E-04",
+     "E-05"
+    ]
+   }
+  },
+  "assumptions": {
+   "A-RULE-TIMING": "ACTIVE",
+   "A-TARIFF-LOG-COMPLETE": "ACTIVE"
+  },
+  "unknowns": {
+   "U-RULE-LOG": "DEFERRED",
+   "U-AMI-READS": "DEFERRED",
+   "U-ACTUAL-READ-VALIDITY": "DEFERRED",
+   "U-MEASURE-VALIDITY": "OPEN"
+  },
+  "success_criteria": [
+   "SC-CAUSE",
+   "SC-NOWRITE",
+   "SC-VOLUME"
+  ],
+  "active_problem_success_criteria": [
+   "SC-CAUSE",
+   "SC-VOLUME",
+   "SC-NOWRITE"
+  ],
+  "claims": {
+   "CL-01": {
+    "status": "UNVERIFIED",
+    "evidence_refs": []
+   },
+   "CL-02": {
+    "status": "UNVERIFIED",
+    "evidence_refs": []
+   },
+   "CL-03": {
+    "status": "UNVERIFIED",
+    "evidence_refs": []
+   }
+  },
+  "conflicts": {},
+  "evidence": {
+   "E-01": {
+    "status": "ACTIVE",
+    "authority": "AUTHORITATIVE",
+    "source": "crm-tickets",
+    "content": "crm-tickets.dispute_response_times → 1 record(s): {\"median_days\": 1.6, \"p90_days\": 2.8, \"sla_days\": 3.0, \"tickets\": 2440}",
+    "interpretation_history": [
+     {
+      "interpretation": "Median response is 1.6 days and p90 is 2.8 days against a 3.0-day SLA for 2440 tickets, so responses are mostly within SLA. Slow response does not explain the dispute surge.",
+      "reason": "proposed by reasoner R-3 (replay/transcript)",
+      "event_seq": null
+     }
+    ],
+    "provenance": {
+     "source_type": "TOOL",
+     "source_id": "crm-tickets",
+     "method": "dispute_response_times",
+     "derived_from": [
+      "crm-tickets:dispute_response_times",
+      "R-3"
+     ],
+     "event_seq": 11,
+     "recorded_at_minute": 18.0
+    }
+   },
+   "E-02": {
+    "status": "ACTIVE",
+    "authority": "AUTHORITATIVE",
+    "source": "crm-tickets",
+    "content": "crm-tickets.dispute_volume_monthly → 4 record(s): {\"disputes\": 610, \"month\": \"2026-06\"}; {\"disputes\": 590, \"month\": \"2026-07\"}; {\"disputes\": 1180, \"month\": \"2026-08\"}; {\"disputes\": 1260, \"month\": \"2026-09\"}",
+    "interpretation_history": [
+     {
+      "interpretation": "Monthly disputes were about 600 in June-July and roughly doubled to 1180 in August and 1260 in September. This confirms a step change starting in August but says nothing about its cause.",
+      "reason": "proposed by reasoner R-4 (replay/transcript)",
+      "event_seq": null
+     }
+    ],
+    "provenance": {
+     "source_type": "TOOL",
+     "source_id": "crm-tickets",
+     "method": "dispute_volume_monthly",
+     "derived_from": [
+      "crm-tickets:dispute_volume_monthly",
+      "R-4"
+     ],
+     "event_seq": 22,
+     "recorded_at_minute": 23.0
+    }
+   },
+   "E-03": {
+    "status": "ACTIVE",
+    "authority": "AUTHORITATIVE",
+    "source": "billing-db",
+    "content": "billing-db.disputed_bills_by_read_type → 2 record(s): {\"count\": 1240, \"read_type\": \"ESTIMATED\"}; {\"count\": 1785, \"read_type\": \"ACTUAL\"}",
+    "interpretation_history": [
+     {
+      "interpretation": "Of 3025 disputed bills, 1785 are ACTUAL reads and 1240 are ESTIMATED, so estimate substitution is a minority. Disputes on actual reads point to invalid or mis-typed reads, or a rule or tariff problem.",
+      "reason": "proposed by reasoner R-5 (replay/transcript)",
+      "event_seq": null
+     }
+    ],
+    "provenance": {
+     "source_type": "TOOL",
+     "source_id": "billing-db",
+     "method": "disputed_bills_by_read_type",
+     "derived_from": [
+      "billing-db:disputed_bills_by_read_type",
+      "R-5"
+     ],
+     "event_seq": 34,
+     "recorded_at_minute": 28.0
+    }
+   },
+   "E-04": {
+    "status": "ACTIVE",
+    "authority": "AUTHORITATIVE",
+    "source": "billing-db",
+    "content": "billing-db.tariff_change_log → 0 record(s): none",
+    "interpretation_history": [
+     {
+      "interpretation": "The tariff change log returned zero records, so no tariff or bill-calculation change is recorded. This contradicts H-TARIFF-CALC, though only for what the log captures.",
+      "reason": "proposed by reasoner R-7 (replay/transcript)",
+      "event_seq": null
+     }
+    ],
+    "provenance": {
+     "source_type": "TOOL",
+     "source_id": "billing-db",
+     "method": "tariff_change_log",
+     "derived_from": [
+      "billing-db:tariff_change_log",
+      "R-7"
+     ],
+     "event_seq": 47,
+     "recorded_at_minute": 31.0
+    }
+   },
+   "E-05": {
+    "status": "ACTIVE",
+    "authority": "NON_AUTHORITATIVE",
+    "source": "SH-BILL",
+    "content": "There has been no tariff change this year.",
+    "interpretation_history": [
+     {
+      "interpretation": "SH-BILL states no tariff change occurred this year. It is a non-authoritative claim that agrees with the empty tariff change log in E-04.",
+      "reason": "proposed by reasoner R-8 (replay/transcript)",
+      "event_seq": null
+     }
+    ],
+    "provenance": {
+     "source_type": "STAKEHOLDER",
+     "source_id": "SH-BILL",
+     "method": "interview",
+     "derived_from": [
+      "interview:SH-BILL",
+      "R-8"
+     ],
+     "event_seq": 58,
+     "recorded_at_minute": 33.0
+    }
+   },
+   "E-06": {
+    "status": "ACTIVE",
+    "authority": "AUTHORITATIVE",
+    "source": "route-log",
+    "content": "route-log.route_completion_aug_sep → 1 record(s): {\"completion\": 0.88, \"manual_read_accounts\": 9200, \"period\": \"2026-08..09\", \"target\": 0.95}",
+    "interpretation_history": [
+     {
+      "interpretation": "Route completion for Aug-Sep 2026 was 0.88 against a 0.95 target, with 9200 manual-read accounts. Field reads fall short of target, but the record does not show whether this gap explains the dispute surge.",
+      "reason": "proposed by reasoner R-9 (replay/transcript)",
+      "event_seq": null
+     }
+    ],
+    "provenance": {
+     "source_type": "TOOL",
+     "source_id": "route-log",
+     "method": "route_completion_aug_sep",
+     "derived_from": [
+      "route-log:route_completion_aug_sep",
+      "R-9"
+     ],
+     "event_seq": 66,
+     "recorded_at_minute": 38.0
+    }
+   },
+   "E-07": {
+    "status": "ACTIVE",
+    "authority": "NON_AUTHORITATIVE",
+    "source": "SH-FIELD",
+    "content": "We are short three readers since July; routes run late, so those customers get estimated bills.",
+    "interpretation_history": [
+     {
+      "interpretation": "SH-FIELD claims a three-reader shortfall since July causes late routes and estimated bills. This is a non-authoritative, self-interested claim that fits E-06's low completion, but it covers only estimated bills, which are a minority of disputes in E-03.",
+      "reason": "proposed by reasoner R-11 (replay/transcript)",
+      "event_seq": null
+     }
+    ],
+    "provenance": {
+     "source_type": "STAKEHOLDER",
+     "source_id": "SH-FIELD",
+     "method": "interview",
+     "derived_from": [
+      "interview:SH-FIELD",
+      "R-11"
+     ],
+     "event_seq": 79,
+     "recorded_at_minute": 40.0
+    }
+   },
+   "E-08": {
+    "status": "ACTIVE",
+    "authority": "AUTHORITATIVE",
+    "source": "fieldco-service-contract",
+    "content": "Service contract §4.2: utility may request route priority changes; executed after Field Operations Manager confirmation.",
+    "interpretation_history": [
+     {
+      "interpretation": "Service contract §4.2 says the utility may request route priority changes, and they run only after Field Operations Manager confirmation. It speaks to dispatch authority and says nothing about the cause of the disputes.",
+      "reason": "proposed by reasoner R-15 (replay/transcript)",
+      "event_seq": null
+     }
+    ],
+    "provenance": {
+     "source_type": "DOCUMENT",
+     "source_id": "fieldco-service-contract",
+     "method": "document review",
+     "derived_from": [
+      "R-15"
+     ],
+     "event_seq": 106,
+     "recorded_at_minute": 55.0
+    }
+   }
+  },
+  "evidence_revisions": {},
+  "decision_log": [
+   {
+    "id": "D-1",
+    "phase": "DISCOVER",
+    "decision": "DEFINE proposal R-14",
+    "rationale": "causal chain: A change around August in billing import validation or read handling is hypothesised (H-BILLING-RULE-CHANGE); it is not yet confirmed from DA-RULES. → Valid or mis-typed reads are accepted or rejected incorrectly at billing import and validation. → Bills are calculated wrongly even on ACTUAL reads (E-03). → Customers dispute the bills and ticket volume doubles (E-02). → Estimated bills from late field routes (E-06, E-07) add a smaller share of disputes (E-03).; rejected framings: [('H-RESPONSE-SPEED', 'Responses are within SLA (E-01) and disputes are driven by wrong bills, so auto-answering does not fix the cause.'), ('H-TARIFF-CALC', 'It is rejected; the tariff log is empty (E-04) and SH-BILL agrees (E-05).'), ('H-FIELD-READ-GAPS', 'It explains at most the 1240 estimated disputes (E-03), the minority, and rests on a self-interested claim (E-07).'), ('H-AMI-READ-DELIVERY', 'It assumes estimate substitution, which E-03 contradicts for most disputes, and it cannot be tested while MDMS access is pending.')]",
+    "evidence_refs": [
+     "E-02",
+     "E-03",
+     "E-04",
+     "E-06",
+     "E-01"
+    ],
+    "event_seq": null
+   },
+   {
+    "id": "D-2",
+    "phase": "DEFINE",
+    "decision": "DEFINE Gate CONDITIONAL_PASS",
+    "rationale": "[CONDITIONAL] handoff H-FIELD-BILL delivery/semantic validity unknown; [CONDITIONAL] handoff H-MDMS-BILL delivery/semantic validity unknown; [CONDITIONAL] critical unknown U-RULE-LOG deferred to VOB-U-RULE-LOG; [CONDITIONAL] critical unknown U-AMI-READS deferred to VOB-U-AMI-READS; [CONDITIONAL] critical unknown U-ACTUAL-READ-VALIDITY deferred to VOB-U-ACTUAL-READ-VALIDITY; [CONDITIONAL] required tool mdms-export DEGRADED without fallback",
+    "evidence_refs": [],
+    "event_seq": null
+   }
+  ],
+  "domain_authorizations": {
+   "DA-PUSH-ROUTE-UPDATE": "GRANTED"
+  },
+  "plan": null,
+  "pending_protected_action": null,
+  "executed_actions": [],
+  "transition_candidate": null,
+  "recovery": {
+   "candidate_transition": "HOLD",
+   "rationale": "retry stopped (NOT_TRANSIENT); no fallback or alternate path"
+  },
+  "release_decisions": [],
+  "supervision": {
+   "current_problem": "Billing disputes doubled from about 600/month to 1180-1260 since August (E-02), and most disputed bills (1785 of 3025) are on ACTUAL reads, not estimates (E-03). No tariff change is recorded (E-04). The best-supported mechanism is that a change around August in billing import validation or read-typing handling mishandles valid reads, producing wrong bills. This is falsifiable by the rule change log (DA-RULES) showing no change near August, or by disputed actual-read bills matching their source reads.",
+   "top_hypotheses": [],
+   "evidence_revisions": [],
+   "pending_verification_obligations": [],
+   "intervention": {
+    "required": false,
+    "reason": null,
+    "gate_id": null
+   },
+   "live_summary_tail": [
+    "[CRITICAL] UNRECOVERABLE_FAILURE: retry stopped (NOT_TRANSIENT); no fallback or alternate path",
+    "[HIGH] DEFINE_GATE_RESULT: CONDITIONAL_PASS (6 findings)"
+   ]
+  }
+ },
+ "inventory_v1": {
+  "problem_meta_version": 30,
+  "phase": "EXECUTE",
+  "execution_status": "RUNNING",
+  "active_problem": {
+   "id": "PD-1",
+   "version": 1,
+   "requested_solution": "Build an AI agent to auto-answer billing dispute tickets and fix whatever causes the wrong bills (requester's framing, not adopted as the problem).",
+   "symptoms": [
+    "Dispute tickets rose from 610 (June) and 590 (July) to 1180 (August) and 1260 (September) (E-02).",
+    "1785 of 3025 disputed bills are ACTUAL reads and 1240 are ESTIMATED (E-03).",
+    "Route completion was 0.88 against a 0.95 target in Aug-Sep (E-06)."
+   ],
+   "root_problem": "Billing disputes doubled from about 600/month to 1180-1260 since August (E-02), and most disputed bills (1785 of 3025) are on ACTUAL reads, not estimates (E-03). No tariff change is recorded (E-04). The best-supported mechanism is that a change around August in billing import validation or read-typing handling mishandles valid reads, producing wrong bills. This is falsifiable by the rule change log (DA-RULES) showing no change near August, or by disputed actual-read bills matching their source reads.",
+   "evidence_refs": [
+    "E-02",
+    "E-03",
+    "E-04",
+    "E-06",
+    "E-01"
+   ],
+   "intended_scope": [
+    {
+     "action": "review_rule_change_log",
+     "target": "DA-RULES"
+    },
+    {
+     "action": "analyze_disputed_actual_reads",
+     "target": "DA-BILL"
+    },
+    {
+     "action": "request_mdms_access",
+     "target": "SH-AMI"
+    },
+    {
+     "action": "trace_field_read_handoff",
+     "target": "H-FIELD-BILL"
+    }
+   ],
+   "protected_actions": [],
+   "depends_on_mappings": [],
+   "depends_on_handoffs": [
+    "H-FIELD-BILL",
+    "H-MDMS-BILL"
+   ],
+   "depends_on_exports": [],
+   "required_tools": [
+    "billing-config",
+    "billing-db",
+    "crm-tickets",
+    "route-log",
+    "mdms-export"
+   ],
+   "success_criteria": [
+    "SC-CAUSE",
+    "SC-VOLUME",
+    "SC-NOWRITE"
+   ],
+   "metric_ids": [
+    "M-DISPUTES",
+    "M-ACTUAL-SHARE"
+   ],
+   "status": "ACTIVE",
+   "gate_result": "CONDITIONAL_PASS",
+   "invalidated_by": [],
+   "supersedes": null,
+   "superseded_by": null,
+   "challenges": []
+  },
+  "problem_definition_history": [],
+  "solution_design": {
+   "id": "SD-1",
+   "problem_ref": "PD-1",
+   "problem_version": 1,
+   "agent_roles": [
+    "CONTROL_DETECTION",
+    "EXCEPTION_HANDLER"
+   ],
+   "structural_remedies": [
+    "SR-REVIEW-RULE-CHANGE-LOG",
+    "SR-TRACE-SAMPLE-READS",
+    "SR-HANDOFF-VALIDATION-CONTRACT",
+    "SR-MANUAL-ADJUST-BY-BILLING"
+   ],
+   "release_scope": [
+    "trace_field_read_handoff:H-FIELD-BILL"
+   ]
+  },
+  "agent_spec": {
+   "identity": "agent-SD-1",
+   "problem_reference": "PD-1@v1",
+   "structural_role": [
+    "CONTROL_DETECTION",
+    "EXCEPTION_HANDLER"
+   ],
+   "verification_obligations": [
+    "VOB-U-RULE-LOG",
+    "VOB-U-AMI-READS",
+    "VOB-U-ACTUAL-READ-VALIDITY"
+   ],
+   "success_criteria": [
+    "SC-CAUSE",
+    "SC-VOLUME",
+    "SC-NOWRITE"
+   ]
+  },
+  "verification_obligations": {
+   "VOB-U-RULE-LOG": {
+    "status": "OPEN",
+    "required_before": "BEFORE_RELEASE",
+    "blocking_scope": "ENTIRE",
+    "question": "Does the billing import validation rule change log (DA-RULES) show a change around August that affects read acceptance?",
+    "linked_unknown": "U-RULE-LOG"
+   },
+   "VOB-U-AMI-READS": {
+    "status": "OPEN",
+    "required_before": "BEFORE_RELEASE",
+    "blocking_scope": "ENTIRE",
+    "question": "Are AMI reads from MDMS missing, late or semantically invalid, and does that explain disputes on actual reads?",
+    "linked_unknown": "U-AMI-READS"
+   },
+   "VOB-U-ACTUAL-READ-VALIDITY": {
+    "status": "OPEN",
+    "required_before": "BEFORE_RELEASE",
+    "blocking_scope": "ENTIRE",
+    "question": "Do the disputed ACTUAL-read bills reflect valid reads, or are the reads duplicated, conflicting or mis-typed?",
+    "linked_unknown": "U-ACTUAL-READ-VALIDITY"
+   }
+  },
+  "hypotheses": {
+   "H-RESPONSE-SPEED": {
+    "status": "REJECTED",
+    "supporting": [],
+    "contradicting": [
+     "E-01",
+     "E-02",
+     "E-03"
+    ]
+   },
+   "H-AMI-READ-DELIVERY": {
+    "status": "CANDIDATE",
+    "supporting": [],
+    "contradicting": [
+     "E-03"
+    ]
+   },
+   "H-BILLING-RULE-CHANGE": {
+    "status": "CANDIDATE",
+    "supporting": [
+     "E-03"
+    ],
+    "contradicting": []
+   },
+   "H-FIELD-READ-GAPS": {
+    "status": "CANDIDATE",
+    "supporting": [
+     "E-06",
+     "E-07"
+    ],
+    "contradicting": [
+     "E-03"
+    ]
+   },
+   "H-CROSS-HANDOFF-MISMATCH": {
+    "status": "CANDIDATE",
+    "supporting": [
+     "E-03"
+    ],
+    "contradicting": []
+   },
+   "H-TARIFF-CALC": {
+    "status": "REJECTED",
+    "supporting": [
+     "E-03"
+    ],
+    "contradicting": [
+     "E-04",
+     "E-05"
+    ]
+   }
+  },
+  "assumptions": {
+   "A-RULE-TIMING": "ACTIVE",
+   "A-TARIFF-LOG-COMPLETE": "ACTIVE"
+  },
+  "unknowns": {
+   "U-RULE-LOG": "DEFERRED",
+   "U-AMI-READS": "DEFERRED",
+   "U-ACTUAL-READ-VALIDITY": "DEFERRED",
+   "U-MEASURE-VALIDITY": "OPEN"
+  },
+  "success_criteria": [
+   "SC-CAUSE",
+   "SC-NOWRITE",
+   "SC-VOLUME"
+  ],
+  "active_problem_success_criteria": [
+   "SC-CAUSE",
+   "SC-VOLUME",
+   "SC-NOWRITE"
+  ],
+  "claims": {
+   "CL-01": {
+    "status": "UNVERIFIED",
+    "evidence_refs": []
+   },
+   "CL-02": {
+    "status": "UNVERIFIED",
+    "evidence_refs": []
+   },
+   "CL-03": {
+    "status": "UNVERIFIED",
+    "evidence_refs": []
+   }
+  },
+  "conflicts": {},
+  "evidence": {
+   "E-01": {
+    "status": "ACTIVE",
+    "authority": "AUTHORITATIVE",
+    "source": "crm-tickets",
+    "content": "crm-tickets.dispute_response_times → 1 record(s): {\"median_days\": 1.6, \"p90_days\": 2.8, \"sla_days\": 3.0, \"tickets\": 2440}",
+    "interpretation_history": [
+     {
+      "interpretation": "Median response is 1.6 days and p90 is 2.8 days against a 3.0-day SLA for 2440 tickets, so responses are mostly within SLA. Slow response does not explain the dispute surge.",
+      "reason": "proposed by reasoner R-3 (replay/transcript)",
+      "event_seq": null
+     }
+    ],
+    "provenance": {
+     "source_type": "TOOL",
+     "source_id": "crm-tickets",
+     "method": "dispute_response_times",
+     "derived_from": [
+      "crm-tickets:dispute_response_times",
+      "R-3"
+     ],
+     "event_seq": 11,
+     "recorded_at_minute": 18.0
+    }
+   },
+   "E-02": {
+    "status": "ACTIVE",
+    "authority": "AUTHORITATIVE",
+    "source": "crm-tickets",
+    "content": "crm-tickets.dispute_volume_monthly → 4 record(s): {\"disputes\": 610, \"month\": \"2026-06\"}; {\"disputes\": 590, \"month\": \"2026-07\"}; {\"disputes\": 1180, \"month\": \"2026-08\"}; {\"disputes\": 1260, \"month\": \"2026-09\"}",
+    "interpretation_history": [
+     {
+      "interpretation": "Monthly disputes were about 600 in June-July and roughly doubled to 1180 in August and 1260 in September. This confirms a step change starting in August but says nothing about its cause.",
+      "reason": "proposed by reasoner R-4 (replay/transcript)",
+      "event_seq": null
+     }
+    ],
+    "provenance": {
+     "source_type": "TOOL",
+     "source_id": "crm-tickets",
+     "method": "dispute_volume_monthly",
+     "derived_from": [
+      "crm-tickets:dispute_volume_monthly",
+      "R-4"
+     ],
+     "event_seq": 22,
+     "recorded_at_minute": 23.0
+    }
+   },
+   "E-03": {
+    "status": "ACTIVE",
+    "authority": "AUTHORITATIVE",
+    "source": "billing-db",
+    "content": "billing-db.disputed_bills_by_read_type → 2 record(s): {\"count\": 1240, \"read_type\": \"ESTIMATED\"}; {\"count\": 1785, \"read_type\": \"ACTUAL\"}",
+    "interpretation_history": [
+     {
+      "interpretation": "Of 3025 disputed bills, 1785 are ACTUAL reads and 1240 are ESTIMATED, so estimate substitution is a minority. Disputes on actual reads point to invalid or mis-typed reads, or a rule or tariff problem.",
+      "reason": "proposed by reasoner R-5 (replay/transcript)",
+      "event_seq": null
+     }
+    ],
+    "provenance": {
+     "source_type": "TOOL",
+     "source_id": "billing-db",
+     "method": "disputed_bills_by_read_type",
+     "derived_from": [
+      "billing-db:disputed_bills_by_read_type",
+      "R-5"
+     ],
+     "event_seq": 34,
+     "recorded_at_minute": 28.0
+    }
+   },
+   "E-04": {
+    "status": "ACTIVE",
+    "authority": "AUTHORITATIVE",
+    "source": "billing-db",
+    "content": "billing-db.tariff_change_log → 0 record(s): none",
+    "interpretation_history": [
+     {
+      "interpretation": "The tariff change log returned zero records, so no tariff or bill-calculation change is recorded. This contradicts H-TARIFF-CALC, though only for what the log captures.",
+      "reason": "proposed by reasoner R-7 (replay/transcript)",
+      "event_seq": null
+     }
+    ],
+    "provenance": {
+     "source_type": "TOOL",
+     "source_id": "billing-db",
+     "method": "tariff_change_log",
+     "derived_from": [
+      "billing-db:tariff_change_log",
+      "R-7"
+     ],
+     "event_seq": 47,
+     "recorded_at_minute": 31.0
+    }
+   },
+   "E-05": {
+    "status": "ACTIVE",
+    "authority": "NON_AUTHORITATIVE",
+    "source": "SH-BILL",
+    "content": "There has been no tariff change this year.",
+    "interpretation_history": [
+     {
+      "interpretation": "SH-BILL states no tariff change occurred this year. It is a non-authoritative claim that agrees with the empty tariff change log in E-04.",
+      "reason": "proposed by reasoner R-8 (replay/transcript)",
+      "event_seq": null
+     }
+    ],
+    "provenance": {
+     "source_type": "STAKEHOLDER",
+     "source_id": "SH-BILL",
+     "method": "interview",
+     "derived_from": [
+      "interview:SH-BILL",
+      "R-8"
+     ],
+     "event_seq": 58,
+     "recorded_at_minute": 33.0
+    }
+   },
+   "E-06": {
+    "status": "ACTIVE",
+    "authority": "AUTHORITATIVE",
+    "source": "route-log",
+    "content": "route-log.route_completion_aug_sep → 1 record(s): {\"completion\": 0.88, \"manual_read_accounts\": 9200, \"period\": \"2026-08..09\", \"target\": 0.95}",
+    "interpretation_history": [
+     {
+      "interpretation": "Route completion for Aug-Sep 2026 was 0.88 against a 0.95 target, with 9200 manual-read accounts. Field reads fall short of target, but the record does not show whether this gap explains the dispute surge.",
+      "reason": "proposed by reasoner R-9 (replay/transcript)",
+      "event_seq": null
+     }
+    ],
+    "provenance": {
+     "source_type": "TOOL",
+     "source_id": "route-log",
+     "method": "route_completion_aug_sep",
+     "derived_from": [
+      "route-log:route_completion_aug_sep",
+      "R-9"
+     ],
+     "event_seq": 66,
+     "recorded_at_minute": 38.0
+    }
+   },
+   "E-07": {
+    "status": "ACTIVE",
+    "authority": "NON_AUTHORITATIVE",
+    "source": "SH-FIELD",
+    "content": "We are short three readers since July; routes run late, so those customers get estimated bills.",
+    "interpretation_history": [
+     {
+      "interpretation": "SH-FIELD claims a three-reader shortfall since July causes late routes and estimated bills. This is a non-authoritative, self-interested claim that fits E-06's low completion, but it covers only estimated bills, which are a minority of disputes in E-03.",
+      "reason": "proposed by reasoner R-11 (replay/transcript)",
+      "event_seq": null
+     }
+    ],
+    "provenance": {
+     "source_type": "STAKEHOLDER",
+     "source_id": "SH-FIELD",
+     "method": "interview",
+     "derived_from": [
+      "interview:SH-FIELD",
+      "R-11"
+     ],
+     "event_seq": 79,
+     "recorded_at_minute": 40.0
+    }
+   },
+   "E-08": {
+    "status": "ACTIVE",
+    "authority": "AUTHORITATIVE",
+    "source": "fieldco-service-contract",
+    "content": "Service contract §4.2: utility may request route priority changes; executed after Field Operations Manager confirmation.",
+    "interpretation_history": [
+     {
+      "interpretation": "Service contract §4.2 says the utility may request route priority changes, and they run only after Field Operations Manager confirmation. It speaks to dispatch authority and says nothing about the cause of the disputes.",
+      "reason": "proposed by reasoner R-15 (replay/transcript)",
+      "event_seq": null
+     }
+    ],
+    "provenance": {
+     "source_type": "DOCUMENT",
+     "source_id": "fieldco-service-contract",
+     "method": "document review",
+     "derived_from": [
+      "R-15"
+     ],
+     "event_seq": 106,
+     "recorded_at_minute": 55.0
+    }
+   },
+   "E-09": {
+    "status": "ACTIVE",
+    "authority": "AUTHORITATIVE",
+    "source": "route-log",
+    "content": "route-log.lagging_routes → 14 record(s); fields ['completion', 'route'] | completion: 14 distinct values | route: 14 distinct values | sample: {\"completion\": 0.7, \"route\": \"R-00\"}",
+    "interpretation_history": [
+     {
+      "interpretation": "(no semantic interpretation available — deterministic fallback)",
+      "reason": "proposed by reasoner R-19 (deterministic-fallback/rules)",
+      "event_seq": null
+     }
+    ],
+    "provenance": {
+     "source_type": "TOOL",
+     "source_id": "route-log",
+     "method": "lagging_routes",
+     "derived_from": [
+      "route-log:lagging_routes",
+      "R-19"
+     ],
+     "event_seq": 143,
+     "recorded_at_minute": 103.0
+    }
+   },
+   "E-10": {
+    "status": "ACTIVE",
+    "authority": "AUTHORITATIVE",
+    "source": "billing-db",
+    "content": "billing-db.accounts_estimated_last_cycle → 320 record(s); fields ['account_id', 'route'] | account_id: 320 distinct values | route: 40 distinct values | sample: {\"account_id\": \"AC-20000\", \"route\": \"R-00\"}",
+    "interpretation_history": [
+     {
+      "interpretation": "(no semantic interpretation available — deterministic fallback)",
+      "reason": "proposed by reasoner R-20 (deterministic-fallback/rules)",
+      "event_seq": null
+     }
+    ],
+    "provenance": {
+     "source_type": "TOOL",
+     "source_id": "billing-db",
+     "method": "accounts_estimated_last_cycle",
+     "derived_from": [
+      "billing-db:accounts_estimated_last_cycle",
+      "R-20"
+     ],
+     "event_seq": 150,
+     "recorded_at_minute": 106.0
+    }
+   }
+  },
+  "evidence_revisions": {},
+  "decision_log": [
+   {
+    "id": "D-1",
+    "phase": "DISCOVER",
+    "decision": "DEFINE proposal R-14",
+    "rationale": "causal chain: A change around August in billing import validation or read handling is hypothesised (H-BILLING-RULE-CHANGE); it is not yet confirmed from DA-RULES. → Valid or mis-typed reads are accepted or rejected incorrectly at billing import and validation. → Bills are calculated wrongly even on ACTUAL reads (E-03). → Customers dispute the bills and ticket volume doubles (E-02). → Estimated bills from late field routes (E-06, E-07) add a smaller share of disputes (E-03).; rejected framings: [('H-RESPONSE-SPEED', 'Responses are within SLA (E-01) and disputes are driven by wrong bills, so auto-answering does not fix the cause.'), ('H-TARIFF-CALC', 'It is rejected; the tariff log is empty (E-04) and SH-BILL agrees (E-05).'), ('H-FIELD-READ-GAPS', 'It explains at most the 1240 estimated disputes (E-03), the minority, and rests on a self-interested claim (E-07).'), ('H-AMI-READ-DELIVERY', 'It assumes estimate substitution, which E-03 contradicts for most disputes, and it cannot be tested while MDMS access is pending.')]",
+    "evidence_refs": [
+     "E-02",
+     "E-03",
+     "E-04",
+     "E-06",
+     "E-01"
+    ],
+    "event_seq": null
+   },
+   {
+    "id": "D-2",
+    "phase": "DEFINE",
+    "decision": "DEFINE Gate CONDITIONAL_PASS",
+    "rationale": "[CONDITIONAL] handoff H-FIELD-BILL delivery/semantic validity unknown; [CONDITIONAL] handoff H-MDMS-BILL delivery/semantic validity unknown; [CONDITIONAL] critical unknown U-RULE-LOG deferred to VOB-U-RULE-LOG; [CONDITIONAL] critical unknown U-AMI-READS deferred to VOB-U-AMI-READS; [CONDITIONAL] critical unknown U-ACTUAL-READ-VALIDITY deferred to VOB-U-ACTUAL-READ-VALIDITY; [CONDITIONAL] required tool mdms-export DEGRADED without fallback",
+    "evidence_refs": [],
+    "event_seq": null
+   }
+  ],
+  "domain_authorizations": {
+   "DA-PUSH-ROUTE-UPDATE": "GRANTED"
+  },
+  "plan": {
+   "id": "PLAN-1",
+   "version": 1,
+   "work_items": {
+    "W-WI-TRACE-FIELD-HANDOFF": {
+     "status": "DONE",
+     "description": "Trace the H-FIELD-BILL manual-read handoff by pulling lagging routes (route-log) and accounts estimated last cycle (billing-db), and report them side by side."
+    },
+    "W-VERIFY": {
+     "status": "PENDING",
+     "description": "release-blocking verification"
+    },
+    "W-PACK": {
+     "status": "PENDING",
+     "description": "packaging + submission"
+    }
+   }
+  },
+  "pending_protected_action": null,
+  "executed_actions": [],
+  "transition_candidate": null,
+  "recovery": {
+   "candidate_transition": "HOLD",
+   "rationale": "retry stopped (NOT_TRANSIENT); no fallback or alternate path"
+  },
+  "release_decisions": [],
+  "supervision": {
+   "current_problem": "Billing disputes doubled from about 600/month to 1180-1260 since August (E-02), and most disputed bills (1785 of 3025) are on ACTUAL reads, not estimates (E-03). No tariff change is recorded (E-04). The best-supported mechanism is that a change around August in billing import validation or read-typing handling mishandles valid reads, producing wrong bills. This is falsifiable by the rule change log (DA-RULES) showing no change near August, or by disputed actual-read bills matching their source reads. (v1, ACTIVE)",
+   "top_hypotheses": [
+    "H-AMI-READ-DELIVERY: AMI reads from MDMS are missing, late or semantically invalid in the nightly export. Billing then substitutes estimates, which produces wrong bills and disputes. [CANDIDATE]",
+    "H-BILLING-RULE-CHANGE: A change to the billing import validation rules around August rejects valid reads. This causes estimate substitution or wrong bills. [CANDIDATE]",
+    "H-FIELD-READ-GAPS: Manual reads are not completed or delivered, because of staffing or route problems at the contractor. This forces estimates and causes wrong bills. [CANDIDATE]",
+    "H-CROSS-HANDOFF-MISMATCH: Both read streams are partly fine, but their combination (a duplicated, conflicting or mis-typed read at the MDMS or manual-read handoff) causes wrong bills. [CANDIDATE]"
+   ],
+   "evidence_revisions": [],
+   "pending_verification_obligations": [
+    "VOB-U-RULE-LOG [BEFORE_RELEASE] Does the billing import validation rule change log (DA-RULES) show a change around August that affects read acceptance?",
+    "VOB-U-AMI-READS [BEFORE_RELEASE] Are AMI reads from MDMS missing, late or semantically invalid, and does that explain disputes on actual reads?",
+    "VOB-U-ACTUAL-READ-VALIDITY [BEFORE_RELEASE] Do the disputed ACTUAL-read bills reflect valid reads, or are the reads duplicated, conflicting or mis-typed?"
+   ],
+   "intervention": {
+    "required": false,
+    "reason": null,
+    "gate_id": null
+   },
+   "live_summary_tail": [
+    "[CRITICAL] UNRECOVERABLE_FAILURE: retry stopped (NOT_TRANSIENT); no fallback or alternate path",
+    "[HIGH] DEFINE_GATE_RESULT: CONDITIONAL_PASS (6 findings)"
+   ]
+  }
+ },
+ "late_evidence_provisioned_at_minute": 106.0,
+ "release_v1": {
+  "decision": "HOLD",
+  "hold": [
+   "missing:field_read_handoff_trace: 334 missing",
+   "critical VOB-U-RULE-LOG intersects release scope at ['trace_field_read_handoff:H-FIELD-BILL']",
+   "critical VOB-U-AMI-READS intersects release scope at ['trace_field_read_handoff:H-FIELD-BILL']",
+   "critical VOB-U-ACTUAL-READ-VALIDITY intersects release scope at ['trace_field_read_handoff:H-FIELD-BILL']",
+   "safety predicate / verification not established (Layer 1 failed)"
+  ],
+  "limitations": [
+   "DEFINE Gate CONDITIONAL_PASS (deferred items tracked as VOBs)",
+   "unfinished: Add delivery and semantic validation checks plus change notification at H-MDMS-BILL and H-FIELD-BILL. Request vendor-provisioned MDMS export access from SH-AMI.",
+   "unfinished: known limitation: Rule-log review and actual-read analysis stay out of release scope until VOB-U-RULE-LOG and VOB-U-ACTUAL-READ-VALIDITY close.",
+   "unfinished: known limitation: AMI-side reads cannot be checked while mdms-export is DEGRADED with access pending.",
+   "unfinished: known limitation: billing-config health is UNKNOWN, and A-RULE-TIMING is unverified.",
+   "unfinished: known limitation: Ticket and bill counts may cover different populations (U-MEASURE-VALIDITY)."
+  ],
+  "minimum_useful": {
+   "ok": false,
+   "reasons": [
+    "safety predicate / verification not established (Layer 1 failed)"
+   ]
+  }
+ },
+ "result": {
+  "release_decision": "HOLD",
+  "halt_reason": "Release Gate HOLD",
+  "phase": "RELEASE",
+  "execution_status": "HOLD",
+  "problem_ref": "PD-1@v1",
+  "operator_reasoner_calls": 0,
+  "trace_actors": [
+   "ENVIRONMENT",
+   "HARNESS",
+   "REASONER"
+  ],
+  "wall_seconds": 44.8
+ },
+ "tool_failure_recovery": {
+  "kind": "HOLD",
+  "rationale": "retry stopped (NOT_TRANSIENT); no fallback or alternate path",
+  "stop_reason": "NOT_TRANSIENT"
+ },
+ "transition_decision": {
+  "kind": null
+ },
+ "inventory_final": {
+  "problem_meta_version": 35,
+  "phase": "RELEASE",
+  "execution_status": "HOLD",
+  "active_problem": {
+   "id": "PD-1",
+   "version": 1,
+   "requested_solution": "Build an AI agent to auto-answer billing dispute tickets and fix whatever causes the wrong bills (requester's framing, not adopted as the problem).",
+   "symptoms": [
+    "Dispute tickets rose from 610 (June) and 590 (July) to 1180 (August) and 1260 (September) (E-02).",
+    "1785 of 3025 disputed bills are ACTUAL reads and 1240 are ESTIMATED (E-03).",
+    "Route completion was 0.88 against a 0.95 target in Aug-Sep (E-06)."
+   ],
+   "root_problem": "Billing disputes doubled from about 600/month to 1180-1260 since August (E-02), and most disputed bills (1785 of 3025) are on ACTUAL reads, not estimates (E-03). No tariff change is recorded (E-04). The best-supported mechanism is that a change around August in billing import validation or read-typing handling mishandles valid reads, producing wrong bills. This is falsifiable by the rule change log (DA-RULES) showing no change near August, or by disputed actual-read bills matching their source reads.",
+   "evidence_refs": [
+    "E-02",
+    "E-03",
+    "E-04",
+    "E-06",
+    "E-01"
+   ],
+   "intended_scope": [
+    {
+     "action": "review_rule_change_log",
+     "target": "DA-RULES"
+    },
+    {
+     "action": "analyze_disputed_actual_reads",
+     "target": "DA-BILL"
+    },
+    {
+     "action": "request_mdms_access",
+     "target": "SH-AMI"
+    },
+    {
+     "action": "trace_field_read_handoff",
+     "target": "H-FIELD-BILL"
+    }
+   ],
+   "protected_actions": [],
+   "depends_on_mappings": [],
+   "depends_on_handoffs": [
+    "H-FIELD-BILL",
+    "H-MDMS-BILL"
+   ],
+   "depends_on_exports": [],
+   "required_tools": [
+    "billing-config",
+    "billing-db",
+    "crm-tickets",
+    "route-log",
+    "mdms-export"
+   ],
+   "success_criteria": [
+    "SC-CAUSE",
+    "SC-VOLUME",
+    "SC-NOWRITE"
+   ],
+   "metric_ids": [
+    "M-DISPUTES",
+    "M-ACTUAL-SHARE"
+   ],
+   "status": "ACTIVE",
+   "gate_result": "CONDITIONAL_PASS",
+   "invalidated_by": [],
+   "supersedes": null,
+   "superseded_by": null,
+   "challenges": []
+  },
+  "problem_definition_history": [],
+  "solution_design": {
+   "id": "SD-1",
+   "problem_ref": "PD-1",
+   "problem_version": 1,
+   "agent_roles": [
+    "CONTROL_DETECTION",
+    "EXCEPTION_HANDLER"
+   ],
+   "structural_remedies": [
+    "SR-REVIEW-RULE-CHANGE-LOG",
+    "SR-TRACE-SAMPLE-READS",
+    "SR-HANDOFF-VALIDATION-CONTRACT",
+    "SR-MANUAL-ADJUST-BY-BILLING"
+   ],
+   "release_scope": [
+    "trace_field_read_handoff:H-FIELD-BILL"
+   ]
+  },
+  "agent_spec": {
+   "identity": "agent-SD-1",
+   "problem_reference": "PD-1@v1",
+   "structural_role": [
+    "CONTROL_DETECTION",
+    "EXCEPTION_HANDLER"
+   ],
+   "verification_obligations": [
+    "VOB-U-RULE-LOG",
+    "VOB-U-AMI-READS",
+    "VOB-U-ACTUAL-READ-VALIDITY"
+   ],
+   "success_criteria": [
+    "SC-CAUSE",
+    "SC-VOLUME",
+    "SC-NOWRITE"
+   ]
+  },
+  "verification_obligations": {
+   "VOB-U-RULE-LOG": {
+    "status": "OPEN",
+    "required_before": "BEFORE_RELEASE",
+    "blocking_scope": "ENTIRE",
+    "question": "Does the billing import validation rule change log (DA-RULES) show a change around August that affects read acceptance?",
+    "linked_unknown": "U-RULE-LOG"
+   },
+   "VOB-U-AMI-READS": {
+    "status": "OPEN",
+    "required_before": "BEFORE_RELEASE",
+    "blocking_scope": "ENTIRE",
+    "question": "Are AMI reads from MDMS missing, late or semantically invalid, and does that explain disputes on actual reads?",
+    "linked_unknown": "U-AMI-READS"
+   },
+   "VOB-U-ACTUAL-READ-VALIDITY": {
+    "status": "OPEN",
+    "required_before": "BEFORE_RELEASE",
+    "blocking_scope": "ENTIRE",
+    "question": "Do the disputed ACTUAL-read bills reflect valid reads, or are the reads duplicated, conflicting or mis-typed?",
+    "linked_unknown": "U-ACTUAL-READ-VALIDITY"
+   }
+  },
+  "hypotheses": {
+   "H-RESPONSE-SPEED": {
+    "status": "REJECTED",
+    "supporting": [],
+    "contradicting": [
+     "E-01",
+     "E-02",
+     "E-03"
+    ]
+   },
+   "H-AMI-READ-DELIVERY": {
+    "status": "CANDIDATE",
+    "supporting": [],
+    "contradicting": [
+     "E-03"
+    ]
+   },
+   "H-BILLING-RULE-CHANGE": {
+    "status": "CANDIDATE",
+    "supporting": [
+     "E-03"
+    ],
+    "contradicting": []
+   },
+   "H-FIELD-READ-GAPS": {
+    "status": "CANDIDATE",
+    "supporting": [
+     "E-06",
+     "E-07"
+    ],
+    "contradicting": [
+     "E-03"
+    ]
+   },
+   "H-CROSS-HANDOFF-MISMATCH": {
+    "status": "CANDIDATE",
+    "supporting": [
+     "E-03"
+    ],
+    "contradicting": []
+   },
+   "H-TARIFF-CALC": {
+    "status": "REJECTED",
+    "supporting": [
+     "E-03"
+    ],
+    "contradicting": [
+     "E-04",
+     "E-05"
+    ]
+   }
+  },
+  "assumptions": {
+   "A-RULE-TIMING": "ACTIVE",
+   "A-TARIFF-LOG-COMPLETE": "ACTIVE"
+  },
+  "unknowns": {
+   "U-RULE-LOG": "DEFERRED",
+   "U-AMI-READS": "DEFERRED",
+   "U-ACTUAL-READ-VALIDITY": "DEFERRED",
+   "U-MEASURE-VALIDITY": "OPEN"
+  },
+  "success_criteria": [
+   "SC-CAUSE",
+   "SC-NOWRITE",
+   "SC-VOLUME"
+  ],
+  "active_problem_success_criteria": [
+   "SC-CAUSE",
+   "SC-VOLUME",
+   "SC-NOWRITE"
+  ],
+  "claims": {
+   "CL-01": {
+    "status": "UNVERIFIED",
+    "evidence_refs": []
+   },
+   "CL-02": {
+    "status": "UNVERIFIED",
+    "evidence_refs": []
+   },
+   "CL-03": {
+    "status": "UNVERIFIED",
+    "evidence_refs": []
+   },
+   "CL-04": {
+    "status": "UNVERIFIED",
+    "evidence_refs": []
+   }
+  },
+  "conflicts": {},
+  "evidence": {
+   "E-01": {
+    "status": "ACTIVE",
+    "authority": "AUTHORITATIVE",
+    "source": "crm-tickets",
+    "content": "crm-tickets.dispute_response_times → 1 record(s): {\"median_days\": 1.6, \"p90_days\": 2.8, \"sla_days\": 3.0, \"tickets\": 2440}",
+    "interpretation_history": [
+     {
+      "interpretation": "Median response is 1.6 days and p90 is 2.8 days against a 3.0-day SLA for 2440 tickets, so responses are mostly within SLA. Slow response does not explain the dispute surge.",
+      "reason": "proposed by reasoner R-3 (replay/transcript)",
+      "event_seq": null
+     }
+    ],
+    "provenance": {
+     "source_type": "TOOL",
+     "source_id": "crm-tickets",
+     "method": "dispute_response_times",
+     "derived_from": [
+      "crm-tickets:dispute_response_times",
+      "R-3"
+     ],
+     "event_seq": 11,
+     "recorded_at_minute": 18.0
+    }
+   },
+   "E-02": {
+    "status": "ACTIVE",
+    "authority": "AUTHORITATIVE",
+    "source": "crm-tickets",
+    "content": "crm-tickets.dispute_volume_monthly → 4 record(s): {\"disputes\": 610, \"month\": \"2026-06\"}; {\"disputes\": 590, \"month\": \"2026-07\"}; {\"disputes\": 1180, \"month\": \"2026-08\"}; {\"disputes\": 1260, \"month\": \"2026-09\"}",
+    "interpretation_history": [
+     {
+      "interpretation": "Monthly disputes were about 600 in June-July and roughly doubled to 1180 in August and 1260 in September. This confirms a step change starting in August but says nothing about its cause.",
+      "reason": "proposed by reasoner R-4 (replay/transcript)",
+      "event_seq": null
+     }
+    ],
+    "provenance": {
+     "source_type": "TOOL",
+     "source_id": "crm-tickets",
+     "method": "dispute_volume_monthly",
+     "derived_from": [
+      "crm-tickets:dispute_volume_monthly",
+      "R-4"
+     ],
+     "event_seq": 22,
+     "recorded_at_minute": 23.0
+    }
+   },
+   "E-03": {
+    "status": "ACTIVE",
+    "authority": "AUTHORITATIVE",
+    "source": "billing-db",
+    "content": "billing-db.disputed_bills_by_read_type → 2 record(s): {\"count\": 1240, \"read_type\": \"ESTIMATED\"}; {\"count\": 1785, \"read_type\": \"ACTUAL\"}",
+    "interpretation_history": [
+     {
+      "interpretation": "Of 3025 disputed bills, 1785 are ACTUAL reads and 1240 are ESTIMATED, so estimate substitution is a minority. Disputes on actual reads point to invalid or mis-typed reads, or a rule or tariff problem.",
+      "reason": "proposed by reasoner R-5 (replay/transcript)",
+      "event_seq": null
+     }
+    ],
+    "provenance": {
+     "source_type": "TOOL",
+     "source_id": "billing-db",
+     "method": "disputed_bills_by_read_type",
+     "derived_from": [
+      "billing-db:disputed_bills_by_read_type",
+      "R-5"
+     ],
+     "event_seq": 34,
+     "recorded_at_minute": 28.0
+    }
+   },
+   "E-04": {
+    "status": "ACTIVE",
+    "authority": "AUTHORITATIVE",
+    "source": "billing-db",
+    "content": "billing-db.tariff_change_log → 0 record(s): none",
+    "interpretation_history": [
+     {
+      "interpretation": "The tariff change log returned zero records, so no tariff or bill-calculation change is recorded. This contradicts H-TARIFF-CALC, though only for what the log captures.",
+      "reason": "proposed by reasoner R-7 (replay/transcript)",
+      "event_seq": null
+     }
+    ],
+    "provenance": {
+     "source_type": "TOOL",
+     "source_id": "billing-db",
+     "method": "tariff_change_log",
+     "derived_from": [
+      "billing-db:tariff_change_log",
+      "R-7"
+     ],
+     "event_seq": 47,
+     "recorded_at_minute": 31.0
+    }
+   },
+   "E-05": {
+    "status": "ACTIVE",
+    "authority": "NON_AUTHORITATIVE",
+    "source": "SH-BILL",
+    "content": "There has been no tariff change this year.",
+    "interpretation_history": [
+     {
+      "interpretation": "SH-BILL states no tariff change occurred this year. It is a non-authoritative claim that agrees with the empty tariff change log in E-04.",
+      "reason": "proposed by reasoner R-8 (replay/transcript)",
+      "event_seq": null
+     }
+    ],
+    "provenance": {
+     "source_type": "STAKEHOLDER",
+     "source_id": "SH-BILL",
+     "method": "interview",
+     "derived_from": [
+      "interview:SH-BILL",
+      "R-8"
+     ],
+     "event_seq": 58,
+     "recorded_at_minute": 33.0
+    }
+   },
+   "E-06": {
+    "status": "ACTIVE",
+    "authority": "AUTHORITATIVE",
+    "source": "route-log",
+    "content": "route-log.route_completion_aug_sep → 1 record(s): {\"completion\": 0.88, \"manual_read_accounts\": 9200, \"period\": \"2026-08..09\", \"target\": 0.95}",
+    "interpretation_history": [
+     {
+      "interpretation": "Route completion for Aug-Sep 2026 was 0.88 against a 0.95 target, with 9200 manual-read accounts. Field reads fall short of target, but the record does not show whether this gap explains the dispute surge.",
+      "reason": "proposed by reasoner R-9 (replay/transcript)",
+      "event_seq": null
+     }
+    ],
+    "provenance": {
+     "source_type": "TOOL",
+     "source_id": "route-log",
+     "method": "route_completion_aug_sep",
+     "derived_from": [
+      "route-log:route_completion_aug_sep",
+      "R-9"
+     ],
+     "event_seq": 66,
+     "recorded_at_minute": 38.0
+    }
+   },
+   "E-07": {
+    "status": "ACTIVE",
+    "authority": "NON_AUTHORITATIVE",
+    "source": "SH-FIELD",
+    "content": "We are short three readers since July; routes run late, so those customers get estimated bills.",
+    "interpretation_history": [
+     {
+      "interpretation": "SH-FIELD claims a three-reader shortfall since July causes late routes and estimated bills. This is a non-authoritative, self-interested claim that fits E-06's low completion, but it covers only estimated bills, which are a minority of disputes in E-03.",
+      "reason": "proposed by reasoner R-11 (replay/transcript)",
+      "event_seq": null
+     }
+    ],
+    "provenance": {
+     "source_type": "STAKEHOLDER",
+     "source_id": "SH-FIELD",
+     "method": "interview",
+     "derived_from": [
+      "interview:SH-FIELD",
+      "R-11"
+     ],
+     "event_seq": 79,
+     "recorded_at_minute": 40.0
+    }
+   },
+   "E-08": {
+    "status": "ACTIVE",
+    "authority": "AUTHORITATIVE",
+    "source": "fieldco-service-contract",
+    "content": "Service contract §4.2: utility may request route priority changes; executed after Field Operations Manager confirmation.",
+    "interpretation_history": [
+     {
+      "interpretation": "Service contract §4.2 says the utility may request route priority changes, and they run only after Field Operations Manager confirmation. It speaks to dispatch authority and says nothing about the cause of the disputes.",
+      "reason": "proposed by reasoner R-15 (replay/transcript)",
+      "event_seq": null
+     }
+    ],
+    "provenance": {
+     "source_type": "DOCUMENT",
+     "source_id": "fieldco-service-contract",
+     "method": "document review",
+     "derived_from": [
+      "R-15"
+     ],
+     "event_seq": 106,
+     "recorded_at_minute": 55.0
+    }
+   },
+   "E-09": {
+    "status": "ACTIVE",
+    "authority": "AUTHORITATIVE",
+    "source": "route-log",
+    "content": "route-log.lagging_routes → 14 record(s); fields ['completion', 'route'] | completion: 14 distinct values | route: 14 distinct values | sample: {\"completion\": 0.7, \"route\": \"R-00\"}",
+    "interpretation_history": [
+     {
+      "interpretation": "(no semantic interpretation available — deterministic fallback)",
+      "reason": "proposed by reasoner R-19 (deterministic-fallback/rules)",
+      "event_seq": null
+     }
+    ],
+    "provenance": {
+     "source_type": "TOOL",
+     "source_id": "route-log",
+     "method": "lagging_routes",
+     "derived_from": [
+      "route-log:lagging_routes",
+      "R-19"
+     ],
+     "event_seq": 143,
+     "recorded_at_minute": 103.0
+    }
+   },
+   "E-10": {
+    "status": "ACTIVE",
+    "authority": "AUTHORITATIVE",
+    "source": "billing-db",
+    "content": "billing-db.accounts_estimated_last_cycle → 320 record(s); fields ['account_id', 'route'] | account_id: 320 distinct values | route: 40 distinct values | sample: {\"account_id\": \"AC-20000\", \"route\": \"R-00\"}",
+    "interpretation_history": [
+     {
+      "interpretation": "(no semantic interpretation available — deterministic fallback)",
+      "reason": "proposed by reasoner R-20 (deterministic-fallback/rules)",
+      "event_seq": null
+     }
+    ],
+    "provenance": {
+     "source_type": "TOOL",
+     "source_id": "billing-db",
+     "method": "accounts_estimated_last_cycle",
+     "derived_from": [
+      "billing-db:accounts_estimated_last_cycle",
+      "R-20"
+     ],
+     "event_seq": 150,
+     "recorded_at_minute": 106.0
+    }
+   },
+   "E-11": {
+    "status": "ACTIVE",
+    "authority": "NON_AUTHORITATIVE",
+    "source": "SH-AMI",
+    "content": "MDMS export access for Lakeside is provisioned as of today (vendor ticket TX-4471).",
+    "interpretation_history": [
+     {
+      "interpretation": "(no semantic interpretation available — deterministic fallback)",
+      "reason": "proposed by reasoner R-21 (deterministic-fallback/rules)",
+      "event_seq": null
+     }
+    ],
+    "provenance": {
+     "source_type": "STAKEHOLDER",
+     "source_id": "SH-AMI",
+     "method": "message",
+     "derived_from": [
+      "R-21"
+     ],
+     "event_seq": 162,
+     "recorded_at_minute": 106.0
+    }
+   },
+   "E-12": {
+    "status": "ACTIVE",
+    "authority": "AUTHORITATIVE",
+    "source": "mdms-export",
+    "content": "mdms-export.read_events_for_disputed_estimated → 2 record(s): {\"ami_read_before_cutoff\": true, \"billing_import_status\": \"REJECTED_HIGH_CONSUMPTION\", \"count\": 1184, \"exported_to_billing\": true, \"firmware\": \"v4.2\", \"read_channel\": \"AMI\"}; {\"ami_read_before_cutoff\": false, \"billing_import_status\": \"NO_READ_RECEIVED\", \"count\": 56, \"exported_to_billing\": false, \"firmware\": \"mixed\", \"read_channel\": \"AMI\"}",
+    "interpretation_history": [
+     {
+      "interpretation": "(no semantic interpretation available — deterministic fallback)",
+      "reason": "proposed by reasoner R-22 (deterministic-fallback/rules)",
+      "event_seq": null
+     }
+    ],
+    "provenance": {
+     "source_type": "TOOL",
+     "source_id": "mdms-export",
+     "method": "read_events_for_disputed_estimated",
+     "derived_from": [
+      "mdms-export:read_events_for_disputed_estimated",
+      "R-22"
+     ],
+     "event_seq": 169,
+     "recorded_at_minute": 110.0
+    }
+   }
+  },
+  "evidence_revisions": {},
+  "decision_log": [
+   {
+    "id": "D-1",
+    "phase": "DISCOVER",
+    "decision": "DEFINE proposal R-14",
+    "rationale": "causal chain: A change around August in billing import validation or read handling is hypothesised (H-BILLING-RULE-CHANGE); it is not yet confirmed from DA-RULES. → Valid or mis-typed reads are accepted or rejected incorrectly at billing import and validation. → Bills are calculated wrongly even on ACTUAL reads (E-03). → Customers dispute the bills and ticket volume doubles (E-02). → Estimated bills from late field routes (E-06, E-07) add a smaller share of disputes (E-03).; rejected framings: [('H-RESPONSE-SPEED', 'Responses are within SLA (E-01) and disputes are driven by wrong bills, so auto-answering does not fix the cause.'), ('H-TARIFF-CALC', 'It is rejected; the tariff log is empty (E-04) and SH-BILL agrees (E-05).'), ('H-FIELD-READ-GAPS', 'It explains at most the 1240 estimated disputes (E-03), the minority, and rests on a self-interested claim (E-07).'), ('H-AMI-READ-DELIVERY', 'It assumes estimate substitution, which E-03 contradicts for most disputes, and it cannot be tested while MDMS access is pending.')]",
+    "evidence_refs": [
+     "E-02",
+     "E-03",
+     "E-04",
+     "E-06",
+     "E-01"
+    ],
+    "event_seq": null
+   },
+   {
+    "id": "D-2",
+    "phase": "DEFINE",
+    "decision": "DEFINE Gate CONDITIONAL_PASS",
+    "rationale": "[CONDITIONAL] handoff H-FIELD-BILL delivery/semantic validity unknown; [CONDITIONAL] handoff H-MDMS-BILL delivery/semantic validity unknown; [CONDITIONAL] critical unknown U-RULE-LOG deferred to VOB-U-RULE-LOG; [CONDITIONAL] critical unknown U-AMI-READS deferred to VOB-U-AMI-READS; [CONDITIONAL] critical unknown U-ACTUAL-READ-VALIDITY deferred to VOB-U-ACTUAL-READ-VALIDITY; [CONDITIONAL] required tool mdms-export DEGRADED without fallback",
+    "evidence_refs": [],
+    "event_seq": null
+   }
+  ],
+  "domain_authorizations": {
+   "DA-PUSH-ROUTE-UPDATE": "GRANTED"
+  },
+  "plan": {
+   "id": "PLAN-1",
+   "version": 1,
+   "work_items": {
+    "W-WI-TRACE-FIELD-HANDOFF": {
+     "status": "DONE",
+     "description": "Trace the H-FIELD-BILL manual-read handoff by pulling lagging routes (route-log) and accounts estimated last cycle (billing-db), and report them side by side."
+    },
+    "W-VERIFY": {
+     "status": "PENDING",
+     "description": "release-blocking verification"
+    },
+    "W-PACK": {
+     "status": "PENDING",
+     "description": "packaging + submission"
+    }
+   }
+  },
+  "pending_protected_action": null,
+  "executed_actions": [],
+  "transition_candidate": null,
+  "recovery": {
+   "candidate_transition": "HOLD",
+   "rationale": "retry stopped (NOT_TRANSIENT); no fallback or alternate path"
+  },
+  "release_decisions": [
+   "HOLD"
+  ],
+  "supervision": {
+   "current_problem": "Billing disputes doubled from about 600/month to 1180-1260 since August (E-02), and most disputed bills (1785 of 3025) are on ACTUAL reads, not estimates (E-03). No tariff change is recorded (E-04). The best-supported mechanism is that a change around August in billing import validation or read-typing handling mishandles valid reads, producing wrong bills. This is falsifiable by the rule change log (DA-RULES) showing no change near August, or by disputed actual-read bills matching their source reads. (v1, ACTIVE)",
+   "top_hypotheses": [
+    "H-AMI-READ-DELIVERY: AMI reads from MDMS are missing, late or semantically invalid in the nightly export. Billing then substitutes estimates, which produces wrong bills and disputes. [CANDIDATE]",
+    "H-BILLING-RULE-CHANGE: A change to the billing import validation rules around August rejects valid reads. This causes estimate substitution or wrong bills. [CANDIDATE]",
+    "H-FIELD-READ-GAPS: Manual reads are not completed or delivered, because of staffing or route problems at the contractor. This forces estimates and causes wrong bills. [CANDIDATE]",
+    "H-CROSS-HANDOFF-MISMATCH: Both read streams are partly fine, but their combination (a duplicated, conflicting or mis-typed read at the MDMS or manual-read handoff) causes wrong bills. [CANDIDATE]"
+   ],
+   "evidence_revisions": [],
+   "pending_verification_obligations": [
+    "VOB-U-RULE-LOG [BEFORE_RELEASE] Does the billing import validation rule change log (DA-RULES) show a change around August that affects read acceptance?",
+    "VOB-U-AMI-READS [BEFORE_RELEASE] Are AMI reads from MDMS missing, late or semantically invalid, and does that explain disputes on actual reads?",
+    "VOB-U-ACTUAL-READ-VALIDITY [BEFORE_RELEASE] Do the disputed ACTUAL-read bills reflect valid reads, or are the reads duplicated, conflicting or mis-typed?"
+   ],
+   "intervention": {
+    "required": false,
+    "reason": null,
+    "gate_id": null
+   },
+   "live_summary_tail": [
+    "[CRITICAL] UNRECOVERABLE_FAILURE: retry stopped (NOT_TRANSIENT); no fallback or alternate path",
+    "[HIGH] DEFINE_GATE_RESULT: CONDITIONAL_PASS (6 findings)",
+    "[HIGH] STATE_DIFF: reasoning semantic_judge failed: PROVIDER_ERROR",
+    "[HIGH] STATE_DIFF: VERIFY failed: ['missing:field_read_handoff_trace']",
+    "[CRITICAL] RELEASE_GATE_RESULT: HOLD",
+    "[CRITICAL] RELEASE_BLOCKING_VOB: critical VOB-U-RULE-LOG intersects release scope at ['trace_field_read_handoff:H-FIELD-BILL']; critical VOB-U-AMI-READS intersects release scope at ['trace_field_read_handoff:H-FIELD-BILL']; critical VOB-U-ACTUAL-READ-VALIDITY intersects release scope at ['trace_field_read_handoff:H-FIELD-BILL']",
+    "[CRITICAL] HUMAN_INTERVENTION_REQUIRED: autonomous run halted: Release Gate HOLD"
+   ]
+  }
+ },
+ "final_live_summary": [
+  "[CRITICAL] UNRECOVERABLE_FAILURE: retry stopped (NOT_TRANSIENT); no fallback or alternate path",
+  "[HIGH] DEFINE_GATE_RESULT: CONDITIONAL_PASS (6 findings)",
+  "[HIGH] STATE_DIFF: reasoning semantic_judge failed: PROVIDER_ERROR",
+  "[HIGH] STATE_DIFF: VERIFY failed: ['missing:field_read_handoff_trace']",
+  "[CRITICAL] RELEASE_GATE_RESULT: HOLD",
+  "[CRITICAL] RELEASE_BLOCKING_VOB: critical VOB-U-RULE-LOG intersects release scope at ['trace_field_read_handoff:H-FIELD-BILL']; critical VOB-U-AMI-READS intersects release scope at ['trace_field_read_handoff:H-FIELD-BILL']; critical VOB-U-ACTUAL-READ-VALIDITY intersects release scope at ['trace_field_read_handoff:H-FIELD-BILL']",
+  "[CRITICAL] HUMAN_INTERVENTION_REQUIRED: autonomous run halted: Release Gate HOLD"
+ ],
+ "human": [],
+ "release_summary": {
+  "summary": "Release decision HOLD for PD-1 v1: Billing disputes doubled from about 600/month to 1180-1260 since August (E-02), and most disputed bills (1785 of 3025) are on ACTUAL reads, not estimates (E-03). No tariff change is recorded (E-04). The best-supported mechanism is that a change around August in billing import validation or read-typing handling mishandles valid reads, producing wrong bills. This is falsifiable by the rule change log (DA-RULES) showing no change near August, or by disputed actual-read bills matching their source reads.",
+  "key_points": [
+   "evidence: E-02, E-03, E-04, E-06, E-01"
+  ],
+  "limitations_explained": [
+   "DEFINE Gate CONDITIONAL_PASS (deferred items tracked as VOBs)",
+   "unfinished: Add delivery and semantic validation checks plus change notification at H-MDMS-BILL and H-FIELD-BILL. Request vendor-provisioned MDMS export access from SH-AMI.",
+   "unfinished: known limitation: Rule-log review and actual-read analysis stay out of release scope until VOB-U-RULE-LOG and VOB-U-ACTUAL-READ-VALIDITY close.",
+   "unfinished: known limitation: AMI-side reads cannot be checked while mdms-export is DEGRADED with access pending.",
+   "unfinished: known limitation: billing-config health is UNKNOWN, and A-RULE-TIMING is unverified.",
+   "unfinished: known limitation: Ticket and bill counts may cover different populations (U-MEASURE-VALIDITY)."
+  ]
+ },
+ "reasoning": [
+  {
+   "reasoning_id": "R-1",
+   "skill": "hypothesis_init",
+   "status": "SUCCESS",
+   "provider": "replay",
+   "model": "transcript",
+   "input_state_version": 0,
+   "schema_version": "1.0",
+   "order": 1,
+   "attempts": 1,
+   "input_digest": "83d36969fc6dc068",
+   "evidence_refs": [
+    "H-FIELD-BILL",
+    "H-MDMS-BILL"
+   ],
+   "confidence": 0.4,
+   "errors": [],
+   "output": null,
+   "fallback_used": null
+  },
+  {
+   "reasoning_id": "R-2",
+   "skill": "discover_actions",
+   "status": "SUCCESS",
+   "provider": "replay",
+   "model": "transcript",
+   "input_state_version": 2,
+   "schema_version": "1.0",
+   "order": 2,
+   "attempts": 1,
+   "input_digest": "24f0dfd36931919c",
+   "evidence_refs": [
+    "CL-01",
+    "H-AMI-READ-DELIVERY",
+    "H-BILLING-RULE-CHANGE",
+    "H-CROSS-HANDOFF-MISMATCH",
+    "H-FIELD-READ-GAPS",
+    "H-RESPONSE-SPEED"
+   ],
+   "confidence": null,
+   "errors": [],
+   "output": null,
+   "fallback_used": null
+  },
+  {
+   "reasoning_id": "R-3",
+   "skill": "interpret_evidence",
+   "status": "SUCCESS",
+   "provider": "replay",
+   "model": "transcript",
+   "input_state_version": 2,
+   "schema_version": "1.0",
+   "order": 3,
+   "attempts": 1,
+   "input_digest": "286d21fd0e8e1634",
+   "evidence_refs": [
+    "E-01",
+    "H-AMI-READ-DELIVERY",
+    "H-BILLING-RULE-CHANGE",
+    "H-CROSS-HANDOFF-MISMATCH",
+    "H-FIELD-READ-GAPS",
+    "H-RESPONSE-SPEED"
+   ],
+   "confidence": 0.85,
+   "errors": [],
+   "output": null,
+   "fallback_used": null
+  },
+  {
+   "reasoning_id": "R-4",
+   "skill": "interpret_evidence",
+   "status": "SUCCESS",
+   "provider": "replay",
+   "model": "transcript",
+   "input_state_version": 4,
+   "schema_version": "1.0",
+   "order": 4,
+   "attempts": 1,
+   "input_digest": "0775e4e8ae3be299",
+   "evidence_refs": [
+    "E-01",
+    "E-02",
+    "H-AMI-READ-DELIVERY",
+    "H-BILLING-RULE-CHANGE",
+    "H-CROSS-HANDOFF-MISMATCH",
+    "H-FIELD-READ-GAPS",
+    "H-RESPONSE-SPEED"
+   ],
+   "confidence": 0.9,
+   "errors": [],
+   "output": null,
+   "fallback_used": null
+  },
+  {
+   "reasoning_id": "R-5",
+   "skill": "interpret_evidence",
+   "status": "SUCCESS",
+   "provider": "replay",
+   "model": "transcript",
+   "input_state_version": 6,
+   "schema_version": "1.0",
+   "order": 5,
+   "attempts": 1,
+   "input_digest": "163ad3829abbeb72",
+   "evidence_refs": [
+    "E-03",
+    "H-AMI-READ-DELIVERY",
+    "H-BILLING-RULE-CHANGE",
+    "H-CROSS-HANDOFF-MISMATCH",
+    "H-FIELD-READ-GAPS",
+    "H-RESPONSE-SPEED",
+    "H-TARIFF-CALC"
+   ],
+   "confidence": 0.8,
+   "errors": [],
+   "output": null,
+   "fallback_used": null
+  },
+  {
+   "reasoning_id": "R-6",
+   "skill": "discover_actions",
+   "status": "SUCCESS",
+   "provider": "replay",
+   "model": "transcript",
+   "input_state_version": 9,
+   "schema_version": "1.0",
+   "order": 6,
+   "attempts": 1,
+   "input_digest": "72cd752522a5580c",
+   "evidence_refs": [
+    "E-03",
+    "H-AMI-READ-DELIVERY",
+    "H-BILLING-RULE-CHANGE",
+    "H-CROSS-HANDOFF-MISMATCH",
+    "H-FIELD-READ-GAPS",
+    "H-TARIFF-CALC"
+   ],
+   "confidence": null,
+   "errors": [],
+   "output": null,
+   "fallback_used": null
+  },
+  {
+   "reasoning_id": "R-7",
+   "skill": "interpret_evidence",
+   "status": "SUCCESS",
+   "provider": "replay",
+   "model": "transcript",
+   "input_state_version": 9,
+   "schema_version": "1.0",
+   "order": 7,
+   "attempts": 1,
+   "input_digest": "a4f1a9795c7019ab",
+   "evidence_refs": [
+    "E-04",
+    "H-AMI-READ-DELIVERY",
+    "H-BILLING-RULE-CHANGE",
+    "H-CROSS-HANDOFF-MISMATCH",
+    "H-FIELD-READ-GAPS",
+    "H-RESPONSE-SPEED",
+    "H-TARIFF-CALC"
+   ],
+   "confidence": 0.8,
+   "errors": [],
+   "output": null,
+   "fallback_used": null
+  },
+  {
+   "reasoning_id": "R-8",
+   "skill": "interpret_evidence",
+   "status": "SUCCESS",
+   "provider": "replay",
+   "model": "transcript",
+   "input_state_version": 11,
+   "schema_version": "1.0",
+   "order": 8,
+   "attempts": 1,
+   "input_digest": "0a6f27e22ff28a3b",
+   "evidence_refs": [
+    "E-04",
+    "E-04.",
+    "H-AMI-READ-DELIVERY",
+    "H-BILLING-RULE-CHANGE",
+    "H-CROSS-HANDOFF-MISMATCH",
+    "H-FIELD-READ-GAPS",
+    "H-RESPONSE-SPEED",
+    "H-TARIFF-CALC"
+   ],
+   "confidence": 0.8,
+   "errors": [],
+   "output": null,
+   "fallback_used": null
+  },
+  {
+   "reasoning_id": "R-9",
+   "skill": "interpret_evidence",
+   "status": "SUCCESS",
+   "provider": "replay",
+   "model": "transcript",
+   "input_state_version": 13,
+   "schema_version": "1.0",
+   "order": 9,
+   "attempts": 1,
+   "input_digest": "2dd6c2ae7e634f69",
+   "evidence_refs": [
+    "E-03",
+    "E-06",
+    "H-AMI-READ-DELIVERY",
+    "H-BILLING-RULE-CHANGE",
+    "H-CROSS-HANDOFF-MISMATCH",
+    "H-FIELD-READ-GAPS",
+    "H-RESPONSE-SPEED",
+    "H-TARIFF-CALC"
+   ],
+   "confidence": 0.8,
+   "errors": [],
+   "output": null,
+   "fallback_used": null
+  },
+  {
+   "reasoning_id": "R-10",
+   "skill": "discover_actions",
+   "status": "SUCCESS",
+   "provider": "replay",
+   "model": "transcript",
+   "input_state_version": 15,
+   "schema_version": "1.0",
+   "order": 10,
+   "attempts": 1,
+   "input_digest": "b9377c868c749c9e",
+   "evidence_refs": [
+    "E-03",
+    "E-06",
+    "H-AMI-READ-DELIVERY",
+    "H-BILLING-RULE-CHANGE",
+    "H-CROSS-HANDOFF-MISMATCH",
+    "H-FIELD-BILL",
+    "H-FIELD-READ-GAPS",
+    "H-MDMS-BILL"
+   ],
+   "confidence": null,
+   "errors": [],
+   "output": null,
+   "fallback_used": null
+  },
+  {
+   "reasoning_id": "R-11",
+   "skill": "interpret_evidence",
+   "status": "SUCCESS",
+   "provider": "replay",
+   "model": "transcript",
+   "input_state_version": 15,
+   "schema_version": "1.0",
+   "order": 11,
+   "attempts": 1,
+   "input_digest": "b421a8ff0aec647a",
+   "evidence_refs": [
+    "E-03.",
+    "E-06",
+    "E-06.",
+    "H-AMI-READ-DELIVERY",
+    "H-BILLING-RULE-CHANGE",
+    "H-CROSS-HANDOFF-MISMATCH",
+    "H-FIELD-READ-GAPS",
+    "H-RESPONSE-SPEED",
+    "H-TARIFF-CALC"
+   ],
+   "confidence": 0.7,
+   "errors": [],
+   "output": null,
+   "fallback_used": null
+  },
+  {
+   "reasoning_id": "R-12",
+   "skill": "discover_actions",
+   "status": "SUCCESS",
+   "provider": "replay",
+   "model": "transcript",
+   "input_state_version": 17,
+   "schema_version": "1.0",
+   "order": 12,
+   "attempts": 1,
+   "input_digest": "e257ca81c681fc22",
+   "evidence_refs": [],
+   "confidence": null,
+   "errors": [],
+   "output": null,
+   "fallback_used": null
+  },
+  {
+   "reasoning_id": "R-13",
+   "skill": "assess_hypotheses",
+   "status": "SUCCESS",
+   "provider": "replay",
+   "model": "transcript",
+   "input_state_version": 17,
+   "schema_version": "1.0",
+   "order": 13,
+   "attempts": 1,
+   "input_digest": "827f7590de67fca6",
+   "evidence_refs": [
+    "E-01",
+    "E-02",
+    "E-03",
+    "E-04",
+    "E-05",
+    "E-06",
+    "E-07",
+    "H-RESPONSE-SPEED",
+    "H-TARIFF-CALC"
+   ],
+   "confidence": null,
+   "errors": [],
+   "output": null,
+   "fallback_used": null
+  },
+  {
+   "reasoning_id": "R-14",
+   "skill": "define_problem",
+   "status": "SUCCESS",
+   "provider": "replay",
+   "model": "transcript",
+   "input_state_version": 19,
+   "schema_version": "1.0",
+   "order": 14,
+   "attempts": 1,
+   "input_digest": "c95cf1cc5a4b98e8",
+   "evidence_refs": [
+    "A-RULE-TIMING",
+    "A-TARIFF-LOG-COMPLETE",
+    "E-01",
+    "E-02",
+    "E-03",
+    "E-04",
+    "E-05",
+    "E-06",
+    "E-07",
+    "H-AMI-READ-DELIVERY",
+    "H-BILLING-RULE-CHANGE",
+    "H-CROSS-HANDOFF-MISMATCH",
+    "H-FIELD-BILL",
+    "H-FIELD-READ-GAPS",
+    "H-MDMS-BILL",
+    "H-MDMS-BILL.",
+    "H-RESPONSE-SPEED",
+    "H-TARIFF-CALC",
+    "M-ACTUAL-SHARE",
+    "M-DISPUTES",
+    "SC-CAUSE",
+    "SC-NOWRITE",
+    "SC-VOLUME",
+    "U-ACTUAL-READ-VALIDITY",
+    "U-AMI-READS",
+    "U-MEASURE-VALIDITY",
+    "U-RULE-LOG"
+   ],
+   "confidence": 0.45,
+   "errors": [],
+   "output": null,
+   "fallback_used": null
+  },
+  {
+   "reasoning_id": "R-15",
+   "skill": "interpret_evidence",
+   "status": "SUCCESS",
+   "provider": "replay",
+   "model": "transcript",
+   "input_state_version": 21,
+   "schema_version": "1.0",
+   "order": 15,
+   "attempts": 1,
+   "input_digest": "ee103928adc5d28a",
+   "evidence_refs": [
+    "H-AMI-READ-DELIVERY",
+    "H-BILLING-RULE-CHANGE",
+    "H-CROSS-HANDOFF-MISMATCH",
+    "H-FIELD-READ-GAPS"
+   ],
+   "confidence": 0.85,
+   "errors": [],
+   "output": null,
+   "fallback_used": null
+  },
+  {
+   "reasoning_id": "R-16",
+   "skill": "structural_remedy",
+   "status": "SUCCESS",
+   "provider": "replay",
+   "model": "transcript",
+   "input_state_version": 24,
+   "schema_version": "1.0",
+   "order": 16,
+   "attempts": 1,
+   "input_digest": "fdeef96e84d4600b",
+   "evidence_refs": [
+    "A-RULE-TIMING",
+    "E-01",
+    "E-02",
+    "E-03",
+    "E-04",
+    "H-FIELD-BILL",
+    "H-FIELD-BILL.",
+    "H-MDMS-BILL",
+    "H-RESPONSE-SPEED",
+    "U-ACTUAL-READ-VALIDITY",
+    "U-RULE-LOG"
+   ],
+   "confidence": 0.7,
+   "errors": [],
+   "output": null,
+   "fallback_used": null
+  },
+  {
+   "reasoning_id": "R-17",
+   "skill": "agent_design",
+   "status": "SUCCESS",
+   "provider": "replay",
+   "model": "transcript",
+   "input_state_version": 24,
+   "schema_version": "1.0",
+   "order": 17,
+   "attempts": 1,
+   "input_digest": "38f27416c54f534f",
+   "evidence_refs": [
+    "A-RULE-TIMING",
+    "E-01",
+    "E-02",
+    "E-03",
+    "H-FIELD-BILL",
+    "H-MDMS-BILL",
+    "H-RESPONSE-SPEED",
+    "SC-CAUSE",
+    "SC-NOWRITE",
+    "SC-VOLUME",
+    "U-MEASURE-VALIDITY",
+    "VOB-U-ACTUAL-READ-VALIDITY",
+    "VOB-U-RULE-LOG"
+   ],
+   "confidence": 0.7,
+   "errors": [],
+   "output": null,
+   "fallback_used": null
+  },
+  {
+   "reasoning_id": "R-18",
+   "skill": "plan_execution",
+   "status": "SUCCESS",
+   "provider": "replay",
+   "model": "transcript",
+   "input_state_version": 26,
+   "schema_version": "1.0",
+   "order": 18,
+   "attempts": 1,
+   "input_digest": "b8fa267c16d5221c",
+   "evidence_refs": [
+    "E-03",
+    "H-FIELD-BILL",
+    "H-FIELD-BILL."
+   ],
+   "confidence": null,
+   "errors": [],
+   "output": null,
+   "fallback_used": null
+  },
+  {
+   "reasoning_id": "R-19",
+   "skill": "interpret_evidence",
+   "status": "SUCCESS",
+   "provider": "deterministic-fallback",
+   "model": "rules",
+   "input_state_version": 26,
+   "schema_version": "1.0",
+   "order": 19,
+   "attempts": 3,
+   "input_digest": "0296324ff908c71b",
+   "evidence_refs": [],
+   "confidence": null,
+   "errors": [
+    "You've hit your session limit · resets 11:50pm (Asia/Seoul)",
+    "You've hit your session limit · resets 11:50pm (Asia/Seoul)",
+    "You've hit your session limit · resets 11:50pm (Asia/Seoul)"
+   ],
+   "output": null,
+   "fallback_used": "deterministic"
+  },
+  {
+   "reasoning_id": "R-20",
+   "skill": "interpret_evidence",
+   "status": "SUCCESS",
+   "provider": "deterministic-fallback",
+   "model": "rules",
+   "input_state_version": 27,
+   "schema_version": "1.0",
+   "order": 20,
+   "attempts": 3,
+   "input_digest": "315ca5ceddedc715",
+   "evidence_refs": [],
+   "confidence": null,
+   "errors": [
+    "You've hit your session limit · resets 11:50pm (Asia/Seoul)",
+    "You've hit your session limit · resets 11:50pm (Asia/Seoul)",
+    "You've hit your session limit · resets 11:50pm (Asia/Seoul)"
+   ],
+   "output": null,
+   "fallback_used": "deterministic"
+  },
+  {
+   "reasoning_id": "R-21",
+   "skill": "interpret_evidence",
+   "status": "SUCCESS",
+   "provider": "deterministic-fallback",
+   "model": "rules",
+   "input_state_version": 30,
+   "schema_version": "1.0",
+   "order": 21,
+   "attempts": 3,
+   "input_digest": "620a3697032ef778",
+   "evidence_refs": [],
+   "confidence": null,
+   "errors": [
+    "You've hit your session limit · resets 11:50pm (Asia/Seoul)",
+    "You've hit your session limit · resets 11:50pm (Asia/Seoul)",
+    "You've hit your session limit · resets 11:50pm (Asia/Seoul)"
+   ],
+   "output": null,
+   "fallback_used": "deterministic"
+  },
+  {
+   "reasoning_id": "R-22",
+   "skill": "interpret_evidence",
+   "status": "SUCCESS",
+   "provider": "deterministic-fallback",
+   "model": "rules",
+   "input_state_version": 32,
+   "schema_version": "1.0",
+   "order": 22,
+   "attempts": 3,
+   "input_digest": "e6a7472c014404ca",
+   "evidence_refs": [],
+   "confidence": null,
+   "errors": [
+    "You've hit your session limit · resets 11:50pm (Asia/Seoul)",
+    "You've hit your session limit · resets 11:50pm (Asia/Seoul)",
+    "You've hit your session limit · resets 11:50pm (Asia/Seoul)"
+   ],
+   "output": null,
+   "fallback_used": "deterministic"
+  },
+  {
+   "reasoning_id": "R-23",
+   "skill": "semantic_judge",
+   "status": "PROVIDER_ERROR",
+   "provider": "replay",
+   "model": "transcript",
+   "input_state_version": 33,
+   "schema_version": "1.0",
+   "order": 23,
+   "attempts": 3,
+   "input_digest": "73de8de0060dc568",
+   "evidence_refs": [],
+   "confidence": null,
+   "errors": [
+    "You've hit your session limit · resets 11:50pm (Asia/Seoul)",
+    "You've hit your session limit · resets 11:50pm (Asia/Seoul)",
+    "You've hit your session limit · resets 11:50pm (Asia/Seoul)"
+   ],
+   "output": null,
+   "fallback_used": null
+  },
+  {
+   "reasoning_id": "R-24",
+   "skill": "release_summary",
+   "status": "SUCCESS",
+   "provider": "deterministic-fallback",
+   "model": "rules",
+   "input_state_version": 35,
+   "schema_version": "1.0",
+   "order": 24,
+   "attempts": 3,
+   "input_digest": "67ae0d5c583519f9",
+   "evidence_refs": [],
+   "confidence": null,
+   "errors": [
+    "You've hit your session limit · resets 11:50pm (Asia/Seoul)",
+    "You've hit your session limit · resets 11:50pm (Asia/Seoul)",
+    "You've hit your session limit · resets 11:50pm (Asia/Seoul)"
+   ],
+   "output": null,
+   "fallback_used": "deterministic"
+  }
+ ],
+ "proposals": {
+  "R-1": {
+   "skill": "hypothesis_init",
+   "status": "SUCCESS",
+   "output": {
+    "framing_assertion": {
+     "key": "dispute_tickets.root_cause",
+     "value": "slow_ticket_response_and_wrong_bills_fixable_by_ai_agent",
+     "rationale": "The request asserts tickets doubled because of response handling and that an AI agent can auto-answer and fix the cause of wrong bills. No evidence yet supports either claim."
+    },
+    "hypotheses": [
+     {
+      "key": "RESPONSE_SPEED",
+      "statement": "Dispute volume and backlog stem mainly from slow or inadequate ticket responses, so auto-answering tickets resolves the problem.",
+      "origin": "REQUESTER_FRAMING",
+      "decision_impact": "HIGH",
+      "rationale": "This is SH-CS's framing, and SH-CS is biased toward response speed and a lower backlog. It treats the symptom, since tickets arise from wrong bills.",
+      "discriminating_evidence": [
+       "DA-TICKET: dispute categories and whether the disputed bills were actually wrong",
+       "DA-TICKET: repeat-contact rate and response times before versus after August",
+       "DA-BILL: share of disputed bills that were corrected"
+      ]
+     },
+     {
+      "key": "AMI_READ_DELIVERY",
+      "statement": "AMI reads from MDMS are missing, late or semantically invalid in the nightly export. Billing then substitutes estimates, which produces wrong bills and disputes.",
+      "origin": "ALTERNATIVE",
+      "decision_impact": "CRITICAL",
+      "rationale": "H-MDMS-BILL has unknown delivery status and semantic validity, and DA-MDMS completeness is unknown. The fix would sit with the vendor and the export pipeline, not with ticket handling.",
+      "discriminating_evidence": [
+       "DA-MDMS: AMI read events per day compared with DA-BILL bills using AMI reads",
+       "DA-BILL: estimate-substitution rate by month, before versus after August",
+       "Whether ticket spikes cluster on AMI-metered accounts"
+      ]
+     },
+     {
+      "key": "BILLING_RULE_CHANGE",
+      "statement": "A change to the billing import validation rules around August rejects valid reads. This causes estimate substitution or wrong bills.",
+      "origin": "ALTERNATIVE",
+      "decision_impact": "CRITICAL",
+      "rationale": "DA-RULES is an authoritative change log with unknown completeness, and the timing may match August. A rule fix would be internal to Billing Operations (K-BILLWRITE applies to any re-billing).",
+      "discriminating_evidence": [
+       "DA-RULES: rule changes dated July-August",
+       "DA-BILL: import rejection counts by rule before versus after the change",
+       "Whether the rejected reads were valid in DA-MDMS or DA-ROUTE"
+      ]
+     },
+     {
+      "key": "FIELD_READ_GAPS",
+      "statement": "Manual reads are not completed or delivered, because of staffing or route problems at the contractor. This forces estimates and causes wrong bills.",
+      "origin": "ALTERNATIVE",
+      "decision_impact": "HIGH",
+      "rationale": "SH-FIELD attributes problems to staffing and gains from a headcount increase, so the claim needs testing. H-FIELD-BILL status is unknown, and any route change needs K-DISPATCH confirmation.",
+      "discriminating_evidence": [
+       "DA-ROUTE: route completion rate before versus after August",
+       "DA-BILL: share of manual-read-type bills that are estimates",
+       "Whether disputes cluster on manually read routes"
+      ]
+     },
+     {
+      "key": "CROSS_HANDOFF_MISMATCH",
+      "statement": "Both read streams are partly fine, but their combination (a duplicated, conflicting or mis-typed read at the MDMS or manual-read handoff) causes wrong bills.",
+      "origin": "ALTERNATIVE",
+      "decision_impact": "MEDIUM",
+      "rationale": "Two handoffs have unknown semantic validity, and read type or unit mismatches could arise at either. The fix would be a joint reconciliation between organizations.",
+      "discriminating_evidence": [
+       "DA-BILL: read-type distribution and anomalies such as duplicate or conflicting reads per account",
+       "DA-MDMS compared with DA-ROUTE for the same accounts and periods",
+       "Whether disputed bills show unit or register errors"
+      ]
+     }
+    ],
+    "confidence": 0.4
+   }
+  },
+  "R-2": {
+   "skill": "discover_actions",
+   "status": "SUCCESS",
+   "output": {
+    "actions": [
+     {
+      "catalog_ref": "billing-db:disputed_bills_by_read_type",
+      "question": "For disputed bills since August, what share are estimated vs actual reads, split by AMI vs manual read source and import status?",
+      "decision_impact": 0.95,
+      "uncertainty": 0.9,
+      "discriminative_power": 0.9,
+      "answerability": 0.9,
+      "process_data_handoff_impact": 0.9,
+      "action_proximity": 0.8,
+      "constraint_risk": 0.1,
+      "estimated_cost_minutes": 20,
+      "expected_information_gain": "Shows whether disputes concentrate in estimated bills and which read stream feeds them.",
+      "decision_impact_rationale": "Separates read-delivery hypotheses from response-speed framing and directs next probes.",
+      "discriminates_hypotheses": [
+       "H-AMI-READ-DELIVERY",
+       "H-FIELD-READ-GAPS",
+       "H-BILLING-RULE-CHANGE",
+       "H-RESPONSE-SPEED",
+       "H-CROSS-HANDOFF-MISMATCH"
+      ],
+      "resolves_unknowns": [],
+      "addresses": [],
+      "why_now": "Cheap, read-only, and highest-leverage first probe of the causal chain."
+     },
+     {
+      "catalog_ref": "crm-tickets:dispute_volume_monthly",
+      "question": "What is the monthly dispute ticket volume and its onset timing relative to August?",
+      "decision_impact": 0.7,
+      "uncertainty": 0.6,
+      "discriminative_power": 0.5,
+      "answerability": 0.95,
+      "process_data_handoff_impact": 0.4,
+      "action_proximity": 0.6,
+      "constraint_risk": 0.05,
+      "estimated_cost_minutes": 10,
+      "expected_information_gain": "Verifies the claimed doubling and its start date, which is currently an unverified claim.",
+      "decision_impact_rationale": "Onset timing aligns with candidate causes like a rule change or route gaps.",
+      "discriminates_hypotheses": [
+       "H-BILLING-RULE-CHANGE",
+       "H-RESPONSE-SPEED"
+      ],
+      "resolves_unknowns": [],
+      "addresses": [],
+      "why_now": "CL-01 is unverified and the baseline defines goal G-1."
+     },
+     {
+      "catalog_ref": "crm-tickets:dispute_response_times",
+      "question": "Have ticket response times worsened, and do slow responses precede or follow the volume increase?",
+      "decision_impact": 0.7,
+      "uncertainty": 0.6,
+      "discriminative_power": 0.7,
+      "answerability": 0.95,
+      "process_data_handoff_impact": 0.3,
+      "action_proximity": 0.6,
+      "constraint_risk": 0.05,
+      "estimated_cost_minutes": 10,
+      "expected_information_gain": "Tests whether response speed explains volume or is only a symptom.",
+      "decision_impact_rationale": "Decides whether an auto-answer agent is the right solution.",
+      "discriminates_hypotheses": [
+       "H-RESPONSE-SPEED"
+      ],
+      "resolves_unknowns": [],
+      "addresses": [],
+      "why_now": "The requester's framing needs testing before scoping any build."
+     },
+     {
+      "catalog_ref": "billing-db:tariff_change_log",
+      "question": "Were tariffs or import validation settings changed around August that could explain wrong bills?",
+      "decision_impact": 0.7,
+      "uncertainty": 0.7,
+      "discriminative_power": 0.7,
+      "answerability": 0.8,
+      "process_data_handoff_impact": 0.6,
+      "action_proximity": 0.6,
+      "constraint_risk": 0.1,
+      "estimated_cost_minutes": 15,
+      "expected_information_gain": "Reveals any August change in billing configuration or tariffs.",
+      "decision_impact_rationale": "Supports or rules out the billing-rule-change hypothesis.",
+      "discriminates_hypotheses": [
+       "H-BILLING-RULE-CHANGE",
+       "H-CROSS-HANDOFF-MISMATCH"
+      ],
+      "resolves_unknowns": [],
+      "addresses": [],
+      "why_now": "Cheap check that can rule out an internal cause."
+     },
+     {
+      "catalog_ref": "route-log:route_completion_aug_sep",
+      "question": "Did manual route completion drop in August-September, and in which routes?",
+      "decision_impact": 0.8,
+      "uncertainty": 0.8,
+      "discriminative_power": 0.8,
+      "answerability": 0.85,
+      "process_data_handoff_impact": 0.8,
+      "action_proximity": 0.6,
+      "constraint_risk": 0.2,
+      "estimated_cost_minutes": 20,
+      "expected_information_gain": "Tests the field read gap hypothesis independent of the contractor's own account.",
+      "decision_impact_rationale": "Determines whether a dispatch change should be proposed (needs K-DISPATCH confirmation).",
+      "discriminates_hypotheses": [
+       "H-FIELD-READ-GAPS"
+      ],
+      "resolves_unknowns": [],
+      "addresses": [],
+      "why_now": "Independent data checks SH-FIELD's potential staffing bias."
+     },
+     {
+      "catalog_ref": "mdms-export:read_events_for_disputed_estimated",
+      "question": "For disputed estimated bills, did AMI read events exist, and were they late, missing, or invalid?",
+      "decision_impact": 0.9,
+      "uncertainty": 0.9,
+      "discriminative_power": 0.9,
+      "answerability": 0.4,
+      "process_data_handoff_impact": 0.9,
+      "action_proximity": 0.5,
+      "constraint_risk": 0.2,
+      "estimated_cost_minutes": 45,
+      "expected_information_gain": "Shows whether valid reads existed that billing failed to use or never received.",
+      "decision_impact_rationale": "Separates MDMS delivery faults from billing import rejection.",
+      "discriminates_hypotheses": [
+       "H-AMI-READ-DELIVERY",
+       "H-BILLING-RULE-CHANGE",
+       "H-CROSS-HANDOFF-MISMATCH"
+      ],
+      "resolves_unknowns": [],
+      "addresses": [],
+      "why_now": "Key discriminator, but access needs vendor provisioning so start early."
+     },
+     {
+      "catalog_ref": "interview:SH-BILL",
+      "question": "Which read types and import rejections do you see on disputed bills, and did anything change in August?",
+      "decision_impact": 0.6,
+      "uncertainty": 0.7,
+      "discriminative_power": 0.6,
+      "answerability": 0.8,
+      "process_data_handoff_impact": 0.7,
+      "action_proximity": 0.6,
+      "constraint_risk": 0.2,
+      "estimated_cost_minutes": 25,
+      "expected_information_gain": "Gives context on estimates, rule changes and manual adjustment practice.",
+      "decision_impact_rationale": "Helps interpret data and confirms bill-write authority limits.",
+      "discriminates_hypotheses": [
+       "H-BILLING-RULE-CHANGE",
+       "H-AMI-READ-DELIVERY"
+      ],
+      "resolves_unknowns": [],
+      "addresses": [],
+      "why_now": "Billing owns the import step where streams converge."
+     },
+     {
+      "catalog_ref": "interview:SH-FIELD",
+      "question": "What happened to manual route staffing and read uploads since August?",
+      "decision_impact": 0.5,
+      "uncertainty": 0.6,
+      "discriminative_power": 0.5,
+      "answerability": 0.8,
+      "process_data_handoff_impact": 0.6,
+      "action_proximity": 0.5,
+      "constraint_risk": 0.3,
+      "estimated_cost_minutes": 25,
+      "expected_information_gain": "Provides the contractor's account, which must be checked against the route log given possible staffing bias.",
+      "decision_impact_rationale": "Informs any route change that needs runtime confirmation.",
+      "discriminates_hypotheses": [
+       "H-FIELD-READ-GAPS"
+      ],
+      "resolves_unknowns": [],
+      "addresses": [],
+      "why_now": "Best run after the route-log data so claims can be checked."
+     }
+    ],
+    "stop": false,
+    "stop_reason": "Root cause is unverified and several catalog actions can still discriminate the hypotheses."
+   }
+  },
+  "R-3": {
+   "skill": "interpret_evidence",
+   "status": "SUCCESS",
+   "output": {
+    "interpretation": "Median response is 1.6 days and p90 is 2.8 days against a 3.0-day SLA for 2440 tickets, so responses are mostly within SLA. Slow response does not explain the dispute surge.",
+    "assertion_key": "dispute_response.within_sla",
+    "assertion_value": true,
+    "hypothesis_effects": [
+     {
+      "hypothesis": "H-RESPONSE-SPEED",
+      "effect": "CONTRADICTS",
+      "rationale": "Median and p90 response times are under the 3.0-day SLA (E-01), so slow responses are not the main driver of volume."
+     },
+     {
+      "hypothesis": "H-AMI-READ-DELIVERY",
+      "effect": "NEUTRAL",
+      "rationale": "Response times say nothing about read delivery."
+     },
+     {
+      "hypothesis": "H-BILLING-RULE-CHANGE",
+      "effect": "NEUTRAL",
+      "rationale": "Response times say nothing about import rules."
+     },
+     {
+      "hypothesis": "H-FIELD-READ-GAPS",
+      "effect": "NEUTRAL",
+      "rationale": "Response times say nothing about manual read completion."
+     },
+     {
+      "hypothesis": "H-CROSS-HANDOFF-MISMATCH",
+      "effect": "NEUTRAL",
+      "rationale": "Response times say nothing about handoff conflicts."
+     }
+    ],
+    "new_hypotheses": [],
+    "fact_candidates": [
+     {
+      "statement": "Dispute ticket response times: median 1.6 days, p90 2.8 days, against a 3.0-day SLA, across 2440 tickets.",
+      "assertion_key": "dispute_response.within_sla",
+      "value": true,
+      "evidence_refs": [
+       "E-01"
+      ]
+     }
+    ],
+    "unknown_resolutions": [],
+    "authorization_candidates": [],
+    "contradiction_assessment": {
+     "relation": "UNRELATED",
+     "target_type": "NONE",
+     "target_refs": [],
+     "materiality": "LOW",
+     "problem_invalidating": false,
+     "rationale": "No problem definition is present."
+    },
+    "vob_proposals": [],
+    "follow_up_actions": [
+     "billing-db:disputed_bills_by_read_type",
+     "route-log:route_completion_aug_sep",
+     "billing-db:tariff_change_log"
+    ],
+    "confidence": 0.85,
+    "claim_assertion_key": "dispute_tickets.root_cause",
+    "claim_assertion_value": "response_speed"
+   }
+  },
+  "R-4": {
+   "skill": "interpret_evidence",
+   "status": "SUCCESS",
+   "output": {
+    "interpretation": "Monthly disputes were about 600 in June-July and roughly doubled to 1180 in August and 1260 in September. This confirms a step change starting in August but says nothing about its cause.",
+    "assertion_key": "dispute_volume.doubled_since_august",
+    "assertion_value": true,
+    "hypothesis_effects": [
+     {
+      "hypothesis": "H-RESPONSE-SPEED",
+      "effect": "CONTRADICTS",
+      "rationale": "The surge is a step in ticket inflow starting in August, which is a volume problem rather than a response-speed one. This is consistent with E-01, where responses were within SLA."
+     },
+     {
+      "hypothesis": "H-AMI-READ-DELIVERY",
+      "effect": "NEUTRAL",
+      "rationale": "The August onset is compatible with this hypothesis, but volume alone does not discriminate between causes."
+     },
+     {
+      "hypothesis": "H-BILLING-RULE-CHANGE",
+      "effect": "NEUTRAL",
+      "rationale": "The August onset is compatible with a rule change, but the observation does not show one."
+     },
+     {
+      "hypothesis": "H-FIELD-READ-GAPS",
+      "effect": "NEUTRAL",
+      "rationale": "Volume timing does not discriminate field gaps from the other causes."
+     },
+     {
+      "hypothesis": "H-CROSS-HANDOFF-MISMATCH",
+      "effect": "NEUTRAL",
+      "rationale": "Volume timing does not discriminate this cause from the others."
+     }
+    ],
+    "new_hypotheses": [],
+    "fact_candidates": [
+     {
+      "statement": "Monthly dispute tickets were 610 in June, 590 in July, 1180 in August and 1260 in September 2026.",
+      "assertion_key": "dispute_volume.doubled_since_august",
+      "value": true,
+      "evidence_refs": [
+       "E-02"
+      ]
+     }
+    ],
+    "unknown_resolutions": [],
+    "authorization_candidates": [],
+    "contradiction_assessment": {
+     "relation": "UNRELATED",
+     "target_type": "NONE",
+     "target_refs": [],
+     "materiality": "LOW",
+     "problem_invalidating": false,
+     "rationale": "No problem definition is present. The observation confirms the surge but does not address its cause."
+    },
+    "vob_proposals": [],
+    "follow_up_actions": [
+     "billing-db:disputed_bills_by_read_type",
+     "billing-db:tariff_change_log",
+     "route-log:route_completion_aug_sep"
+    ],
+    "confidence": 0.9
+   }
+  },
+  "R-5": {
+   "skill": "interpret_evidence",
+   "status": "SUCCESS",
+   "output": {
+    "interpretation": "Of 3025 disputed bills, 1785 are ACTUAL reads and 1240 are ESTIMATED, so estimate substitution is a minority. Disputes on actual reads point to invalid or mis-typed reads, or a rule or tariff problem.",
+    "assertion_key": "disputed_bills.estimated_majority",
+    "assertion_value": false,
+    "hypothesis_effects": [
+     {
+      "hypothesis": "H-AMI-READ-DELIVERY",
+      "effect": "CONTRADICTS",
+      "rationale": "Estimate substitution covers only 1240 of 3025 disputed bills (E-03), so this explains a small part of the symptom."
+     },
+     {
+      "hypothesis": "H-FIELD-READ-GAPS",
+      "effect": "CONTRADICTS",
+      "rationale": "Estimate-forcing gaps can explain at most 1240 of 3025 disputed bills (E-03)."
+     },
+     {
+      "hypothesis": "H-BILLING-RULE-CHANGE",
+      "effect": "SUPPORTS",
+      "rationale": "Most disputed bills carry ACTUAL reads (E-03), consistent with rules rejecting or mishandling valid reads."
+     },
+     {
+      "hypothesis": "H-CROSS-HANDOFF-MISMATCH",
+      "effect": "SUPPORTS",
+      "rationale": "Wrong bills on ACTUAL reads are consistent with duplicated, conflicting or mis-typed reads."
+     },
+     {
+      "hypothesis": "H-RESPONSE-SPEED",
+      "effect": "CONTRADICTS",
+      "rationale": "Disputes are tied to read and billing content (E-03), not response speed."
+     }
+    ],
+    "new_hypotheses": [
+     {
+      "key": "H-TARIFF-CALC",
+      "statement": "A tariff or bill calculation change around August produces wrong bills even when reads are actual and valid.",
+      "decision_impact": "HIGH",
+      "rationale": "Most disputed bills in E-03 have ACTUAL reads, which the read-stream hypotheses do not explain."
+     }
+    ],
+    "fact_candidates": [
+     {
+      "statement": "Disputed bills by read type: 1240 ESTIMATED and 1785 ACTUAL.",
+      "assertion_key": "disputed_bills.estimated_majority",
+      "value": false,
+      "evidence_refs": [
+       "E-03"
+      ]
+     }
+    ],
+    "unknown_resolutions": [],
+    "authorization_candidates": [],
+    "contradiction_assessment": {
+     "relation": "UNRELATED",
+     "target_type": "NONE",
+     "target_refs": [],
+     "materiality": "LOW",
+     "problem_invalidating": false,
+     "rationale": "No problem definition is present."
+    },
+    "vob_proposals": [],
+    "follow_up_actions": [
+     "billing-db:tariff_change_log"
+    ],
+    "confidence": 0.8
+   }
+  },
+  "R-6": {
+   "skill": "discover_actions",
+   "status": "SUCCESS",
+   "output": {
+    "actions": [
+     {
+      "catalog_ref": "billing-db:tariff_change_log",
+      "question": "Were any tariff, bill calculation or import-validation changes made around August in the billing system?",
+      "decision_impact": 0.85,
+      "uncertainty": 0.8,
+      "discriminative_power": 0.85,
+      "answerability": 0.85,
+      "process_data_handoff_impact": 0.6,
+      "action_proximity": 0.8,
+      "constraint_risk": 0.1,
+      "estimated_cost_minutes": 15,
+      "expected_information_gain": "Shows whether an August tariff or rule change coincides with the surge, which separates rule/tariff hypotheses from read-delivery ones.",
+      "decision_impact_rationale": "Most disputed bills are ACTUAL reads (E-03), so a billing-side change would redirect the investigation away from reads.",
+      "discriminates_hypotheses": [
+       "H-TARIFF-CALC",
+       "H-BILLING-RULE-CHANGE",
+       "H-AMI-READ-DELIVERY",
+       "H-FIELD-READ-GAPS"
+      ],
+      "resolves_unknowns": [],
+      "addresses": [],
+      "why_now": "It is cheap, read-only and the tool is healthy. It tests the hypotheses that E-03 leaves open."
+     },
+     {
+      "catalog_ref": "interview:SH-BILL",
+      "question": "What changed in bill runs, import validation or read types around August, and how are rejected or conflicting reads handled?",
+      "decision_impact": 0.7,
+      "uncertainty": 0.75,
+      "discriminative_power": 0.7,
+      "answerability": 0.8,
+      "process_data_handoff_impact": 0.7,
+      "action_proximity": 0.7,
+      "constraint_risk": 0.2,
+      "estimated_cost_minutes": 20,
+      "expected_information_gain": "Gives context on rule changes and on how the two read streams are combined. It also points to which data to pull next.",
+      "decision_impact_rationale": "The answer could confirm or rule out the billing rule, tariff and handoff hypotheses. It also bears on the K-BILLWRITE constraint.",
+      "discriminates_hypotheses": [
+       "H-BILLING-RULE-CHANGE",
+       "H-TARIFF-CALC",
+       "H-CROSS-HANDOFF-MISMATCH"
+      ],
+      "resolves_unknowns": [],
+      "addresses": [],
+      "why_now": "The 1785 disputed ACTUAL-read bills (E-03) point to the billing side, and SH-BILL owns bill runs."
+     },
+     {
+      "catalog_ref": "mdms-export:read_events_for_disputed_estimated",
+      "question": "Do AMI read events exist and arrive on time and valid for disputed estimated bills?",
+      "decision_impact": 0.6,
+      "uncertainty": 0.8,
+      "discriminative_power": 0.75,
+      "answerability": 0.4,
+      "process_data_handoff_impact": 0.8,
+      "action_proximity": 0.5,
+      "constraint_risk": 0.2,
+      "estimated_cost_minutes": 40,
+      "expected_information_gain": "Shows whether AMI reads were available when billing estimated, which tests the AMI delivery hypothesis.",
+      "decision_impact_rationale": "It could confirm or rule out an AMI handoff failure. That failure is limited to the 1240 estimated bills (E-03).",
+      "discriminates_hypotheses": [
+       "H-AMI-READ-DELIVERY",
+       "H-CROSS-HANDOFF-MISMATCH"
+      ],
+      "resolves_unknowns": [],
+      "addresses": [],
+      "why_now": "The handoff delivery status is unknown. Access needs vendor provisioning, so the request should start early."
+     },
+     {
+      "catalog_ref": "route-log:route_completion_aug_sep",
+      "question": "Did manual route completion drop in August and September?",
+      "decision_impact": 0.5,
+      "uncertainty": 0.7,
+      "discriminative_power": 0.6,
+      "answerability": 0.6,
+      "process_data_handoff_impact": 0.6,
+      "action_proximity": 0.5,
+      "constraint_risk": 0.1,
+      "estimated_cost_minutes": 20,
+      "expected_information_gain": "Shows whether field read gaps coincide with the surge.",
+      "decision_impact_rationale": "It would confirm or rule out the field gaps hypothesis, which E-03 already weakens.",
+      "discriminates_hypotheses": [
+       "H-FIELD-READ-GAPS",
+       "H-AMI-READ-DELIVERY"
+      ],
+      "resolves_unknowns": [],
+      "addresses": [],
+      "why_now": "It is inexpensive and covers the other read stream."
+     }
+    ],
+    "stop": false,
+    "stop_reason": "Several catalog actions could still change the problem definition: the cause of the surge is untested for billing rules and tariffs, AMI delivery, and field reads."
+   }
+  },
+  "R-7": {
+   "skill": "interpret_evidence",
+   "status": "SUCCESS",
+   "output": {
+    "interpretation": "The tariff change log returned zero records, so no tariff or bill-calculation change is recorded. This contradicts H-TARIFF-CALC, though only for what the log captures.",
+    "assertion_key": "tariff_changes.recorded_since_august",
+    "assertion_value": false,
+    "hypothesis_effects": [
+     {
+      "hypothesis": "H-TARIFF-CALC",
+      "effect": "CONTRADICTS",
+      "rationale": "The authoritative tariff log has no change records, which is inconsistent with a tariff change around August causing wrong bills."
+     },
+     {
+      "hypothesis": "H-BILLING-RULE-CHANGE",
+      "effect": "NEUTRAL",
+      "rationale": "The tariff log does not cover import validation rules, which are in billing-config."
+     },
+     {
+      "hypothesis": "H-AMI-READ-DELIVERY",
+      "effect": "NEUTRAL",
+      "rationale": "A tariff log says nothing about AMI read delivery."
+     },
+     {
+      "hypothesis": "H-FIELD-READ-GAPS",
+      "effect": "NEUTRAL",
+      "rationale": "A tariff log says nothing about manual read completion."
+     },
+     {
+      "hypothesis": "H-CROSS-HANDOFF-MISMATCH",
+      "effect": "NEUTRAL",
+      "rationale": "The observation does not bear on handoff mismatches."
+     },
+     {
+      "hypothesis": "H-RESPONSE-SPEED",
+      "effect": "NEUTRAL",
+      "rationale": "The observation does not address response speed."
+     }
+    ],
+    "new_hypotheses": [],
+    "fact_candidates": [
+     {
+      "statement": "The billing-db tariff change log contains 0 records.",
+      "assertion_key": "tariff_changes.recorded_since_august",
+      "value": false,
+      "evidence_refs": [
+       "E-04"
+      ]
+     }
+    ],
+    "unknown_resolutions": [],
+    "authorization_candidates": [],
+    "contradiction_assessment": {
+     "relation": "UNRELATED",
+     "target_type": "NONE",
+     "target_refs": [],
+     "materiality": "LOW",
+     "problem_invalidating": false,
+     "rationale": "No problem definition is present, so there are no premises to assess."
+    },
+    "vob_proposals": [],
+    "follow_up_actions": [
+     "route-log:route_completion_aug_sep",
+     "mdms-export:read_events_for_disputed_estimated"
+    ],
+    "confidence": 0.8
+   }
+  },
+  "R-8": {
+   "skill": "interpret_evidence",
+   "status": "SUCCESS",
+   "output": {
+    "interpretation": "SH-BILL states no tariff change occurred this year. It is a non-authoritative claim that agrees with the empty tariff change log in E-04.",
+    "assertion_key": "tariff_changes.recorded_since_august",
+    "assertion_value": false,
+    "claim_assertion_key": "tariff_changes.recorded_since_august",
+    "claim_assertion_value": false,
+    "hypothesis_effects": [
+     {
+      "hypothesis": "H-TARIFF-CALC",
+      "effect": "CONTRADICTS",
+      "rationale": "The stakeholder says no tariff change occurred, which is consistent with E-04 and against a tariff cause. It is a claim only."
+     },
+     {
+      "hypothesis": "H-BILLING-RULE-CHANGE",
+      "effect": "NEUTRAL",
+      "rationale": "A tariff statement says nothing about import validation rule changes."
+     },
+     {
+      "hypothesis": "H-AMI-READ-DELIVERY",
+      "effect": "NEUTRAL",
+      "rationale": "The statement does not bear on AMI read delivery."
+     },
+     {
+      "hypothesis": "H-FIELD-READ-GAPS",
+      "effect": "NEUTRAL",
+      "rationale": "The statement does not bear on manual read completion."
+     },
+     {
+      "hypothesis": "H-CROSS-HANDOFF-MISMATCH",
+      "effect": "NEUTRAL",
+      "rationale": "The statement does not bear on handoff conflicts."
+     },
+     {
+      "hypothesis": "H-RESPONSE-SPEED",
+      "effect": "NEUTRAL",
+      "rationale": "The statement does not bear on response speed."
+     }
+    ],
+    "new_hypotheses": [],
+    "fact_candidates": [],
+    "unknown_resolutions": [],
+    "authorization_candidates": [],
+    "contradiction_assessment": {
+     "relation": "UNRELATED",
+     "target_type": "NONE",
+     "target_refs": [],
+     "materiality": "LOW",
+     "problem_invalidating": false,
+     "rationale": "No problem definition is present, and the statement only echoes E-04."
+    },
+    "vob_proposals": [],
+    "follow_up_actions": [],
+    "confidence": 0.8
+   }
+  },
+  "R-9": {
+   "skill": "interpret_evidence",
+   "status": "SUCCESS",
+   "output": {
+    "interpretation": "Route completion for Aug-Sep 2026 was 0.88 against a 0.95 target, with 9200 manual-read accounts. Field reads fall short of target, but the record does not show whether this gap explains the dispute surge.",
+    "assertion_key": "route_completion.meets_target",
+    "assertion_value": false,
+    "hypothesis_effects": [
+     {
+      "hypothesis": "H-FIELD-READ-GAPS",
+      "effect": "SUPPORTS",
+      "rationale": "Completion of 0.88 is below the 0.95 target (E-06), consistent with incomplete manual reads. Its share of the surge is unproven, since E-03 shows estimates are a minority of disputes."
+     },
+     {
+      "hypothesis": "H-RESPONSE-SPEED",
+      "effect": "NEUTRAL",
+      "rationale": "Route completion does not bear on ticket response speed."
+     },
+     {
+      "hypothesis": "H-AMI-READ-DELIVERY",
+      "effect": "NEUTRAL",
+      "rationale": "Field route data does not address AMI read delivery."
+     },
+     {
+      "hypothesis": "H-BILLING-RULE-CHANGE",
+      "effect": "NEUTRAL",
+      "rationale": "Route completion does not bear on import validation rules."
+     },
+     {
+      "hypothesis": "H-TARIFF-CALC",
+      "effect": "NEUTRAL",
+      "rationale": "Route completion does not bear on tariff calculation."
+     },
+     {
+      "hypothesis": "H-CROSS-HANDOFF-MISMATCH",
+      "effect": "NEUTRAL",
+      "rationale": "No information on duplicated or conflicting reads."
+     }
+    ],
+    "new_hypotheses": [],
+    "fact_candidates": [
+     {
+      "statement": "Route completion for 2026-08..09 was 0.88 against a target of 0.95, with 9200 manual-read accounts.",
+      "assertion_key": "route_completion.meets_target",
+      "value": false,
+      "evidence_refs": [
+       "E-06"
+      ]
+     }
+    ],
+    "unknown_resolutions": [],
+    "authorization_candidates": [],
+    "contradiction_assessment": {
+     "relation": "UNRELATED",
+     "target_type": "NONE",
+     "target_refs": [],
+     "materiality": "LOW",
+     "problem_invalidating": false,
+     "rationale": "No problem definition is present."
+    },
+    "vob_proposals": [],
+    "follow_up_actions": [
+     "interview:SH-FIELD"
+    ],
+    "confidence": 0.8
+   }
+  },
+  "R-10": {
+   "skill": "discover_actions",
+   "status": "SUCCESS",
+   "output": {
+    "actions": [
+     {
+      "catalog_ref": "mdms-export:read_events_for_disputed_estimated",
+      "question": "For disputed ESTIMATED bills, did the MDMS hold valid AMI read events that were not delivered or accepted by billing?",
+      "decision_impact": 0.9,
+      "uncertainty": 0.85,
+      "discriminative_power": 0.85,
+      "answerability": 0.5,
+      "process_data_handoff_impact": 0.9,
+      "action_proximity": 0.7,
+      "constraint_risk": 0.1,
+      "estimated_cost_minutes": 40,
+      "expected_information_gain": "Shows whether AMI reads existed for estimated disputed bills, separating delivery/validity failure from field gaps. It also informs the MDMS handoff status.",
+      "decision_impact_rationale": "Determines whether the fix targets the AMI handoff or the field/rules side, which changes the solution design.",
+      "discriminates_hypotheses": [
+       "H-AMI-READ-DELIVERY",
+       "H-FIELD-READ-GAPS",
+       "H-BILLING-RULE-CHANGE",
+       "H-CROSS-HANDOFF-MISMATCH"
+      ],
+      "resolves_unknowns": [
+       "H-MDMS-BILL delivery_status",
+       "H-MDMS-BILL semantic_validity"
+      ],
+      "addresses": [],
+      "why_now": "1240 disputed bills are estimated (E-03), and the AMI stream is untested. Access needs vendor provisioning, so the request should start early."
+     },
+     {
+      "catalog_ref": "interview:SH-FIELD",
+      "question": "What changed in manual read routes, staffing, or the daily upload to billing since August, and why is completion 0.88?",
+      "decision_impact": 0.6,
+      "uncertainty": 0.7,
+      "discriminative_power": 0.6,
+      "answerability": 0.85,
+      "process_data_handoff_impact": 0.7,
+      "action_proximity": 0.6,
+      "constraint_risk": 0.3,
+      "estimated_cost_minutes": 25,
+      "expected_information_gain": "Clarifies the cause of the completion shortfall and the state of the field-to-billing upload. SH-FIELD may be biased toward staffing explanations.",
+      "decision_impact_rationale": "Tests whether field gaps or upload issues explain disputes, including the 1785 actual-read disputes.",
+      "discriminates_hypotheses": [
+       "H-FIELD-READ-GAPS",
+       "H-CROSS-HANDOFF-MISMATCH"
+      ],
+      "resolves_unknowns": [
+       "H-FIELD-BILL delivery_status",
+       "H-FIELD-BILL semantic_validity"
+      ],
+      "addresses": [],
+      "why_now": "Route completion of 0.88 (E-06) is unexplained, and this interview is cheap and answerable now."
+     }
+    ],
+    "stop": false,
+    "stop_reason": "Two catalog actions remain that could change the problem definition: the AMI read events and the SH-FIELD interview."
+   }
+  },
+  "R-11": {
+   "skill": "interpret_evidence",
+   "status": "SUCCESS",
+   "output": {
+    "interpretation": "SH-FIELD claims a three-reader shortfall since July causes late routes and estimated bills. This is a non-authoritative, self-interested claim that fits E-06's low completion, but it covers only estimated bills, which are a minority of disputes in E-03.",
+    "hypothesis_effects": [
+     {
+      "hypothesis": "H-FIELD-READ-GAPS",
+      "effect": "SUPPORTS",
+      "rationale": "Staffing shortfall is a claimed mechanism for late routes and estimates, consistent with E-06. It is weak because the source is non-authoritative and biased toward staffing explanations."
+     },
+     {
+      "hypothesis": "H-RESPONSE-SPEED",
+      "effect": "NEUTRAL",
+      "rationale": "The statement does not bear on ticket response speed."
+     },
+     {
+      "hypothesis": "H-AMI-READ-DELIVERY",
+      "effect": "NEUTRAL",
+      "rationale": "The statement concerns manual reads only."
+     },
+     {
+      "hypothesis": "H-TARIFF-CALC",
+      "effect": "NEUTRAL",
+      "rationale": "The statement does not address tariffs or bill calculation."
+     },
+     {
+      "hypothesis": "H-BILLING-RULE-CHANGE",
+      "effect": "NEUTRAL",
+      "rationale": "The statement does not address import validation rules."
+     },
+     {
+      "hypothesis": "H-CROSS-HANDOFF-MISMATCH",
+      "effect": "NEUTRAL",
+      "rationale": "The statement does not address mixed or duplicated reads."
+     }
+    ],
+    "new_hypotheses": [],
+    "fact_candidates": [],
+    "unknown_resolutions": [],
+    "authorization_candidates": [],
+    "contradiction_assessment": {
+     "relation": "UNRELATED",
+     "target_type": "NONE",
+     "target_refs": [],
+     "materiality": "LOW",
+     "problem_invalidating": false,
+     "rationale": "No problem definition is present, and the statement is a non-authoritative claim."
+    },
+    "vob_proposals": [],
+    "follow_up_actions": [
+     "mdms-export:read_events_for_disputed_estimated"
+    ],
+    "confidence": 0.7,
+    "assertion_key": "field_staffing.shortfall_causes_estimates",
+    "assertion_value": true,
+    "claim_assertion_key": "field_staffing.shortfall_causes_estimates",
+    "claim_assertion_value": true
+   }
+  },
+  "R-12": {
+   "skill": "discover_actions",
+   "status": "SUCCESS",
+   "output": {
+    "actions": [],
+    "stop": true,
+    "stop_reason": "The catalog is empty, so there is no valid action to propose. The billing-config rule change log and MDMS access remain open gaps for the Harness to handle outside this catalog."
+   }
+  },
+  "R-13": {
+   "skill": "assess_hypotheses",
+   "status": "SUCCESS",
+   "output": {
+    "updates": [
+     {
+      "hypothesis": "H-RESPONSE-SPEED",
+      "status": "REJECTED",
+      "rationale": "Responses are within SLA (median 1.6d, p90 2.8d vs 3.0d), so slow response does not explain the August step change in volume. Disputes are mostly on bills, not on handling.",
+      "evidence_refs": [
+       "E-01",
+       "E-02",
+       "E-03"
+      ]
+     },
+     {
+      "hypothesis": "H-TARIFF-CALC",
+      "status": "REJECTED",
+      "rationale": "The authoritative, complete tariff change log has 0 records, and SH-BILL's claim agrees. E-03 only shows disputes on actual reads, which does not point specifically to tariffs; the log covers recorded changes only.",
+      "evidence_refs": [
+       "E-04",
+       "E-05",
+       "E-03"
+      ]
+     }
+    ],
+    "ready_to_define": false,
+    "rationale": "Only two hypotheses have decisive evidence. The rest stay CANDIDATE: the rule change log (DA-RULES) hasn't been queried, MDMS access is pending (HOLD), and E-06/E-07 don't link field gaps to the surge."
+   }
+  },
+  "R-14": {
+   "skill": "define_problem",
+   "status": "SUCCESS",
+   "output": {
+    "root_problem": "Billing disputes doubled from about 600/month to 1180-1260 since August (E-02), and most disputed bills (1785 of 3025) are on ACTUAL reads, not estimates (E-03). No tariff change is recorded (E-04). The best-supported mechanism is that a change around August in billing import validation or read-typing handling mishandles valid reads, producing wrong bills. This is falsifiable by the rule change log (DA-RULES) showing no change near August, or by disputed actual-read bills matching their source reads.",
+    "requested_solution": "Build an AI agent to auto-answer billing dispute tickets and fix whatever causes the wrong bills (requester's framing, not adopted as the problem).",
+    "symptoms": [
+     "Dispute tickets rose from 610 (June) and 590 (July) to 1180 (August) and 1260 (September) (E-02).",
+     "1785 of 3025 disputed bills are ACTUAL reads and 1240 are ESTIMATED (E-03).",
+     "Route completion was 0.88 against a 0.95 target in Aug-Sep (E-06)."
+    ],
+    "affected_process": "P-M2C meter-to-cash",
+    "causal_chain": [
+     "A change around August in billing import validation or read handling is hypothesised (H-BILLING-RULE-CHANGE); it is not yet confirmed from DA-RULES.",
+     "Valid or mis-typed reads are accepted or rejected incorrectly at billing import and validation.",
+     "Bills are calculated wrongly even on ACTUAL reads (E-03).",
+     "Customers dispute the bills and ticket volume doubles (E-02).",
+     "Estimated bills from late field routes (E-06, E-07) add a smaller share of disputes (E-03)."
+    ],
+    "premise_hypotheses": [
+     "H-BILLING-RULE-CHANGE"
+    ],
+    "evidence_refs": [
+     "E-02",
+     "E-03",
+     "E-04",
+     "E-06",
+     "E-01"
+    ],
+    "assumptions": [
+     {
+      "key": "A-RULE-TIMING",
+      "statement": "A billing import rule change, if any, occurred near August, matching the step change in disputes. Nothing in the evidence establishes this yet.",
+      "evidence_refs": [
+       "E-02",
+       "E-03"
+      ],
+      "risk_if_wrong": "HIGH"
+     },
+     {
+      "key": "A-TARIFF-LOG-COMPLETE",
+      "statement": "The empty tariff change log reflects all tariff and calculation changes, so a calculation cause is ruled out.",
+      "evidence_refs": [
+       "E-04",
+       "E-05"
+      ],
+      "risk_if_wrong": "MEDIUM"
+     }
+    ],
+    "unknowns": [
+     {
+      "key": "U-RULE-LOG",
+      "question": "Does the billing import validation rule change log (DA-RULES) show a change around August that affects read acceptance?",
+      "criticality": "CRITICAL",
+      "decision_impact": "Confirms or refutes the premise and decides whether the fix is a rule rollback or a different cause.",
+      "affects_scope": [
+       {
+        "action": "review_rule_change_log",
+        "target": "DA-RULES"
+       }
+      ],
+      "resolution_path": "Query billing-config for rule changes from June to September and compare dates with the dispute step change.",
+      "safe_placeholder": "Ship read-only diagnostics and a ticket triage report. Make no rule or bill changes."
+     },
+     {
+      "key": "U-AMI-READS",
+      "question": "Are AMI reads from MDMS missing, late or semantically invalid, and does that explain disputes on actual reads?",
+      "criticality": "HIGH",
+      "decision_impact": "Separates a read delivery cause from a billing rule cause.",
+      "affects_scope": [
+       {
+        "action": "request_mdms_access",
+        "target": "SH-AMI"
+       }
+      ],
+      "resolution_path": "Get vendor-provisioned mdms-export access (currently pending and degraded) and compare MDMS reads with disputed bills.",
+      "safe_placeholder": "Treat AMI delivery as unverified. Use billing-db read types only."
+     },
+     {
+      "key": "U-ACTUAL-READ-VALIDITY",
+      "question": "Do the disputed ACTUAL-read bills reflect valid reads, or are the reads duplicated, conflicting or mis-typed?",
+      "criticality": "HIGH",
+      "decision_impact": "Decides between a rule problem, a handoff mismatch (H-CROSS-HANDOFF-MISMATCH) and a customer misunderstanding.",
+      "affects_scope": [
+       {
+        "action": "analyze_disputed_actual_reads",
+        "target": "DA-BILL"
+       }
+      ],
+      "resolution_path": "Sample disputed ACTUAL-read bills in billing-db and trace each to its source read at H-FIELD-BILL or H-MDMS-BILL.",
+      "safe_placeholder": "Do not auto-answer disputes on actual reads until the cause is known."
+     },
+     {
+      "key": "U-MEASURE-VALIDITY",
+      "question": "Do the ticket counts (2440 in Aug-Sep) and disputed-bill counts (3025) cover the same period and population?",
+      "criticality": "MEDIUM",
+      "decision_impact": "Affects the baseline and the read-type share used as a success measure.",
+      "affects_scope": [
+       {
+        "action": "analyze_disputed_actual_reads",
+        "target": "DA-BILL"
+       }
+      ],
+      "resolution_path": "Reconcile the ticket and bill query windows and the dispute definition between crm-tickets and billing-db.",
+      "safe_placeholder": "Report both counts with their windows stated."
+     }
+    ],
+    "metrics": [
+     {
+      "key": "M-DISPUTES",
+      "name": "Monthly dispute tickets",
+      "metric_type": "COUNT",
+      "current_value": 1260,
+      "current_value_evidence_refs": [
+       "E-02"
+      ],
+      "target_value": 600,
+      "measurement_window": "calendar month",
+      "owner": "SH-CS"
+     },
+     {
+      "key": "M-ACTUAL-SHARE",
+      "name": "Share of disputed bills on ACTUAL reads",
+      "metric_type": "RATE",
+      "numerator": "disputed bills with read type ACTUAL",
+      "denominator": "all disputed bills",
+      "current_value": 0.59,
+      "current_value_evidence_refs": [
+       "E-03"
+      ],
+      "measurement_window": "reported period in E-03"
+     }
+    ],
+    "success_criteria": [
+     {
+      "key": "SC-CAUSE",
+      "statement": "The root cause of disputes on actual reads is confirmed or refuted using DA-RULES and a sampled trace of bills to source reads.",
+      "kind": "MUST",
+      "metric": "M-ACTUAL-SHARE",
+      "threshold": "cause identified with cited evidence",
+      "validation_method": "Compare the rule change log dates with the dispute step change, and trace a sample of disputed bills to their reads."
+     },
+     {
+      "key": "SC-VOLUME",
+      "statement": "Monthly disputes return to the pre-August baseline after the confirmed cause is fixed by authorised owners.",
+      "kind": "TARGET",
+      "metric": "M-DISPUTES",
+      "threshold": "<= 650 per month",
+      "validation_method": "Monthly crm-tickets dispute volume after the fix."
+     },
+     {
+      "key": "SC-NOWRITE",
+      "statement": "No automated bill writes occur (K-BILLWRITE).",
+      "kind": "MUST",
+      "metric": "",
+      "threshold": "0 automated bill writes",
+      "validation_method": "Audit tool calls for write_bill_adjustment."
+     }
+    ],
+    "intended_scope": [
+     {
+      "action": "review_rule_change_log",
+      "target": "DA-RULES"
+     },
+     {
+      "action": "analyze_disputed_actual_reads",
+      "target": "DA-BILL"
+     },
+     {
+      "action": "request_mdms_access",
+      "target": "SH-AMI"
+     },
+     {
+      "action": "trace_field_read_handoff",
+      "target": "H-FIELD-BILL"
+     }
+    ],
+    "protected_actions": [],
+    "required_tools": [
+     "billing-config",
+     "billing-db",
+     "crm-tickets",
+     "route-log",
+     "mdms-export"
+    ],
+    "depends_on_handoffs": [
+     "H-FIELD-BILL",
+     "H-MDMS-BILL"
+    ],
+    "constraint_refs": [
+     "K-BILLWRITE",
+     "K-DISPATCH"
+    ],
+    "rejected_framings": [
+     {
+      "hypothesis": "H-RESPONSE-SPEED",
+      "why": "Responses are within SLA (E-01) and disputes are driven by wrong bills, so auto-answering does not fix the cause."
+     },
+     {
+      "hypothesis": "H-TARIFF-CALC",
+      "why": "It is rejected; the tariff log is empty (E-04) and SH-BILL agrees (E-05)."
+     },
+     {
+      "hypothesis": "H-FIELD-READ-GAPS",
+      "why": "It explains at most the 1240 estimated disputes (E-03), the minority, and rests on a self-interested claim (E-07)."
+     },
+     {
+      "hypothesis": "H-AMI-READ-DELIVERY",
+      "why": "It assumes estimate substitution, which E-03 contradicts for most disputes, and it cannot be tested while MDMS access is pending."
+     }
+    ],
+    "confidence": 0.45
+   }
+  },
+  "R-15": {
+   "skill": "interpret_evidence",
+   "status": "SUCCESS",
+   "output": {
+    "interpretation": "Service contract §4.2 says the utility may request route priority changes, and they run only after Field Operations Manager confirmation. It speaks to dispatch authority and says nothing about the cause of the disputes.",
+    "assertion_key": "dispatch.route_change_requires_fom_confirmation",
+    "assertion_value": true,
+    "hypothesis_effects": [
+     {
+      "hypothesis": "H-FIELD-READ-GAPS",
+      "effect": "NEUTRAL",
+      "rationale": "The document covers how route changes are authorized, not whether manual reads are failing."
+     },
+     {
+      "hypothesis": "H-BILLING-RULE-CHANGE",
+      "effect": "NEUTRAL",
+      "rationale": "The document does not touch billing import rules."
+     },
+     {
+      "hypothesis": "H-AMI-READ-DELIVERY",
+      "effect": "NEUTRAL",
+      "rationale": "The document does not touch AMI reads."
+     },
+     {
+      "hypothesis": "H-CROSS-HANDOFF-MISMATCH",
+      "effect": "NEUTRAL",
+      "rationale": "The document does not touch read handoffs."
+     }
+    ],
+    "new_hypotheses": [],
+    "fact_candidates": [],
+    "unknown_resolutions": [],
+    "authorization_candidates": [
+     {
+      "action": "push_route_update",
+      "resource": "field-dispatch",
+      "authority_holder": "SH-FIELD",
+      "scope_kind": "RESOURCE",
+      "scope_target": "",
+      "conditions": [
+       "Utility may request route priority changes",
+       "Executed only after Field Operations Manager confirmation"
+      ],
+      "rationale": "§4.2 makes execution of route priority changes depend on Field Operations Manager (SH-FIELD) confirmation, which matches K-DISPATCH."
+     }
+    ],
+    "contradiction_assessment": {
+     "relation": "UNRELATED",
+     "target_type": "NONE",
+     "target_refs": [],
+     "materiality": "LOW",
+     "problem_invalidating": false,
+     "rationale": "The document sets out dispatch authority and does not bear on the problem premises, which concern rule changes and actual-read bills."
+    },
+    "vob_proposals": [],
+    "follow_up_actions": [],
+    "confidence": 0.85
+   }
+  },
+  "R-16": {
+   "skill": "structural_remedy",
+   "status": "SUCCESS",
+   "output": {
+    "root_cause": "Root cause is not yet confirmed. Best-supported mechanism is that read acceptance or typing at billing import changed around August (E-02, E-03, E-04). Underlying process gap: no verified handoff validation or change control across H-MDMS-BILL and H-FIELD-BILL, and the rule change log (DA-RULES) is unreviewed (U-RULE-LOG).",
+    "remedies": [
+     {
+      "key": "review_rule_change_log",
+      "description": "Billing Operations and the config owner review DA-RULES for changes near August and roll back or correct any rule that rejects valid reads. This is a configuration fix by authorised owners.",
+      "removes_root_cause": true,
+      "feasible_in_contest_time": true,
+      "constraint_feasible": true,
+      "feasibility_rationale": "Read-only log review fits the 225 minutes left. The fix is made by SH-BILL and involves no automated bill writes (K-BILLWRITE).",
+      "residual_gap": "Only works if the rule change is real (A-RULE-TIMING, U-RULE-LOG). The billing-config tool health is UNKNOWN."
+     },
+     {
+      "key": "trace_sample_reads",
+      "description": "Trace a sample of disputed ACTUAL-read bills to their source reads in DA-BILL to check for duplicated, conflicting or mis-typed reads. This confirms or refutes the cause.",
+      "removes_root_cause": false,
+      "feasible_in_contest_time": true,
+      "constraint_feasible": true,
+      "feasibility_rationale": "billing-db is HEALTHY and read-only, so this is a quick sampled analysis (U-ACTUAL-READ-VALIDITY).",
+      "residual_gap": "Diagnoses only. It does not fix anything or cover AMI-side reads without MDMS access."
+     },
+     {
+      "key": "handoff_validation_contract",
+      "description": "Add delivery and semantic validation checks plus change notification at H-MDMS-BILL and H-FIELD-BILL. Request vendor-provisioned MDMS export access from SH-AMI.",
+      "removes_root_cause": true,
+      "feasible_in_contest_time": false,
+      "constraint_feasible": true,
+      "feasibility_rationale": "Needs vendor action; mdms-export is DEGRADED with access pending. Only the request and design can be done in the remaining time.",
+      "residual_gap": "The permanent control is not in place within the contest. The AMI hypothesis is still unverified."
+     },
+     {
+      "key": "manual_adjust_by_billing",
+      "description": "SH-BILL manually corrects confirmed wrong bills after the cause is found.",
+      "removes_root_cause": false,
+      "feasible_in_contest_time": true,
+      "constraint_feasible": true,
+      "feasibility_rationale": "Allowed only as a manual action by Billing Operations (K-BILLWRITE); automation is prohibited.",
+      "residual_gap": "Treats the symptom only and does not stop new wrong bills."
+     }
+    ],
+    "why_agent_needed": "Probably only a bounded read-only analysis agent: sampling disputed actual-read bills against source reads and comparing the rule log dates with the dispute step change. An auto-answering ticket agent is not needed, since response speed is rejected (E-01, H-RESPONSE-SPEED).",
+    "confidence": 0.7
+   }
+  },
+  "R-17": {
+   "skill": "agent_design",
+   "status": "SUCCESS",
+   "output": {
+    "deterministic_rules_cover_cases": false,
+    "llm_reasoning_adds_value": true,
+    "autonomous_iteration_adds_value": false,
+    "residual_exceptions": true,
+    "detection_needed": true,
+    "why_agent": "Data pulls and date comparisons are deterministic. Judging whether sampled actual-read bills have duplicated, conflicting or mis-typed reads needs bounded read-only reasoning (E-03). An auto-answering ticket agent is not justified (E-01, H-RESPONSE-SPEED).",
+    "bridge_sunset_condition": "Sunset the read-only analysis bridge once SH-AMI provisions MDMS export access and delivery and semantic validation checks run at H-MDMS-BILL and H-FIELD-BILL (SR-HANDOFF-VALIDATION-CONTRACT).",
+    "deterministic_components": [
+     "Monthly dispute volume and read-type counts from crm-tickets and billing-db (E-02, E-03)",
+     "Date comparison of DA-RULES change entries with the August step change",
+     "Route completion versus source-read match checks via route-log and billing-db"
+    ],
+    "release_scope": [
+     {
+      "action": "trace_field_read_handoff",
+      "target": "H-FIELD-BILL"
+     }
+    ],
+    "minimum_useful_scope": [
+     {
+      "action": "review_rule_change_log",
+      "target": "DA-RULES"
+     },
+     {
+      "action": "analyze_disputed_actual_reads",
+      "target": "DA-BILL"
+     }
+    ],
+    "scope_dependencies": [
+     {
+      "action": "trace_field_read_handoff",
+      "depends_on": [
+       "DA-ROUTE",
+       "DA-BILL"
+      ]
+     }
+    ],
+    "role_suggestion": [
+     "CONTROL_DETECTION",
+     "BRIDGE"
+    ],
+    "capabilities": [
+     "Read-only sampling of disputed bills against source reads",
+     "Compare manual-read delivery in route-log with bill read types",
+     "Report findings with cited evidence ids"
+    ],
+    "llm_required_for": [
+     "Classifying sampled reads as duplicated, conflicting or mis-typed",
+     "Interpreting ambiguous trace results and summarizing them with cited evidence"
+    ],
+    "tools": [
+     "billing-db",
+     "route-log",
+     "crm-tickets"
+    ],
+    "authority_boundary": [
+     "No write_bill_adjustment; bill corrections stay manual by SH-BILL (K-BILLWRITE)",
+     "No push_route_update; dispatch changes need FOM runtime confirmation (K-DISPATCH)",
+     "Rule changes are made only by Billing Operations and the config owner",
+     "Read-only analysis only; no fixes executed"
+    ],
+    "human_gate": [],
+    "termination": "Stop when the sampled trace is reported with cited evidence, or when the budget reserve is reached. Stop on a repeated non-transient tool failure.",
+    "validation": [
+     "Compare rule change log dates with the dispute step change (SC-CAUSE)",
+     "Trace a sample of disputed bills to source reads",
+     "Audit tool calls for write_bill_adjustment: 0 (SC-NOWRITE)",
+     "Monthly disputes <= 650 after the confirmed fix (SC-VOLUME)"
+    ],
+    "known_limitations": [
+     "Rule-log review and actual-read analysis stay out of release scope until VOB-U-RULE-LOG and VOB-U-ACTUAL-READ-VALIDITY close.",
+     "AMI-side reads cannot be checked while mdms-export is DEGRADED with access pending.",
+     "billing-config health is UNKNOWN, and A-RULE-TIMING is unverified.",
+     "Ticket and bill counts may cover different populations (U-MEASURE-VALIDITY)."
+    ],
+    "vob_proposals": [],
+    "confidence": 0.7
+   }
+  },
+  "R-18": {
+   "skill": "plan_execution",
+   "status": "SUCCESS",
+   "output": {
+    "work_items": [
+     {
+      "key": "WI-TRACE-FIELD-HANDOFF",
+      "description": "Trace the H-FIELD-BILL manual-read handoff by pulling lagging routes (route-log) and accounts estimated last cycle (billing-db), and report them side by side.",
+      "work_class": "CORE_FEATURE",
+      "est_minutes": 45,
+      "scope_items": [
+       {
+        "action": "trace_field_read_handoff",
+        "target": "H-FIELD-BILL"
+       }
+      ],
+      "root_problem_aligned": true,
+      "release_blocking": true,
+      "data_ops": [
+       "route-log:lagging_routes",
+       "billing-db:accounts_estimated_last_cycle"
+      ],
+      "output_name": "field_read_handoff_trace",
+      "output_key_fields": [],
+      "output_join": false,
+      "output_constant_fields": [
+       {
+        "field": "handoff",
+        "value": "H-FIELD-BILL"
+       }
+      ]
+     }
+    ],
+    "protected_actions": [],
+    "rationale": "The release scope has one read-only item, trace_field_read_handoff on H-FIELD-BILL. It needs DA-ROUTE and DA-BILL, so I use the two catalog queries for them. No join, because the shared key fields of the two record sets are not evidenced. The field-dispatch push_route_update is not in the release scope, so I propose no protected action. E-03 shows that estimates are the minority of disputes, so this trace is only partly relevant to the root problem. The rule-log and actual-read items stay deferred."
+   }
+  },
+  "R-19": {
+   "skill": "interpret_evidence",
+   "status": "SUCCESS",
+   "output": {
+    "interpretation": "(no semantic interpretation available — deterministic fallback)",
+    "hypothesis_effects": [],
+    "new_hypotheses": [],
+    "fact_candidates": [],
+    "unknown_resolutions": [],
+    "authorization_candidates": [],
+    "contradiction_assessment": {
+     "relation": "UNRELATED",
+     "target_type": "NONE",
+     "target_refs": [],
+     "materiality": "LOW",
+     "problem_invalidating": false,
+     "rationale": "deterministic fallback"
+    },
+    "vob_proposals": [],
+    "follow_up_actions": [],
+    "confidence": 0.0
+   }
+  },
+  "R-20": {
+   "skill": "interpret_evidence",
+   "status": "SUCCESS",
+   "output": {
+    "interpretation": "(no semantic interpretation available — deterministic fallback)",
+    "hypothesis_effects": [],
+    "new_hypotheses": [],
+    "fact_candidates": [],
+    "unknown_resolutions": [],
+    "authorization_candidates": [],
+    "contradiction_assessment": {
+     "relation": "UNRELATED",
+     "target_type": "NONE",
+     "target_refs": [],
+     "materiality": "LOW",
+     "problem_invalidating": false,
+     "rationale": "deterministic fallback"
+    },
+    "vob_proposals": [],
+    "follow_up_actions": [],
+    "confidence": 0.0
+   }
+  },
+  "R-21": {
+   "skill": "interpret_evidence",
+   "status": "SUCCESS",
+   "output": {
+    "interpretation": "(no semantic interpretation available — deterministic fallback)",
+    "hypothesis_effects": [],
+    "new_hypotheses": [],
+    "fact_candidates": [],
+    "unknown_resolutions": [],
+    "authorization_candidates": [],
+    "contradiction_assessment": {
+     "relation": "UNRELATED",
+     "target_type": "NONE",
+     "target_refs": [],
+     "materiality": "LOW",
+     "problem_invalidating": false,
+     "rationale": "deterministic fallback"
+    },
+    "vob_proposals": [],
+    "follow_up_actions": [],
+    "confidence": 0.0
+   }
+  },
+  "R-22": {
+   "skill": "interpret_evidence",
+   "status": "SUCCESS",
+   "output": {
+    "interpretation": "(no semantic interpretation available — deterministic fallback)",
+    "hypothesis_effects": [],
+    "new_hypotheses": [],
+    "fact_candidates": [],
+    "unknown_resolutions": [],
+    "authorization_candidates": [],
+    "contradiction_assessment": {
+     "relation": "UNRELATED",
+     "target_type": "NONE",
+     "target_refs": [],
+     "materiality": "LOW",
+     "problem_invalidating": false,
+     "rationale": "deterministic fallback"
+    },
+    "vob_proposals": [],
+    "follow_up_actions": [],
+    "confidence": 0.0
+   }
+  },
+  "R-23": {
+   "skill": "semantic_judge",
+   "status": "PROVIDER_ERROR",
+   "output": null
+  },
+  "R-24": {
+   "skill": "release_summary",
+   "status": "SUCCESS",
+   "output": {
+    "summary": "Release decision HOLD for PD-1 v1: Billing disputes doubled from about 600/month to 1180-1260 since August (E-02), and most disputed bills (1785 of 3025) are on ACTUAL reads, not estimates (E-03). No tariff change is recorded (E-04). The best-supported mechanism is that a change around August in billing import validation or read-typing handling mishandles valid reads, producing wrong bills. This is falsifiable by the rule change log (DA-RULES) showing no change near August, or by disputed actual-read bills matching their source reads.",
+    "key_points": [
+     "evidence: E-02, E-03, E-04, E-06, E-01"
+    ],
+    "limitations_explained": [
+     "DEFINE Gate CONDITIONAL_PASS (deferred items tracked as VOBs)",
+     "unfinished: Add delivery and semantic validation checks plus change notification at H-MDMS-BILL and H-FIELD-BILL. Request vendor-provisioned MDMS export access from SH-AMI.",
+     "unfinished: known limitation: Rule-log review and actual-read analysis stay out of release scope until VOB-U-RULE-LOG and VOB-U-ACTUAL-READ-VALIDITY close.",
+     "unfinished: known limitation: AMI-side reads cannot be checked while mdms-export is DEGRADED with access pending.",
+     "unfinished: known limitation: billing-config health is UNKNOWN, and A-RULE-TIMING is unverified.",
+     "unfinished: known limitation: Ticket and bill counts may cover different populations (U-MEASURE-VALIDITY)."
+    ]
+   }
+  }
+ }
+}

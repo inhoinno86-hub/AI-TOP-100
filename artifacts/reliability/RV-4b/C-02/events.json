@@ -1,0 +1,3009 @@
+[
+ {
+  "seq": 1,
+  "type": "reasoning_completed",
+  "importance": "NORMAL",
+  "payload": {
+   "reasoning_id": "R-1",
+   "skill": "hypothesis_init",
+   "status": "SUCCESS",
+   "provider": "nvidia-nim",
+   "model": "nvidia/nemotron-3-super-120b-a12b",
+   "input_state_version": 0,
+   "schema_version": "1.0",
+   "order": 1,
+   "attempts": 1,
+   "input_digest": "2db175009fe76679",
+   "evidence_refs": [],
+   "confidence": 0.7,
+   "fallback_used": null,
+   "errors": [],
+   "proposal": {
+    "framing_assertion": {
+     "key": "charge.duplicate",
+     "value": true,
+     "rationale": "The initial request states that customers are being charged twice after checkout."
+    },
+    "hypotheses": [
+     {
+      "key": "DUPLICATE_CHARGE_REQUEST",
+      "statement": "Duplicate charges result from frontend double-submit or race condition causing two capture requests to be sent.",
+      "origin": "REQUESTER_FRAMING",
+      "decision_impact": "HIGH",
+      "rationale": "If true, fixing the UI/submission flow resolves the issue.",
+      "discriminating_evidence": [
+       "DA-CHG",
+       "DA-PSP",
+       "DA-TKT"
+      ]
+     },
+     {
+      "key": "IDEMPOTENCY_KEY_FAILURE",
+      "statement": "Payment gateway idempotency-key enforcement is disabled or misconfigured, allowing retries to create duplicate captures.",
+      "origin": "ALTERNATIVE",
+      "decision_impact": "HIGH",
+      "rationale": "Correcting the gateway configuration would prevent duplicate captures.",
+      "discriminating_evidence": [
+       "DA-CFG",
+       "gateway-config",
+       "DA-PSP"
+      ]
+     },
+     {
+      "key": "PSP_RETRY_LOGIC",
+      "statement": "The PSP’s internal retry logic treats timeouts as failures and resends capture attempts without preserving the original idempotency key.",
+      "origin": "ALTERNATIVE",
+      "decision_impact": "MEDIUM",
+      "rationale": "Requires coordination with the PSP to adjust retry behavior.",
+      "discriminating_evidence": [
+       "DA-PSP"
+      ]
+     },
+     {
+      "key": "ORDER_DUPLICATION_IN_LEDGER",
+      "statement": "The order creation process duplicates order records, leading to two distinct capture requests for the same cart.",
+      "origin": "ALTERNATIVE",
+      "decision_impact": "MEDIUM",
+      "rationale": "Fixing order deduplication eliminates duplicate charges.",
+      "discriminating_evidence": [
+       "DA-CHG",
+       "DA-TKT"
+      ]
+     }
+    ],
+    "confidence": 0.7
+   }
+  },
+  "refs": []
+ },
+ {
+  "seq": 2,
+  "type": "state_committed",
+  "importance": "NORMAL",
+  "payload": {
+   "reason": "initial hypotheses (R-1)",
+   "version": 1,
+   "diff": [
+    {
+     "kind": "NEW",
+     "collection": "hypotheses",
+     "id": "H-DUPLICATE-CHARGE-REQUEST",
+     "importance": "NORMAL"
+    },
+    {
+     "kind": "NEW",
+     "collection": "hypotheses",
+     "id": "H-IDEMPOTENCY-KEY-FAILURE",
+     "importance": "NORMAL"
+    },
+    {
+     "kind": "NEW",
+     "collection": "hypotheses",
+     "id": "H-PSP-RETRY-LOGIC",
+     "importance": "NORMAL"
+    },
+    {
+     "kind": "NEW",
+     "collection": "hypotheses",
+     "id": "H-ORDER-DUPLICATION-IN-LEDGER",
+     "importance": "NORMAL"
+    }
+   ]
+  },
+  "refs": []
+ },
+ {
+  "seq": 3,
+  "type": "state_committed",
+  "importance": "NORMAL",
+  "payload": {
+   "reason": "claim CL-01",
+   "version": 2,
+   "diff": [
+    {
+     "kind": "NEW",
+     "collection": "claims",
+     "id": "CL-01",
+     "importance": "LOW"
+    }
+   ]
+  },
+  "refs": []
+ },
+ {
+  "seq": 4,
+  "type": "claim_recorded",
+  "importance": "NORMAL",
+  "payload": {
+   "claim": "CL-01",
+   "stakeholder": "SH-CS"
+  },
+  "refs": []
+ },
+ {
+  "seq": 5,
+  "type": "proposal_accepted",
+  "importance": "NORMAL",
+  "payload": {
+   "skill": "hypothesis_init",
+   "reasoning_id": "R-1",
+   "detail": {
+    "hypotheses": [
+     "H-DUPLICATE-CHARGE-REQUEST",
+     "H-IDEMPOTENCY-KEY-FAILURE",
+     "H-PSP-RETRY-LOGIC",
+     "H-ORDER-DUPLICATION-IN-LEDGER"
+    ],
+    "framing": [
+     "H-DUPLICATE-CHARGE-REQUEST"
+    ]
+   }
+  },
+  "refs": []
+ },
+ {
+  "seq": 6,
+  "type": "reasoning_completed",
+  "importance": "NORMAL",
+  "payload": {
+   "reasoning_id": "R-2",
+   "skill": "discover_actions",
+   "status": "SUCCESS",
+   "provider": "nvidia-nim",
+   "model": "nvidia/nemotron-3-super-120b-a12b",
+   "input_state_version": 2,
+   "schema_version": "1.0",
+   "order": 2,
+   "attempts": 1,
+   "input_digest": "631083625921181d",
+   "evidence_refs": [
+    "H-DUPLICATE-CHARGE-REQUEST",
+    "H-IDEMPOTENCY-KEY-FAILURE",
+    "H-ORDER-DUPLICATION-IN-LEDGER",
+    "H-PSP-RETRY-LOGIC"
+   ],
+   "confidence": null,
+   "fallback_used": null,
+   "errors": [],
+   "proposal": {
+    "actions": [
+     {
+      "catalog_ref": "payments-db:duplicate_captures_by_day",
+      "question": "Are there duplicate payment captures per order in the charge ledger?",
+      "decision_impact": 0.9,
+      "uncertainty": 0.8,
+      "discriminative_power": 0.7,
+      "answerability": 0.9,
+      "process_data_handoff_impact": 0.3,
+      "action_proximity": 0.8,
+      "constraint_risk": 0.1,
+      "estimated_cost_minutes": 12,
+      "expected_information_gain": ":",
+      "decision_impact_rationale": "Finding duplicate captures would directly indicate a duplication root cause, influencing whether to focus on order creation, frontend, or PSP retry.",
+      "discriminates_hypotheses": [
+       "H-ORDER-DUPLICATION-IN-LEDGER",
+       "H-DUPLICATE-CHARGE-REQUEST"
+      ],
+      "resolves_unknowns": [],
+      "addresses": [],
+      "why_now": "No capture duplicate data has been examined yet; this is the most direct test for order-level duplication."
+     },
+     {
+      "catalog_ref": "psp-logs:capture_attempts_for_duplicate_orders",
+      "question": "Do PSP logs show repeated capture attempts for the same order, and are idempotency keys preserved?",
+      "decision_impact": 0.9,
+      "uncertainty": 0.8,
+      "discriminative_power": 0.85,
+      "answerability": 0.9,
+      "process_data_handoff_impact": 0.4,
+      "action_proximity": 0.6,
+      "constraint_risk": 0.1,
+      "estimated_cost_minutes": 15,
+      "expected_information_gain": ":",
+      "decision_impact_rationale": "Evidence of retries without proper idempotency would point to PSP retry logic or gateway misconfiguration; absence would shift focus upstream.",
+      "discriminates_hypotheses": [
+       "H-DUPLICATE-CHARGE-REQUEST",
+       "H-IDEMPOTENCY-KEY-FAILURE",
+       "H-PSP-RETRY-LOGIC"
+      ],
+      "resolves_unknowns": [],
+      "addresses": [],
+      "why_now": "PSP logs have not been queried; they are needed to distinguish frontend vs PSP/gateway causes."
+     },
+     {
+      "catalog_ref": "config-audit:gateway_config_changes",
+      "question": "Has the payment gateway idempotency‑key enforcement been disabled or changed recently?",
+      "decision_impact": 0.7,
+      "uncertainty": 0.5,
+      "discriminative_power": 0.8,
+      "answerability": 0.9,
+      "process_data_handoff_impact": 0.2,
+      "action_proximity": 0.7,
+      "constraint_risk": 0.1,
+      "estimated_cost_minutes": 10,
+      "expected_information_gain": ":",
+      "decision_impact_rationale": "A recent disabling would confirm H‑IDEMPOTENCY‑KEY‑FAILURE; stable configuration would rule it out.",
+      "discriminates_hypotheses": [
+       "H-IDEMPOTENCY-KEY-FAILURE"
+      ],
+      "resolves_unknowns": [],
+      "addresses": [],
+      "why_now": "Gateway config audit is untouched and directly tests the idempotency hypothesis."
+     },
+     {
+      "catalog_ref": "interview:SH-PAY",
+      "question": "What does the payments engineer know about recent changes to order submission, gateway configuration, or PSP integration?",
+      "decision_impact": 0.6,
+      "uncertainty": 0.6,
+      "discriminative_power": 0.4,
+      "answerability": 0.6,
+      "process_data_handoff_impact": 0.1,
+      "action_proximity": 0.5,
+      "constraint_risk": 0.1,
+      "estimated_cost_minutes": 20,
+      "expected_information_gain": ":",
+      "decision_impact_rationale": "Engineer insight can corroborate or refute technical hypotheses and suggest additional data to collect.",
+      "discriminates_hypotheses": [],
+      "resolves_unknowns": [],
+      "addresses": [],
+      "why_now": "Stakeholder context has not been captured; a short interview is low‑cost and may surface hidden changes."
+     }
+    ],
+    "stop": false,
+    "stop_reason": ""
+   }
+  },
+  "refs": [
+   "H-DUPLICATE-CHARGE-REQUEST",
+   "H-IDEMPOTENCY-KEY-FAILURE",
+   "H-ORDER-DUPLICATION-IN-LEDGER",
+   "H-PSP-RETRY-LOGIC"
+  ]
+ },
+ {
+  "seq": 7,
+  "type": "discovery_action_selected",
+  "importance": "NORMAL",
+  "payload": {
+   "selected": "payments-db:duplicate_captures_by_day",
+   "ranking": [
+    {
+     "id": "payments-db:duplicate_captures_by_day",
+     "score": 12.5668,
+     "excluded": false,
+     "reason": "value=29.15 cost=13.2"
+    },
+    {
+     "id": "config-audit:gateway_config_changes",
+     "score": 11.8595,
+     "excluded": false,
+     "reason": "value=24.91 cost=11.0"
+    },
+    {
+     "id": "psp-logs:capture_attempts_for_duplicate_orders",
+     "score": 11.2585,
+     "excluded": false,
+     "reason": "value=29.84 cost=16.5"
+    },
+    {
+     "id": "interview:SH-PAY",
+     "score": 6.9688,
+     "excluded": false,
+     "reason": "value=22.30 cost=22.0"
+    }
+   ]
+  },
+  "refs": []
+ },
+ {
+  "seq": 8,
+  "type": "safe_point_reached",
+  "importance": "NORMAL",
+  "payload": {
+   "kind": "BEFORE_ACTION"
+  },
+  "refs": []
+ },
+ {
+  "seq": 9,
+  "type": "tool_called",
+  "importance": "LOW",
+  "payload": {
+   "tool": "payments-db",
+   "operation": "duplicate_captures_by_day",
+   "status": "SUCCESS",
+   "completeness": "COMPLETE",
+   "cost": 3.0
+  },
+  "refs": []
+ },
+ {
+  "seq": 10,
+  "type": "tool_health_changed",
+  "importance": "NORMAL",
+  "payload": {
+   "tool": "payments-db",
+   "from": "UNKNOWN",
+   "to": "HEALTHY"
+  },
+  "refs": []
+ },
+ {
+  "seq": 11,
+  "type": "safe_point_reached",
+  "importance": "NORMAL",
+  "payload": {
+   "kind": "AFTER_TOOL_RESULT"
+  },
+  "refs": []
+ },
+ {
+  "seq": 12,
+  "type": "reasoning_completed",
+  "importance": "NORMAL",
+  "payload": {
+   "reasoning_id": "R-3",
+   "skill": "interpret_evidence",
+   "status": "SUCCESS",
+   "provider": "nvidia-nim",
+   "model": "nvidia/nemotron-3-super-120b-a12b",
+   "input_state_version": 2,
+   "schema_version": "1.0",
+   "order": 3,
+   "attempts": 1,
+   "input_digest": "3f25d0f0890ff3d0",
+   "evidence_refs": [
+    "E-01",
+    "H-DUPLICATE-CHARGE-REQUEST",
+    "H-IDEMPOTENCY-KEY-FAILURE",
+    "H-ORDER-DUPLICATION-IN-LEDGER",
+    "H-PSP-RETRY-LOGIC"
+   ],
+   "confidence": 0.9,
+   "fallback_used": null,
+   "errors": [],
+   "proposal": {
+    "interpretation": "Duplicate captures appear only on days with high gateway timeout retries, affecting all orders those days, indicating a systemic retry issue rather than isolated frontend errors.",
+    "assertion_key": "charge.duplicate",
+    "assertion_value": "True",
+    "claim_assertion_key": "",
+    "claim_assertion_value": "",
+    "hypothesis_effects": [
+     {
+      "hypothesis": "H-DUPLICATE-CHARGE-REQUEST",
+      "effect": "NEUTRAL",
+      "rationale": "Pattern correlates with gateway timeout retries, not frontend double-submit behavior."
+     },
+     {
+      "hypothesis": "H-IDEMPOTENCY-KEY-FAILURE",
+      "effect": "SUPPORTS",
+      "rationale": "High gateway timeout retries coincide with duplicate captures for all orders, suggesting retries create duplicates when idempotency is not enforced."
+     },
+     {
+      "hypothesis": "H-ORDER-DUPLICATION-IN-LEDGER",
+      "effect": "CONTRADICTS",
+      "rationale": "Duplicate captures are absent on low-retry days, inconsistent with a constant order-duplication cause."
+     },
+     {
+      "hypothesis": "H-PSP-RETRY-LOGIC",
+      "effect": "NEUTRAL",
+      "rationale": "Observation does not provide PSP-side retry data to confirm or refute this hypothesis."
+     }
+    ],
+    "new_hypotheses": [],
+    "fact_candidates": [
+     {
+      "statement": "payments-db.duplicate_captures_by_day shows duplicate captures on 2026-09-09 and 2026-09-10",
+      "assertion_key": "charge.duplicate.daily_pattern",
+      "value": "present_on_2026-09-09_2026-09-10",
+      "evidence_refs": [
+       "E-01"
+      ]
+     }
+    ],
+    "unknown_resolutions": [],
+    "authorization_candidates": [],
+    "contradiction_assessment": {
+     "relation": "UNRELATED",
+     "target_type": "NONE",
+     "target_refs": [],
+     "materiality": "LOW",
+     "problem_invalidating": false,
+     "rationale": "No problem_definition present to assess against."
+    },
+    "vob_proposals": [],
+    "follow_up_actions": [
+     "config-audit:gateway_config_changes",
+     "psp-logs:capture_attempts_for_duplicate_orders",
+     "crm-tickets:double_charge_tickets_by_week"
+    ],
+    "confidence": 0.9
+   }
+  },
+  "refs": [
+   "E-01",
+   "H-DUPLICATE-CHARGE-REQUEST",
+   "H-IDEMPOTENCY-KEY-FAILURE",
+   "H-ORDER-DUPLICATION-IN-LEDGER",
+   "H-PSP-RETRY-LOGIC"
+  ]
+ },
+ {
+  "seq": 13,
+  "type": "state_committed",
+  "importance": "NORMAL",
+  "payload": {
+   "reason": "evidence E-01",
+   "version": 3,
+   "diff": [
+    {
+     "kind": "CHANGED",
+     "collection": "claims",
+     "id": "CL-01",
+     "importance": "LOW"
+    },
+    {
+     "kind": "CHANGED",
+     "collection": "hypotheses",
+     "id": "H-IDEMPOTENCY-KEY-FAILURE",
+     "importance": "NORMAL"
+    },
+    {
+     "kind": "CHANGED",
+     "collection": "hypotheses",
+     "id": "H-ORDER-DUPLICATION-IN-LEDGER",
+     "importance": "NORMAL"
+    },
+    {
+     "kind": "NEW",
+     "collection": "evidence",
+     "id": "E-01",
+     "importance": "LOW"
+    }
+   ]
+  },
+  "refs": []
+ },
+ {
+  "seq": 14,
+  "type": "evidence_added",
+  "importance": "NORMAL",
+  "payload": {
+   "evidence": "E-01",
+   "source": "payments-db"
+  },
+  "refs": [
+   "E-01"
+  ]
+ },
+ {
+  "seq": 15,
+  "type": "state_committed",
+  "importance": "NORMAL",
+  "payload": {
+   "reason": "fact F-01",
+   "version": 4,
+   "diff": [
+    {
+     "kind": "NEW",
+     "collection": "facts",
+     "id": "F-01",
+     "importance": "LOW"
+    }
+   ]
+  },
+  "refs": []
+ },
+ {
+  "seq": 16,
+  "type": "fact_established",
+  "importance": "NORMAL",
+  "payload": {
+   "fact": "F-01"
+  },
+  "refs": [
+   "E-01"
+  ]
+ },
+ {
+  "seq": 17,
+  "type": "proposal_accepted",
+  "importance": "NORMAL",
+  "payload": {
+   "skill": "interpret_evidence",
+   "reasoning_id": "R-3",
+   "detail": {
+    "evidence": "E-01",
+    "assertion": "charge.duplicate",
+    "supports": [
+     "H-IDEMPOTENCY-KEY-FAILURE"
+    ],
+    "contradicts": [
+     "H-ORDER-DUPLICATION-IN-LEDGER"
+    ],
+    "assessment": "NONE",
+    "challenge_raised": false
+   }
+  },
+  "refs": [
+   "E-01"
+  ]
+ },
+ {
+  "seq": 18,
+  "type": "proposal_adjusted",
+  "importance": "NORMAL",
+  "payload": {
+   "skill": "interpret_evidence",
+   "reasoning_id": "R-3",
+   "detail": [
+    "follow-up 'config-audit:gateway_config_changes' not run: only deferred queries are re-attempted, and only on new external input (Information-Value ranking decides the rest)",
+    "follow-up 'psp-logs:capture_attempts_for_duplicate_orders' not run: only deferred queries are re-attempted, and only on new external input (Information-Value ranking decides the rest)",
+    "follow-up 'crm-tickets:double_charge_tickets_by_week' not run: only deferred queries are re-attempted, and only on new external input (Information-Value ranking decides the rest)"
+   ]
+  },
+  "refs": []
+ },
+ {
+  "seq": 19,
+  "type": "discovery_action_selected",
+  "importance": "NORMAL",
+  "payload": {
+   "selected": "config-audit:gateway_config_changes",
+   "ranking": [
+    {
+     "id": "config-audit:gateway_config_changes",
+     "score": 11.7476,
+     "excluded": false,
+     "reason": "value=24.91 cost=11.2"
+    },
+    {
+     "id": "psp-logs:capture_attempts_for_duplicate_orders",
+     "score": 11.1325,
+     "excluded": false,
+     "reason": "value=29.84 cost=16.8"
+    },
+    {
+     "id": "interview:SH-PAY",
+     "score": 6.8827,
+     "excluded": false,
+     "reason": "value=22.30 cost=22.4"
+    }
+   ]
+  },
+  "refs": []
+ },
+ {
+  "seq": 20,
+  "type": "safe_point_reached",
+  "importance": "NORMAL",
+  "payload": {
+   "kind": "BEFORE_ACTION"
+  },
+  "refs": []
+ },
+ {
+  "seq": 21,
+  "type": "tool_called",
+  "importance": "LOW",
+  "payload": {
+   "tool": "config-audit",
+   "operation": "gateway_config_changes",
+   "status": "SUCCESS",
+   "completeness": "COMPLETE",
+   "cost": 2.0
+  },
+  "refs": []
+ },
+ {
+  "seq": 22,
+  "type": "tool_health_changed",
+  "importance": "NORMAL",
+  "payload": {
+   "tool": "config-audit",
+   "from": "UNKNOWN",
+   "to": "HEALTHY"
+  },
+  "refs": []
+ },
+ {
+  "seq": 23,
+  "type": "safe_point_reached",
+  "importance": "NORMAL",
+  "payload": {
+   "kind": "AFTER_TOOL_RESULT"
+  },
+  "refs": []
+ },
+ {
+  "seq": 24,
+  "type": "reasoning_completed",
+  "importance": "NORMAL",
+  "payload": {
+   "reasoning_id": "R-4",
+   "skill": "interpret_evidence",
+   "status": "SUCCESS",
+   "provider": "nvidia-nim",
+   "model": "nvidia/nemotron-3-super-120b-a12b",
+   "input_state_version": 4,
+   "schema_version": "1.0",
+   "order": 4,
+   "attempts": 1,
+   "input_digest": "25c5a2ac35cfefa0",
+   "evidence_refs": [
+    "E-02",
+    "H-DUPLICATE-CHARGE-REQUEST",
+    "H-IDEMPOTENCY-KEY-FAILURE",
+    "H-ORDER-DUPLICATION-IN-LEDGER",
+    "H-PSP-RETRY-LOGIC"
+   ],
+   "confidence": 0.85,
+   "fallback_used": null,
+   "errors": [],
+   "proposal": {
+    "interpretation": "The gateway configuration audit shows idempotency_key_enforcement was turned off on 2026-09-09 by SH-PAY for latency debugging, with no rollback. This change coincides with the appearance of duplicate captures on 2026-09-09 and 2026-09-10, suggesting the disabled enforcement allowed retries to create duplicate charges.",
+    "assertion_key": "config.idempotency_key_enforcement.off",
+    "assertion_value": "off",
+    "claim_assertion_key": "",
+    "claim_assertion_value": "",
+    "hypothesis_effects": [
+     {
+      "hypothesis": "H-DUPLICATE-CHARGE-REQUEST",
+      "effect": "NEUTRAL",
+      "rationale": "Observation concerns gateway idempotency setting, not frontend double-submit behavior."
+     },
+     {
+      "hypothesis": "H-IDEMPOTENCY-KEY-FAILURE",
+      "effect": "SUPPORTS",
+      "rationale": "Config change shows idempotency_key_enforcement set to off by SH-PAY on the date duplicate captures began."
+     },
+     {
+      "hypothesis": "H-ORDER-DUPLICATION-IN-LEDGER",
+      "effect": "NEUTRAL",
+      "rationale": "Observation does not inform about order duplication in the ledger."
+     },
+     {
+      "hypothesis": "H-PSP-RETRY-LOGIC",
+      "effect": "NEUTRAL",
+      "rationale": "Observation does not address PSP internal retry logic."
+     }
+    ],
+    "new_hypotheses": [],
+    "fact_candidates": [
+     {
+      "statement": "config-audit.gateway_config_changes shows idempotency_key_enforcement turned off on 2026-09-09 by SH-PAY",
+      "assertion_key": "config.idempotency_key_enforcement.off",
+      "value": "off",
+      "evidence_refs": [
+       "E-02"
+      ]
+     }
+    ],
+    "unknown_resolutions": [],
+    "authorization_candidates": [],
+    "contradiction_assessment": {
+     "relation": "UNRELATED",
+     "target_type": "NONE",
+     "target_refs": [],
+     "materiality": "LOW",
+     "problem_invalidating": false,
+     "rationale": "No problem definition present in state."
+    },
+    "vob_proposals": [],
+    "follow_up_actions": [
+     "psp-logs:capture_attempts_for_duplicate_orders",
+     "crm-tickets:double_charge_tickets_by_week"
+    ],
+    "confidence": 0.85
+   }
+  },
+  "refs": [
+   "E-02",
+   "H-DUPLICATE-CHARGE-REQUEST",
+   "H-IDEMPOTENCY-KEY-FAILURE",
+   "H-ORDER-DUPLICATION-IN-LEDGER",
+   "H-PSP-RETRY-LOGIC"
+  ]
+ },
+ {
+  "seq": 25,
+  "type": "state_committed",
+  "importance": "NORMAL",
+  "payload": {
+   "reason": "evidence E-02",
+   "version": 5,
+   "diff": [
+    {
+     "kind": "CHANGED",
+     "collection": "hypotheses",
+     "id": "H-IDEMPOTENCY-KEY-FAILURE",
+     "importance": "NORMAL"
+    },
+    {
+     "kind": "NEW",
+     "collection": "evidence",
+     "id": "E-02",
+     "importance": "LOW"
+    }
+   ]
+  },
+  "refs": []
+ },
+ {
+  "seq": 26,
+  "type": "evidence_added",
+  "importance": "NORMAL",
+  "payload": {
+   "evidence": "E-02",
+   "source": "config-audit"
+  },
+  "refs": [
+   "E-02"
+  ]
+ },
+ {
+  "seq": 27,
+  "type": "state_committed",
+  "importance": "NORMAL",
+  "payload": {
+   "reason": "fact F-02",
+   "version": 6,
+   "diff": [
+    {
+     "kind": "NEW",
+     "collection": "facts",
+     "id": "F-02",
+     "importance": "LOW"
+    }
+   ]
+  },
+  "refs": []
+ },
+ {
+  "seq": 28,
+  "type": "fact_established",
+  "importance": "NORMAL",
+  "payload": {
+   "fact": "F-02"
+  },
+  "refs": [
+   "E-02"
+  ]
+ },
+ {
+  "seq": 29,
+  "type": "proposal_accepted",
+  "importance": "NORMAL",
+  "payload": {
+   "skill": "interpret_evidence",
+   "reasoning_id": "R-4",
+   "detail": {
+    "evidence": "E-02",
+    "assertion": "config.idempotency_key_enforcement.off",
+    "supports": [
+     "H-IDEMPOTENCY-KEY-FAILURE"
+    ],
+    "contradicts": [],
+    "assessment": "NONE",
+    "challenge_raised": false
+   }
+  },
+  "refs": [
+   "E-02"
+  ]
+ },
+ {
+  "seq": 30,
+  "type": "proposal_adjusted",
+  "importance": "NORMAL",
+  "payload": {
+   "skill": "interpret_evidence",
+   "reasoning_id": "R-4",
+   "detail": [
+    "follow-up 'psp-logs:capture_attempts_for_duplicate_orders' not run: only deferred queries are re-attempted, and only on new external input (Information-Value ranking decides the rest)",
+    "follow-up 'crm-tickets:double_charge_tickets_by_week' not run: only deferred queries are re-attempted, and only on new external input (Information-Value ranking decides the rest)"
+   ]
+  },
+  "refs": []
+ },
+ {
+  "seq": 31,
+  "type": "discovery_action_selected",
+  "importance": "NORMAL",
+  "payload": {
+   "selected": "psp-logs:capture_attempts_for_duplicate_orders",
+   "ranking": [
+    {
+     "id": "psp-logs:capture_attempts_for_duplicate_orders",
+     "score": 10.9688,
+     "excluded": false,
+     "reason": "value=29.84 cost=17.2"
+    },
+    {
+     "id": "interview:SH-PAY",
+     "score": 6.7713,
+     "excluded": false,
+     "reason": "value=22.30 cost=22.9"
+    }
+   ]
+  },
+  "refs": []
+ },
+ {
+  "seq": 32,
+  "type": "safe_point_reached",
+  "importance": "NORMAL",
+  "payload": {
+   "kind": "BEFORE_ACTION"
+  },
+  "refs": []
+ },
+ {
+  "seq": 33,
+  "type": "tool_called",
+  "importance": "LOW",
+  "payload": {
+   "tool": "psp-logs",
+   "operation": "capture_attempts_for_duplicate_orders",
+   "status": "SUCCESS",
+   "completeness": "COMPLETE",
+   "cost": 3.0
+  },
+  "refs": []
+ },
+ {
+  "seq": 34,
+  "type": "tool_health_changed",
+  "importance": "NORMAL",
+  "payload": {
+   "tool": "psp-logs",
+   "from": "UNKNOWN",
+   "to": "HEALTHY"
+  },
+  "refs": []
+ },
+ {
+  "seq": 35,
+  "type": "safe_point_reached",
+  "importance": "NORMAL",
+  "payload": {
+   "kind": "AFTER_TOOL_RESULT"
+  },
+  "refs": []
+ },
+ {
+  "seq": 36,
+  "type": "reasoning_completed",
+  "importance": "NORMAL",
+  "payload": {
+   "reasoning_id": "R-5",
+   "skill": "interpret_evidence",
+   "status": "SUCCESS",
+   "provider": "nvidia-nim",
+   "model": "nvidia/nemotron-3-super-120b-a12b",
+   "input_state_version": 6,
+   "schema_version": "1.0",
+   "order": 5,
+   "attempts": 1,
+   "input_digest": "7770df8de8df305a",
+   "evidence_refs": [
+    "E-03",
+    "H-DUPLICATE-CHARGE-REQUEST",
+    "H-IDEMPOTENCY-KEY-FAILURE",
+    "H-ORDER-DUPLICATION-IN-LEDGER",
+    "H-PSP-RETRY-LOGIC"
+   ],
+   "confidence": 0.92,
+   "fallback_used": null,
+   "errors": [],
+   "proposal": {
+    "interpretation": "Duplicate charges appear when gateway timeout retries are resent without an idempotency key, as shown by 242 duplicate orders in Sep 9‑10 all lacking the key, while earlier retries included the key and produced no duplicates.",
+    "assertion_key": "charge.duplicate",
+    "assertion_value": "True",
+    "claim_assertion_key": "",
+    "claim_assertion_value": "",
+    "hypothesis_effects": [
+     {
+      "hypothesis": "H-DUPLICATE-CHARGE-REQUEST",
+      "effect": "CONTRADICTS",
+      "rationale": "Observation ties duplicates to gateway timeout retries missing idempotency key, not frontend double‑submit."
+     },
+     {
+      "hypothesis": "H-IDEMPOTENCY-KEY-FAILURE",
+      "effect": "SUPPORTS",
+      "rationale": "Shows second capture lacked idempotency key while enforcement was off, enabling duplicate captures."
+     },
+     {
+      "hypothesis": "H-ORDER-DUPLICATION-IN-LEDGER",
+      "effect": "CONTRADICTS",
+      "rationale": "Duplicates are retries of the same order, not separate order records from order‑creation duplication."
+     },
+     {
+      "hypothesis": "H-PSP-RETRY-LOGIC",
+      "effect": "SUPPORTS",
+      "rationale": "PSP retries of timeouted captures omitted the idempotency key, producing duplicates."
+     }
+    ],
+    "new_hypotheses": [],
+    "fact_candidates": [
+     {
+      "statement": "psp-logs.capture_attempts_for_duplicate_orders shows duplicate orders correlate with missing idempotency key on retries",
+      "assertion_key": "charge.duplicate",
+      "value": "True",
+      "evidence_refs": [
+       "E-03"
+      ]
+     }
+    ],
+    "unknown_resolutions": [],
+    "authorization_candidates": [],
+    "contradiction_assessment": {
+     "relation": "UNRELATED",
+     "target_type": "NONE",
+     "target_refs": [],
+     "materiality": "LOW",
+     "problem_invalidating": false,
+     "rationale": "No problem definition present to assess against."
+    },
+    "vob_proposals": [],
+    "follow_up_actions": [
+     "crm-tickets:double_charge_tickets_by_week"
+    ],
+    "confidence": 0.92
+   }
+  },
+  "refs": [
+   "E-03",
+   "H-DUPLICATE-CHARGE-REQUEST",
+   "H-IDEMPOTENCY-KEY-FAILURE",
+   "H-ORDER-DUPLICATION-IN-LEDGER",
+   "H-PSP-RETRY-LOGIC"
+  ]
+ },
+ {
+  "seq": 37,
+  "type": "state_committed",
+  "importance": "NORMAL",
+  "payload": {
+   "reason": "evidence E-03",
+   "version": 7,
+   "diff": [
+    {
+     "kind": "CHANGED",
+     "collection": "claims",
+     "id": "CL-01",
+     "importance": "LOW"
+    },
+    {
+     "kind": "CHANGED",
+     "collection": "hypotheses",
+     "id": "H-DUPLICATE-CHARGE-REQUEST",
+     "importance": "NORMAL"
+    },
+    {
+     "kind": "CHANGED",
+     "collection": "hypotheses",
+     "id": "H-IDEMPOTENCY-KEY-FAILURE",
+     "importance": "NORMAL"
+    },
+    {
+     "kind": "CHANGED",
+     "collection": "hypotheses",
+     "id": "H-PSP-RETRY-LOGIC",
+     "importance": "NORMAL"
+    },
+    {
+     "kind": "CHANGED",
+     "collection": "hypotheses",
+     "id": "H-ORDER-DUPLICATION-IN-LEDGER",
+     "importance": "NORMAL"
+    },
+    {
+     "kind": "NEW",
+     "collection": "evidence",
+     "id": "E-03",
+     "importance": "LOW"
+    }
+   ]
+  },
+  "refs": []
+ },
+ {
+  "seq": 38,
+  "type": "evidence_added",
+  "importance": "NORMAL",
+  "payload": {
+   "evidence": "E-03",
+   "source": "psp-logs"
+  },
+  "refs": [
+   "E-03"
+  ]
+ },
+ {
+  "seq": 39,
+  "type": "state_committed",
+  "importance": "NORMAL",
+  "payload": {
+   "reason": "fact F-03",
+   "version": 8,
+   "diff": [
+    {
+     "kind": "NEW",
+     "collection": "facts",
+     "id": "F-03",
+     "importance": "LOW"
+    }
+   ]
+  },
+  "refs": []
+ },
+ {
+  "seq": 40,
+  "type": "fact_established",
+  "importance": "NORMAL",
+  "payload": {
+   "fact": "F-03"
+  },
+  "refs": [
+   "E-03"
+  ]
+ },
+ {
+  "seq": 41,
+  "type": "proposal_accepted",
+  "importance": "NORMAL",
+  "payload": {
+   "skill": "interpret_evidence",
+   "reasoning_id": "R-5",
+   "detail": {
+    "evidence": "E-03",
+    "assertion": "charge.duplicate",
+    "supports": [
+     "H-IDEMPOTENCY-KEY-FAILURE",
+     "H-PSP-RETRY-LOGIC"
+    ],
+    "contradicts": [
+     "H-DUPLICATE-CHARGE-REQUEST",
+     "H-ORDER-DUPLICATION-IN-LEDGER"
+    ],
+    "assessment": "NONE",
+    "challenge_raised": false
+   }
+  },
+  "refs": [
+   "E-03"
+  ]
+ },
+ {
+  "seq": 42,
+  "type": "proposal_adjusted",
+  "importance": "NORMAL",
+  "payload": {
+   "skill": "interpret_evidence",
+   "reasoning_id": "R-5",
+   "detail": [
+    "follow-up 'crm-tickets:double_charge_tickets_by_week' not run: only deferred queries are re-attempted, and only on new external input (Information-Value ranking decides the rest)"
+   ]
+  },
+  "refs": []
+ },
+ {
+  "seq": 43,
+  "type": "reasoning_completed",
+  "importance": "NORMAL",
+  "payload": {
+   "reasoning_id": "R-6",
+   "skill": "discover_actions",
+   "status": "SUCCESS",
+   "provider": "nvidia-nim",
+   "model": "nvidia/nemotron-3-super-120b-a12b",
+   "input_state_version": 8,
+   "schema_version": "1.0",
+   "order": 6,
+   "attempts": 1,
+   "input_digest": "91fae196d45af90a",
+   "evidence_refs": [
+    "H-DUPLICATE-CHARGE-REQUEST",
+    "H-IDEMPOTENCY-KEY-FAILURE",
+    "H-ORDER-DUPLICATION-IN-LEDGER",
+    "H-PSP-RETRY-LOGIC"
+   ],
+   "confidence": null,
+   "fallback_used": null,
+   "errors": [],
+   "proposal": {
+    "actions": [
+     {
+      "catalog_ref": "crm-tickets:double_charge_tickets_by_week",
+      "question": "customer support tickets about charges",
+      "decision_impact": 0.5,
+      "uncertainty": 0.5,
+      "discriminative_power": 0.4,
+      "answerability": 0.9,
+      "process_data_handoff_impact": 0.1,
+      "action_proximity": 0.8,
+      "constraint_risk": 0.1,
+      "estimated_cost_minutes": 10,
+      "expected_information_gain": ":",
+      "decision_impact_rationale": "Ticket volume may shift focus between frontend and backend causes.",
+      "discriminates_hypotheses": [
+       "H-DUPLICATE-CHARGE-REQUEST",
+       "H-ORDER-DUPLICATION-IN-LEDGER"
+      ],
+      "resolves_unknowns": [],
+      "addresses": [],
+      "why_now": "Unexecuted, low cost, can quickly inform hypothesis weighting."
+     },
+     {
+      "catalog_ref": "interview:SH-CS",
+      "question": "interview with customer service lead",
+      "decision_impact": 0.8,
+      "uncertainty": 0.6,
+      "discriminative_power": 0.5,
+      "answerability": 0.8,
+      "process_data_handoff_impact": 0.1,
+      "action_proximity": 0.7,
+      "constraint_risk": 0.1,
+      "estimated_cost_minutes": 20,
+      "expected_information_gain": ":",
+      "decision_impact_rationale": "CS lead sees complaint patterns that can confirm or refute frontend double‑submit theories.",
+      "discriminates_hypotheses": [
+       "H-DUPLICATE-CHARGE-REQUEST",
+       "H-ORDER-DUPLICATION-IN-LEDGER"
+      ],
+      "resolves_unknowns": [],
+      "addresses": [],
+      "why_now": "Unexecuted, moderate cost, high relevance to user‑facing symptom."
+     },
+     {
+      "catalog_ref": "interview:SH-PAY",
+      "question": "interview with payments engineer",
+      "decision_impact": 0.9,
+      "uncertainty": 0.5,
+      "discriminative_power": 0.7,
+      "answerability": 0.8,
+      "process_data_handoff_impact": 0.3,
+      "action_proximity": 0.7,
+      "constraint_risk": 0.4,
+      "estimated_cost_minutes": 25,
+      "expected_information_gain": ":",
+      "decision_impact_rationale": "Engineer knows gateway idempotency settings and PSP retry behavior, directly testing the leading hypothesis.",
+      "discriminates_hypotheses": [
+       "H-IDEMPOTENCY-KEY-FAILURE",
+       "H-PSP-RETRY-LOGIC"
+      ],
+      "resolves_unknowns": [],
+      "addresses": [],
+      "why_now": "Unexecuted, higher cost but highest potential to change the decision about root cause and fix."
+     }
+    ],
+    "stop": false,
+    "stop_reason": "Unexecuted catalog actions remain that could alter hypothesis rankings and thus the next decision."
+   }
+  },
+  "refs": [
+   "H-DUPLICATE-CHARGE-REQUEST",
+   "H-IDEMPOTENCY-KEY-FAILURE",
+   "H-ORDER-DUPLICATION-IN-LEDGER",
+   "H-PSP-RETRY-LOGIC"
+  ]
+ },
+ {
+  "seq": 44,
+  "type": "discovery_action_selected",
+  "importance": "NORMAL",
+  "payload": {
+   "selected": "crm-tickets:double_charge_tickets_by_week",
+   "ranking": [
+    {
+     "id": "crm-tickets:double_charge_tickets_by_week",
+     "score": 9.3578,
+     "excluded": false,
+     "reason": "value=20.40 cost=11.8"
+    },
+    {
+     "id": "interview:SH-CS",
+     "score": 8.1845,
+     "excluded": false,
+     "reason": "value=27.50 cost=23.6"
+    },
+    {
+     "id": "interview:SH-PAY",
+     "score": 8.0,
+     "excluded": false,
+     "reason": "value=31.60 cost=29.5"
+    }
+   ]
+  },
+  "refs": []
+ },
+ {
+  "seq": 45,
+  "type": "safe_point_reached",
+  "importance": "NORMAL",
+  "payload": {
+   "kind": "BEFORE_ACTION"
+  },
+  "refs": []
+ },
+ {
+  "seq": 46,
+  "type": "tool_called",
+  "importance": "LOW",
+  "payload": {
+   "tool": "crm-tickets",
+   "operation": "double_charge_tickets_by_week",
+   "status": "SUCCESS",
+   "completeness": "COMPLETE",
+   "cost": 2.0
+  },
+  "refs": []
+ },
+ {
+  "seq": 47,
+  "type": "tool_health_changed",
+  "importance": "NORMAL",
+  "payload": {
+   "tool": "crm-tickets",
+   "from": "UNKNOWN",
+   "to": "HEALTHY"
+  },
+  "refs": []
+ },
+ {
+  "seq": 48,
+  "type": "safe_point_reached",
+  "importance": "NORMAL",
+  "payload": {
+   "kind": "AFTER_TOOL_RESULT"
+  },
+  "refs": []
+ },
+ {
+  "seq": 49,
+  "type": "reasoning_completed",
+  "importance": "NORMAL",
+  "payload": {
+   "reasoning_id": "R-7",
+   "skill": "interpret_evidence",
+   "status": "SUCCESS",
+   "provider": "nvidia-nim",
+   "model": "nvidia/nemotron-3-super-120b-a12b",
+   "input_state_version": 8,
+   "schema_version": "1.0",
+   "order": 7,
+   "attempts": 1,
+   "input_digest": "c802d84850269459",
+   "evidence_refs": [
+    "E-04",
+    "H-DUPLICATE-CHARGE-REQUEST",
+    "H-IDEMPOTENCY-KEY-FAILURE",
+    "H-ORDER-DUPLICATION-IN-LEDGER",
+    "H-PSP-RETRY-LOGIC"
+   ],
+   "confidence": 0.9,
+   "fallback_used": null,
+   "errors": [],
+   "proposal": {
+    "interpretation": "The observation shows a sharp rise in double-charge support tickets in weeks 2026-W37 and W38, indicating the duplicate charge issue has worsened recently.",
+    "assertion_key": "charge.duplicate",
+    "assertion_value": true,
+    "claim_assertion_key": "",
+    "claim_assertion_value": "",
+    "hypothesis_effects": [
+     {
+      "hypothesis": "H-DUPLICATE-CHARGE-REQUEST",
+      "effect": "SUPPORTS",
+      "rationale": "The increase in double-charge tickets indicates duplicate charges are occurring, which is consistent with the hypothesis."
+     },
+     {
+      "hypothesis": "H-IDEMPOTENCY-KEY-FAILURE",
+      "effect": "SUPPORTS",
+      "rationale": "The increase in double-charge tickets indicates duplicate charges are occurring, which is consistent with the hypothesis."
+     },
+     {
+      "hypothesis": "H-ORDER-DUPLICATION-IN-LEDGER",
+      "effect": "SUPPORTS",
+      "rationale": "The increase in double-charge tickets indicates duplicate charges are occurring, which is consistent with the hypothesis."
+     },
+     {
+      "hypothesis": "H-PSP-RETRY-LOGIC",
+      "effect": "SUPPORTS",
+      "rationale": "The increase in double-charge tickets indicates duplicate charges are occurring, which is consistent with the hypothesis."
+     }
+    ],
+    "new_hypotheses": [],
+    "fact_candidates": [
+     {
+      "statement": "crm-tickets.double_charge_tickets_by_week shows double charge tickets rose to 288 and 301 in weeks 2026-W37 and W38.",
+      "assertion_key": "charge.duplicate",
+      "value": true,
+      "evidence_refs": [
+       "E-04"
+      ]
+     }
+    ],
+    "unknown_resolutions": [],
+    "authorization_candidates": [],
+    "contradiction_assessment": {
+     "relation": "UNRELATED",
+     "target_type": "NONE",
+     "target_refs": [],
+     "materiality": "LOW",
+     "problem_invalidating": false,
+     "rationale": "No problem definition present to assess against."
+    },
+    "vob_proposals": [],
+    "follow_up_actions": [],
+    "confidence": 0.9
+   }
+  },
+  "refs": [
+   "E-04",
+   "H-DUPLICATE-CHARGE-REQUEST",
+   "H-IDEMPOTENCY-KEY-FAILURE",
+   "H-ORDER-DUPLICATION-IN-LEDGER",
+   "H-PSP-RETRY-LOGIC"
+  ]
+ },
+ {
+  "seq": 50,
+  "type": "state_committed",
+  "importance": "NORMAL",
+  "payload": {
+   "reason": "evidence E-04",
+   "version": 9,
+   "diff": [
+    {
+     "kind": "CHANGED",
+     "collection": "claims",
+     "id": "CL-01",
+     "importance": "LOW"
+    },
+    {
+     "kind": "CHANGED",
+     "collection": "hypotheses",
+     "id": "H-DUPLICATE-CHARGE-REQUEST",
+     "importance": "NORMAL"
+    },
+    {
+     "kind": "CHANGED",
+     "collection": "hypotheses",
+     "id": "H-IDEMPOTENCY-KEY-FAILURE",
+     "importance": "NORMAL"
+    },
+    {
+     "kind": "CHANGED",
+     "collection": "hypotheses",
+     "id": "H-PSP-RETRY-LOGIC",
+     "importance": "NORMAL"
+    },
+    {
+     "kind": "CHANGED",
+     "collection": "hypotheses",
+     "id": "H-ORDER-DUPLICATION-IN-LEDGER",
+     "importance": "NORMAL"
+    },
+    {
+     "kind": "NEW",
+     "collection": "evidence",
+     "id": "E-04",
+     "importance": "LOW"
+    }
+   ]
+  },
+  "refs": []
+ },
+ {
+  "seq": 51,
+  "type": "evidence_added",
+  "importance": "NORMAL",
+  "payload": {
+   "evidence": "E-04",
+   "source": "crm-tickets"
+  },
+  "refs": [
+   "E-04"
+  ]
+ },
+ {
+  "seq": 52,
+  "type": "state_committed",
+  "importance": "NORMAL",
+  "payload": {
+   "reason": "fact F-04",
+   "version": 10,
+   "diff": [
+    {
+     "kind": "NEW",
+     "collection": "facts",
+     "id": "F-04",
+     "importance": "LOW"
+    }
+   ]
+  },
+  "refs": []
+ },
+ {
+  "seq": 53,
+  "type": "fact_established",
+  "importance": "NORMAL",
+  "payload": {
+   "fact": "F-04"
+  },
+  "refs": [
+   "E-04"
+  ]
+ },
+ {
+  "seq": 54,
+  "type": "proposal_accepted",
+  "importance": "NORMAL",
+  "payload": {
+   "skill": "interpret_evidence",
+   "reasoning_id": "R-7",
+   "detail": {
+    "evidence": "E-04",
+    "assertion": "charge.duplicate",
+    "supports": [
+     "H-DUPLICATE-CHARGE-REQUEST",
+     "H-IDEMPOTENCY-KEY-FAILURE",
+     "H-ORDER-DUPLICATION-IN-LEDGER",
+     "H-PSP-RETRY-LOGIC"
+    ],
+    "contradicts": [],
+    "assessment": "NONE",
+    "challenge_raised": false
+   }
+  },
+  "refs": [
+   "E-04"
+  ]
+ },
+ {
+  "seq": 55,
+  "type": "discovery_action_selected",
+  "importance": "NORMAL",
+  "payload": {
+   "selected": "interview:SH-CS",
+   "ranking": [
+    {
+     "id": "interview:SH-CS",
+     "score": 8.0566,
+     "excluded": false,
+     "reason": "value=27.50 cost=24.1"
+    },
+    {
+     "id": "interview:SH-PAY",
+     "score": 7.8672,
+     "excluded": false,
+     "reason": "value=31.60 cost=30.2"
+    }
+   ]
+  },
+  "refs": []
+ },
+ {
+  "seq": 56,
+  "type": "reasoning_completed",
+  "importance": "NORMAL",
+  "payload": {
+   "reasoning_id": "R-8",
+   "skill": "interpret_evidence",
+   "status": "SUCCESS",
+   "provider": "nvidia-nim",
+   "model": "nvidia/nemotron-3-super-120b-a12b",
+   "input_state_version": 10,
+   "schema_version": "1.0",
+   "order": 8,
+   "attempts": 1,
+   "input_digest": "2f6b75d702635c16",
+   "evidence_refs": [
+    "H-DUPLICATE-CHARGE-REQUEST",
+    "H-IDEMPOTENCY-KEY-FAILURE",
+    "H-ORDER-DUPLICATION-IN-LEDGER",
+    "H-PSP-RETRY-LOGIC"
+   ],
+   "confidence": 0.9,
+   "fallback_used": null,
+   "errors": [],
+   "proposal": {
+    "interpretation": "The stakeholder says duplicate charges are making customers furious and that the team should focus on delivering faster, nicer apology replies rather than fixing the root cause.",
+    "assertion_key": "charge.duplicate",
+    "assertion_value": true,
+    "claim_assertion_key": "apology_reply_improvement_needed",
+    "claim_assertion_value": true,
+    "hypothesis_effects": [
+     {
+      "hypothesis": "H-DUPLICATE-CHARGE-REQUEST",
+      "effect": "NEUTRAL",
+      "rationale": "The observation describes customer impact and desired response, not whether duplicate charges arise from frontend double-submit."
+     },
+     {
+      "hypothesis": "H-IDEMPOTENCY-KEY-FAILURE",
+      "effect": "NEUTRAL",
+      "rationale": "The observation does not address gateway idempotency-key enforcement status."
+     },
+     {
+      "hypothesis": "H-ORDER-DUPLICATION-IN-LEDGER",
+      "effect": "NEUTRAL",
+      "rationale": "The observation does not speak to order creation duplication."
+     },
+     {
+      "hypothesis": "H-PSP-RETRY-LOGIC",
+      "effect": "NEUTRAL",
+      "rationale": "The observation does not inform about PSP retry logic or idempotency key handling."
+     }
+    ],
+    "new_hypotheses": [],
+    "fact_candidates": [],
+    "unknown_resolutions": [],
+    "authorization_candidates": [],
+    "contradiction_assessment": {
+     "relation": "UNRELATED",
+     "target_type": "NONE",
+     "target_refs": [],
+     "materiality": "LOW",
+     "problem_invalidating": false,
+     "rationale": "No problem definition present to assess against."
+    },
+    "vob_proposals": [],
+    "follow_up_actions": [],
+    "confidence": 0.9
+   }
+  },
+  "refs": [
+   "H-DUPLICATE-CHARGE-REQUEST",
+   "H-IDEMPOTENCY-KEY-FAILURE",
+   "H-ORDER-DUPLICATION-IN-LEDGER",
+   "H-PSP-RETRY-LOGIC"
+  ]
+ },
+ {
+  "seq": 57,
+  "type": "state_committed",
+  "importance": "NORMAL",
+  "payload": {
+   "reason": "claim CL-02",
+   "version": 11,
+   "diff": [
+    {
+     "kind": "NEW",
+     "collection": "claims",
+     "id": "CL-02",
+     "importance": "LOW"
+    }
+   ]
+  },
+  "refs": []
+ },
+ {
+  "seq": 58,
+  "type": "claim_recorded",
+  "importance": "NORMAL",
+  "payload": {
+   "claim": "CL-02",
+   "stakeholder": "SH-CS"
+  },
+  "refs": []
+ },
+ {
+  "seq": 59,
+  "type": "state_committed",
+  "importance": "NORMAL",
+  "payload": {
+   "reason": "evidence E-05",
+   "version": 12,
+   "diff": [
+    {
+     "kind": "NEW",
+     "collection": "evidence",
+     "id": "E-05",
+     "importance": "LOW"
+    }
+   ]
+  },
+  "refs": []
+ },
+ {
+  "seq": 60,
+  "type": "evidence_added",
+  "importance": "NORMAL",
+  "payload": {
+   "evidence": "E-05",
+   "source": "SH-CS"
+  },
+  "refs": [
+   "E-05"
+  ]
+ },
+ {
+  "seq": 61,
+  "type": "proposal_accepted",
+  "importance": "NORMAL",
+  "payload": {
+   "skill": "interpret_evidence",
+   "reasoning_id": "R-8",
+   "detail": {
+    "evidence": "E-05",
+    "assertion": "apology_reply_improvement_needed",
+    "supports": [],
+    "contradicts": [],
+    "assessment": "NONE",
+    "challenge_raised": false
+   }
+  },
+  "refs": [
+   "E-05"
+  ]
+ },
+ {
+  "seq": 62,
+  "type": "discovery_action_selected",
+  "importance": "NORMAL",
+  "payload": {
+   "selected": "interview:SH-PAY",
+   "ranking": [
+    {
+     "id": "interview:SH-PAY",
+     "score": 7.8672,
+     "excluded": false,
+     "reason": "value=31.60 cost=30.2"
+    }
+   ]
+  },
+  "refs": []
+ },
+ {
+  "seq": 63,
+  "type": "reasoning_completed",
+  "importance": "NORMAL",
+  "payload": {
+   "reasoning_id": "R-9",
+   "skill": "interpret_evidence",
+   "status": "SUCCESS",
+   "provider": "nvidia-nim",
+   "model": "nvidia/nemotron-3-super-120b-a12b",
+   "input_state_version": 12,
+   "schema_version": "1.0",
+   "order": 9,
+   "attempts": 1,
+   "input_digest": "24338db16cf0eb50",
+   "evidence_refs": [
+    "H-DUPLICATE-CHARGE-REQUEST",
+    "H-IDEMPOTENCY-KEY-FAILURE",
+    "H-ORDER-DUPLICATION-IN-LEDGER",
+    "H-PSP-RETRY-LOGIC"
+   ],
+   "confidence": 0.92,
+   "fallback_used": null,
+   "errors": [],
+   "proposal": {
+    "interpretation": "The stakeholder confirms that idempotency-key enforcement was turned off on 2026-09-09 for debugging latency, and that re-enabling it would prevent duplicate captures caused by gateway timeout retries lacking the key. The change is reversible via a one-setting gateway config tool, pending payments operations runtime confirmation.",
+    "assertion_key": "config.idempotency_key_enforcement.off",
+    "assertion_value": "off",
+    "claim_assertion_key": "charge.duplicate_will_be_fixed_by_reenabling_idempotency",
+    "claim_assertion_value": true,
+    "hypothesis_effects": [
+     {
+      "hypothesis": "H-DUPLICATE-CHARGE-REQUEST",
+      "effect": "CONTRADICTS",
+      "rationale": "Observation attributes duplicates to disabled idempotency-key enforcement on retries, not to frontend double-submit or race condition."
+     },
+     {
+      "hypothesis": "H-IDEMPOTENCY-KEY-FAILURE",
+      "effect": "SUPPORTS",
+      "rationale": "Stakeholder states enforcement was switched off on 09-09 and that without the key the PSP processes retried capture, directly enabling duplicate charges."
+     },
+     {
+      "hypothesis": "H-ORDER-DUPLICATION-IN-LEDGER",
+      "effect": "CONTRADICTS",
+      "rationale": "Observation links duplicates to missing idempotency key on gateway retries, not to duplicated order records in the ledger."
+     },
+     {
+      "hypothesis": "H-PSP-RETRY-LOGIC",
+      "effect": "SUPPORTS",
+      "rationale": "Stakeholder notes that with the idempotency key the PSP drops the retried capture, implying that without the key the PSP’s retry logic processes the attempt, preserving the hypothesis."
+     }
+    ],
+    "new_hypotheses": [],
+    "fact_candidates": [],
+    "unknown_resolutions": [],
+    "authorization_candidates": [],
+    "contradiction_assessment": {
+     "relation": "UNRELATED",
+     "target_type": "NONE",
+     "target_refs": [],
+     "materiality": "LOW",
+     "problem_invalidating": false,
+     "rationale": "No problem definition present to assess against."
+    },
+    "vob_proposals": [],
+    "follow_up_actions": [],
+    "confidence": 0.92
+   }
+  },
+  "refs": [
+   "H-DUPLICATE-CHARGE-REQUEST",
+   "H-IDEMPOTENCY-KEY-FAILURE",
+   "H-ORDER-DUPLICATION-IN-LEDGER",
+   "H-PSP-RETRY-LOGIC"
+  ]
+ },
+ {
+  "seq": 64,
+  "type": "state_committed",
+  "importance": "NORMAL",
+  "payload": {
+   "reason": "claim CL-03",
+   "version": 13,
+   "diff": [
+    {
+     "kind": "NEW",
+     "collection": "claims",
+     "id": "CL-03",
+     "importance": "LOW"
+    }
+   ]
+  },
+  "refs": []
+ },
+ {
+  "seq": 65,
+  "type": "claim_recorded",
+  "importance": "NORMAL",
+  "payload": {
+   "claim": "CL-03",
+   "stakeholder": "SH-PAY"
+  },
+  "refs": []
+ },
+ {
+  "seq": 66,
+  "type": "state_committed",
+  "importance": "NORMAL",
+  "payload": {
+   "reason": "evidence E-06",
+   "version": 14,
+   "diff": [
+    {
+     "kind": "CHANGED",
+     "collection": "hypotheses",
+     "id": "H-DUPLICATE-CHARGE-REQUEST",
+     "importance": "NORMAL"
+    },
+    {
+     "kind": "CHANGED",
+     "collection": "hypotheses",
+     "id": "H-IDEMPOTENCY-KEY-FAILURE",
+     "importance": "NORMAL"
+    },
+    {
+     "kind": "CHANGED",
+     "collection": "hypotheses",
+     "id": "H-PSP-RETRY-LOGIC",
+     "importance": "NORMAL"
+    },
+    {
+     "kind": "CHANGED",
+     "collection": "hypotheses",
+     "id": "H-ORDER-DUPLICATION-IN-LEDGER",
+     "importance": "NORMAL"
+    },
+    {
+     "kind": "NEW",
+     "collection": "evidence",
+     "id": "E-06",
+     "importance": "LOW"
+    }
+   ]
+  },
+  "refs": []
+ },
+ {
+  "seq": 67,
+  "type": "evidence_added",
+  "importance": "NORMAL",
+  "payload": {
+   "evidence": "E-06",
+   "source": "SH-PAY"
+  },
+  "refs": [
+   "E-06"
+  ]
+ },
+ {
+  "seq": 68,
+  "type": "proposal_accepted",
+  "importance": "NORMAL",
+  "payload": {
+   "skill": "interpret_evidence",
+   "reasoning_id": "R-9",
+   "detail": {
+    "evidence": "E-06",
+    "assertion": "charge.duplicate_will_be_fixed_by_reenabling_idempotency",
+    "supports": [
+     "H-IDEMPOTENCY-KEY-FAILURE",
+     "H-PSP-RETRY-LOGIC"
+    ],
+    "contradicts": [
+     "H-DUPLICATE-CHARGE-REQUEST",
+     "H-ORDER-DUPLICATION-IN-LEDGER"
+    ],
+    "assessment": "NONE",
+    "challenge_raised": false
+   }
+  },
+  "refs": [
+   "E-06"
+  ]
+ },
+ {
+  "seq": 69,
+  "type": "reasoning_completed",
+  "importance": "NORMAL",
+  "payload": {
+   "reasoning_id": "R-10",
+   "skill": "discover_actions",
+   "status": "SUCCESS",
+   "provider": "nvidia-nim",
+   "model": "nvidia/nemotron-3-super-120b-a12b",
+   "input_state_version": 14,
+   "schema_version": "1.0",
+   "order": 10,
+   "attempts": 1,
+   "input_digest": "7c280d522c38eb24",
+   "evidence_refs": [],
+   "confidence": null,
+   "fallback_used": null,
+   "errors": [],
+   "proposal": {
+    "actions": [],
+    "stop": true,
+    "stop_reason": "catalog empty"
+   }
+  },
+  "refs": []
+ },
+ {
+  "seq": 70,
+  "type": "reasoning_completed",
+  "importance": "NORMAL",
+  "payload": {
+   "reasoning_id": "R-11",
+   "skill": "assess_hypotheses",
+   "status": "SUCCESS",
+   "provider": "nvidia-nim",
+   "model": "nvidia/nemotron-3-super-120b-a12b",
+   "input_state_version": 14,
+   "schema_version": "1.0",
+   "order": 11,
+   "attempts": 1,
+   "input_digest": "7b81dbaa77ecb6d8",
+   "evidence_refs": [
+    "E-01",
+    "E-02",
+    "E-03",
+    "E-04",
+    "E-06",
+    "H-DUPLICATE-CHARGE-REQUEST",
+    "H-IDEMPOTENCY-KEY-FAILURE",
+    "H-ORDER-DUPLICATION-IN-LEDGER",
+    "H-PSP-RETRY-LOGIC"
+   ],
+   "confidence": null,
+   "fallback_used": null,
+   "errors": [],
+   "proposal": {
+    "updates": [
+     {
+      "hypothesis": "H-DUPLICATE-CHARGE-REQUEST",
+      "status": "REJECTED",
+      "rationale": "Contradicted by authoritative evidence showing duplicate charges arise from missing idempotency keys on gateway timeout retries, not frontend double-submit.",
+      "evidence_refs": [
+       "E-03",
+       "E-06"
+      ]
+     },
+     {
+      "hypothesis": "H-IDEMPOTENCY-KEY-FAILURE",
+      "status": "CONFIRMED",
+      "rationale": "Authoritative, complete evidence shows idempotency enforcement was off, duplicate captures correlate with timeout retries lacking the key, and ticket volume rose; no contradiction.",
+      "evidence_refs": [
+       "E-01",
+       "E-02",
+       "E-03",
+       "E-04"
+      ]
+     },
+     {
+      "hypothesis": "H-ORDER-DUPLICATION-IN-LEDGER",
+      "status": "REJECTED",
+      "rationale": "Authoritative evidence refutes order‑record duplication; duplicate charges align with gateway retry behavior.",
+      "evidence_refs": [
+       "E-01",
+       "E-03",
+       "E-06"
+      ]
+     },
+     {
+      "hypothesis": "H-PSP-RETRY-LOGIC",
+      "status": "CONFIRMED",
+      "rationale": "Authoritative logs show PSP retries lack idempotency keys, ticket rise tracks the same period, and stakeholder confirms fixing enforcement resolves duplicates; no contradiction.",
+      "evidence_refs": [
+       "E-03",
+       "E-04",
+       "E-06"
+      ]
+     }
+    ],
+    "ready_to_define": true,
+    "rationale": "All hypotheses have been evaluated against linked evidence; status changes are supported by cited evidence."
+   }
+  },
+  "refs": [
+   "E-01",
+   "E-02",
+   "E-03",
+   "E-04",
+   "E-06",
+   "H-DUPLICATE-CHARGE-REQUEST",
+   "H-IDEMPOTENCY-KEY-FAILURE",
+   "H-ORDER-DUPLICATION-IN-LEDGER",
+   "H-PSP-RETRY-LOGIC"
+  ]
+ },
+ {
+  "seq": 71,
+  "type": "state_committed",
+  "importance": "NORMAL",
+  "payload": {
+   "reason": "hypothesis H-DUPLICATE-CHARGE-REQUEST → REJECTED",
+   "version": 15,
+   "diff": [
+    {
+     "kind": "CHANGED",
+     "collection": "hypotheses",
+     "id": "H-DUPLICATE-CHARGE-REQUEST",
+     "importance": "NORMAL"
+    }
+   ]
+  },
+  "refs": []
+ },
+ {
+  "seq": 72,
+  "type": "hypothesis_changed",
+  "importance": "NORMAL",
+  "payload": {
+   "hypothesis": "H-DUPLICATE-CHARGE-REQUEST",
+   "from": "CANDIDATE",
+   "to": "REJECTED",
+   "reason": "Contradicted by authoritative evidence showing duplicate charges arise from missing idempotency keys on gateway timeout retries, not frontend double-submit. [E-03, E-06] (R-11)"
+  },
+  "refs": []
+ },
+ {
+  "seq": 73,
+  "type": "state_committed",
+  "importance": "NORMAL",
+  "payload": {
+   "reason": "hypothesis H-IDEMPOTENCY-KEY-FAILURE → CONFIRMED",
+   "version": 16,
+   "diff": [
+    {
+     "kind": "RESOLVED",
+     "collection": "hypotheses",
+     "id": "H-IDEMPOTENCY-KEY-FAILURE",
+     "importance": "NORMAL"
+    }
+   ]
+  },
+  "refs": []
+ },
+ {
+  "seq": 74,
+  "type": "hypothesis_changed",
+  "importance": "NORMAL",
+  "payload": {
+   "hypothesis": "H-IDEMPOTENCY-KEY-FAILURE",
+   "from": "CANDIDATE",
+   "to": "CONFIRMED",
+   "reason": "Authoritative, complete evidence shows idempotency enforcement was off, duplicate captures correlate with timeout retries lacking the key, and ticket volume rose; no contradiction. [E-01, E-02, E-03, E-04] (R-11)"
+  },
+  "refs": []
+ },
+ {
+  "seq": 75,
+  "type": "state_committed",
+  "importance": "NORMAL",
+  "payload": {
+   "reason": "hypothesis H-ORDER-DUPLICATION-IN-LEDGER → REJECTED",
+   "version": 17,
+   "diff": [
+    {
+     "kind": "CHANGED",
+     "collection": "hypotheses",
+     "id": "H-ORDER-DUPLICATION-IN-LEDGER",
+     "importance": "NORMAL"
+    }
+   ]
+  },
+  "refs": []
+ },
+ {
+  "seq": 76,
+  "type": "hypothesis_changed",
+  "importance": "NORMAL",
+  "payload": {
+   "hypothesis": "H-ORDER-DUPLICATION-IN-LEDGER",
+   "from": "CANDIDATE",
+   "to": "REJECTED",
+   "reason": "Authoritative evidence refutes order‑record duplication; duplicate charges align with gateway retry behavior. [E-01, E-03, E-06] (R-11)"
+  },
+  "refs": []
+ },
+ {
+  "seq": 77,
+  "type": "state_committed",
+  "importance": "NORMAL",
+  "payload": {
+   "reason": "hypothesis H-PSP-RETRY-LOGIC → CONFIRMED",
+   "version": 18,
+   "diff": [
+    {
+     "kind": "RESOLVED",
+     "collection": "hypotheses",
+     "id": "H-PSP-RETRY-LOGIC",
+     "importance": "NORMAL"
+    }
+   ]
+  },
+  "refs": []
+ },
+ {
+  "seq": 78,
+  "type": "hypothesis_changed",
+  "importance": "NORMAL",
+  "payload": {
+   "hypothesis": "H-PSP-RETRY-LOGIC",
+   "from": "CANDIDATE",
+   "to": "CONFIRMED",
+   "reason": "Authoritative logs show PSP retries lack idempotency keys, ticket rise tracks the same period, and stakeholder confirms fixing enforcement resolves duplicates; no contradiction. [E-03, E-04, E-06] (R-11)"
+  },
+  "refs": []
+ },
+ {
+  "seq": 79,
+  "type": "proposal_accepted",
+  "importance": "NORMAL",
+  "payload": {
+   "skill": "assess_hypotheses",
+   "reasoning_id": "R-11",
+   "detail": {
+    "changed": [
+     "H-DUPLICATE-CHARGE-REQUEST",
+     "H-IDEMPOTENCY-KEY-FAILURE",
+     "H-ORDER-DUPLICATION-IN-LEDGER",
+     "H-PSP-RETRY-LOGIC"
+    ]
+   }
+  },
+  "refs": []
+ },
+ {
+  "seq": 80,
+  "type": "reasoning_completed",
+  "importance": "NORMAL",
+  "payload": {
+   "reasoning_id": "R-12",
+   "skill": "define_problem",
+   "status": "SUCCESS",
+   "provider": "nvidia-nim",
+   "model": "nvidia/nemotron-3-super-120b-a12b",
+   "input_state_version": 18,
+   "schema_version": "1.0",
+   "order": 12,
+   "attempts": 1,
+   "input_digest": "e48db1c81e267556",
+   "evidence_refs": [
+    "E-01",
+    "E-02",
+    "E-03",
+    "H-DUPLICATE-CHARGE-REQUEST",
+    "H-IDEMPOTENCY-KEY-FAILURE",
+    "H-ORDER-DUPLICATION-IN-LEDGER",
+    "H-PSP-RETRY-LOGIC",
+    "SC-01"
+   ],
+   "confidence": 0.92,
+   "fallback_used": null,
+   "errors": [],
+   "proposal": {
+    "root_problem": "Duplicate charges occur because gateway idempotency-key enforcement is disabled, allowing timeout retries to be resent without an idempotency key; re-enabling enforcement will prevent these duplicates.",
+    "requested_solution": "Build an AI assistant that drafts apology replies to customers who complain about being charged twice",
+    "symptoms": [
+     "duplicate charges",
+     "increase in support tickets"
+    ],
+    "affected_process": "checkout to payment capture",
+    "causal_chain": [
+     "Idempotency-key enforcement disabled via gateway config change",
+     "Gateway experiences a timeout on a capture attempt",
+     "Gateway automatically retries the capture without an idempotency key (PSP retry logic does not preserve the key)",
+     "PSP processes the retry as a new capture attempt due to missing deduplication key",
+     "Duplicate capture creates a second charge for the same order",
+     "Customer observes double charge and files a support ticket"
+    ],
+    "premise_hypotheses": [
+     "H-IDEMPOTENCY-KEY-FAILURE",
+     "H-PSP-RETRY-LOGIC"
+    ],
+    "evidence_refs": [
+     "E-01",
+     "E-02",
+     "E-03"
+    ],
+    "assumptions": [
+     {
+      "key": "Gateway timeout retry rate remains ~unch",
+      "statement": "Gateway timeout retry rate remains roughly constant regardless of idempotency enforcement status",
+      "evidence_refs": [],
+      "risk_if_wrong": "MEDIUM"
+     }
+    ],
+    "unknowns": [
+     {
+      "key": "UNK-01",
+      "question": "Will re-enabling idempotency-key enforcement cause adverse latency impact?",
+      "criticality": "MEDIUM",
+      "decision_impact": "MEDIUM",
+      "affects_scope": [
+       {
+        "action": "set_capture_idempotency",
+        "target": "gateway-config"
+       }
+      ],
+      "resolution_path": "Run a canary test measuring capture latency before/after change",
+      "safe_placeholder": "Maintain current setting off while monitoring latency; retain ability to rollback quickly"
+     },
+     {
+      "key": "UNK-02",
+      "question": "Are there other sources of duplicate charges besides missing idempotency key on retries?",
+      "criticality": "HIGH",
+      "decision_impact": "HIGH",
+      "affects_scope": [
+       {
+        "action": "set_capture_idempotency",
+        "target": "gateway-config"
+       }
+      ],
+      "resolution_path": "After re-enabling idempotency, monitor duplicate charge rate; if not near zero, investigate other duplicate sources",
+      "safe_placeholder": "Continue to monitor duplicate charge tickets; if they persist, open investigation for alternative causes"
+     }
+    ],
+    "metrics": [
+     {
+      "key": "MET-01",
+      "name": "duplicate_charge_rate",
+      "metric_type": "RATE",
+      "numerator": "orders_with_2_captures",
+      "denominator": "orders",
+      "current_value": 0.04,
+      "current_value_evidence_refs": [
+       "E-01"
+      ],
+      "target_value": 0.001
+     }
+    ],
+    "success_criteria": [
+     {
+      "key": "SC-01",
+      "statement": "Duplicate charge rate must be reduced to near zero (<0.1%)",
+      "kind": "TARGET",
+      "metric": "duplicate_charge_rate",
+      "threshold": ": <0.001",
+      "validation_method": "Weekly calculation of orders_with_2_captures / orders from payments-db"
+     }
+    ],
+    "intended_scope": [
+     {
+      "action": "set_capture_idempotency",
+      "target": "gateway-config"
+     }
+    ],
+    "protected_actions": [
+     "set_capture_idempotency"
+    ],
+    "required_tools": [
+     "gateway-config"
+    ],
+    "depends_on_handoffs": [],
+    "constraint_refs": [
+     "K-GW"
+    ],
+    "rejected_framings": [
+     {
+      "hypothesis": "H-DUPLICATE-CHARGE-REQUEST",
+      "why": "Contradicted by evidence showing duplicate orders lack idempotency key on retries and PSP drops retried capture when key present (E-03)"
+     },
+     {
+      "hypothesis": "H-ORDER-DUPLICATION-IN-LEDGER",
+      "why": "Contradicted by evidence showing duplicate captures occur only on days with high gateway timeout retries and correlate with missing idempotency key (E-01, E-03)"
+     }
+    ],
+    "vob_reevaluation": [],
+    "confidence": 0.92,
+    "repair_resolution": [],
+    "authorization_candidates": []
+   }
+  },
+  "refs": [
+   "E-01",
+   "E-02",
+   "E-03",
+   "H-DUPLICATE-CHARGE-REQUEST",
+   "H-IDEMPOTENCY-KEY-FAILURE",
+   "H-ORDER-DUPLICATION-IN-LEDGER",
+   "H-PSP-RETRY-LOGIC",
+   "SC-01"
+  ]
+ },
+ {
+  "seq": 81,
+  "type": "state_committed",
+  "importance": "NORMAL",
+  "payload": {
+   "reason": "DEFINE inputs (R-12)",
+   "version": 19,
+   "diff": [
+    {
+     "kind": "NEW",
+     "collection": "metrics",
+     "id": "M-MET-01",
+     "importance": "LOW"
+    },
+    {
+     "kind": "CHANGED",
+     "collection": "hypotheses",
+     "id": "H-PSP-RETRY-LOGIC",
+     "importance": "NORMAL"
+    },
+    {
+     "kind": "NEW",
+     "collection": "unknowns",
+     "id": "U-UNK-01",
+     "importance": "NORMAL"
+    },
+    {
+     "kind": "NEW",
+     "collection": "unknowns",
+     "id": "U-UNK-02",
+     "importance": "NORMAL"
+    },
+    {
+     "kind": "NEW",
+     "collection": "assumptions",
+     "id": "A-GATEWAY-TIMEOUT-RETRY-RATE-R",
+     "importance": "LOW"
+    },
+    {
+     "kind": "NEW",
+     "collection": "success_criteria",
+     "id": "SC-01",
+     "importance": "LOW"
+    }
+   ]
+  },
+  "refs": []
+ },
+ {
+  "seq": 82,
+  "type": "state_committed",
+  "importance": "NORMAL",
+  "payload": {
+   "reason": "problem definition PD-1 v1",
+   "version": 20,
+   "diff": []
+  },
+  "refs": []
+ },
+ {
+  "seq": 83,
+  "type": "proposal_adjusted",
+  "importance": "NORMAL",
+  "payload": {
+   "skill": "define_problem",
+   "reasoning_id": "R-12",
+   "detail": [
+    "H-PSP-RETRY-LOGIC decision_impact MEDIUM → HIGH (canonical premise)"
+   ]
+  },
+  "refs": []
+ },
+ {
+  "seq": 84,
+  "type": "proposal_accepted",
+  "importance": "NORMAL",
+  "payload": {
+   "skill": "define_problem",
+   "reasoning_id": "R-12",
+   "detail": {
+    "problem": "PD-1@v1",
+    "premise_hypotheses": [
+     "H-IDEMPOTENCY-KEY-FAILURE",
+     "H-PSP-RETRY-LOGIC"
+    ],
+    "confidence": 0.92
+   }
+  },
+  "refs": [
+   "E-01",
+   "E-02",
+   "E-03"
+  ]
+ },
+ {
+  "seq": 85,
+  "type": "safe_point_reached",
+  "importance": "NORMAL",
+  "payload": {
+   "kind": "BEFORE_TRANSITION"
+  },
+  "refs": []
+ },
+ {
+  "seq": 86,
+  "type": "phase_transition",
+  "importance": "NORMAL",
+  "payload": {
+   "kind": "ADVANCE",
+   "from": "DISCOVER",
+   "to": "DEFINE",
+   "rationale": "DISCOVER complete"
+  },
+  "refs": []
+ },
+ {
+  "seq": 87,
+  "type": "external_input_received",
+  "importance": "HIGH",
+  "payload": {
+   "source": "payments-runbook",
+   "type": "DOCUMENT",
+   "label": "payments change runbook"
+  },
+  "refs": []
+ },
+ {
+  "seq": 88,
+  "type": "reasoning_completed",
+  "importance": "NORMAL",
+  "payload": {
+   "reasoning_id": "R-13",
+   "skill": "interpret_evidence",
+   "status": "SUCCESS",
+   "provider": "nvidia-nim",
+   "model": "nvidia/nemotron-3-super-120b-a12b",
+   "input_state_version": 20,
+   "schema_version": "1.0",
+   "order": 13,
+   "attempts": 1,
+   "input_digest": "edc5a0fca60a7467",
+   "evidence_refs": [
+    "H-DUPLICATE-CHARGE-REQUEST",
+    "H-IDEMPOTENCY-KEY-FAILURE",
+    "H-ORDER-DUPLICATION-IN-LEDGER",
+    "H-PSP-RETRY-LOGIC"
+   ],
+   "confidence": 0.95,
+   "fallback_used": null,
+   "errors": [],
+   "proposal": {
+    "interpretation": "The runbook specifies that re-enabling idempotency-key enforcement via the gateway operation set_capture_idempotency requires runtime confirmation by the payments operations manager (SH-OPS) and is reversible.",
+    "assertion_key": "gateway.set_capture_idempotency.requires_sh_ops_confirmation",
+    "assertion_value": true,
+    "claim_assertion_key": "",
+    "claim_assertion_value": "",
+    "hypothesis_effects": [
+     {
+      "hypothesis": "H-DUPLICATE-CHARGE-REQUEST",
+      "effect": "NEUTRAL",
+      "rationale": "Observation describes authorization for re-enabling idempotency, does not inform about frontend double-submit cause."
+     },
+     {
+      "hypothesis": "H-IDEMPOTENCY-KEY-FAILURE",
+      "effect": "NEUTRAL",
+      "rationale": "Observation does not confirm or refute that disabled enforcement causes duplicates."
+     },
+     {
+      "hypothesis": "H-ORDER-DUPLICATION-IN-LEDGER",
+      "effect": "NEUTRAL",
+      "rationale": "Observation does not address order duplication."
+     },
+     {
+      "hypothesis": "H-PSP-RETRY-LOGIC",
+      "effect": "NEUTRAL",
+      "rationale": "Observation does not address PSP retry logic."
+     }
+    ],
+    "new_hypotheses": [],
+    "fact_candidates": [],
+    "unknown_resolutions": [],
+    "authorization_candidates": [],
+    "contradiction_assessment": {
+     "relation": "UNRELATED",
+     "target_type": "NONE",
+     "target_refs": [],
+     "materiality": "LOW",
+     "problem_invalidating": false,
+     "rationale": "Observation does not contradict any premise of the problem definition; it only describes a procedural requirement for the solution."
+    },
+    "vob_proposals": [],
+    "follow_up_actions": [],
+    "confidence": 0.95
+   }
+  },
+  "refs": [
+   "H-DUPLICATE-CHARGE-REQUEST",
+   "H-IDEMPOTENCY-KEY-FAILURE",
+   "H-ORDER-DUPLICATION-IN-LEDGER",
+   "H-PSP-RETRY-LOGIC"
+  ]
+ },
+ {
+  "seq": 89,
+  "type": "state_committed",
+  "importance": "NORMAL",
+  "payload": {
+   "reason": "evidence E-07",
+   "version": 21,
+   "diff": [
+    {
+     "kind": "NEW",
+     "collection": "evidence",
+     "id": "E-07",
+     "importance": "LOW"
+    }
+   ]
+  },
+  "refs": []
+ },
+ {
+  "seq": 90,
+  "type": "evidence_added",
+  "importance": "NORMAL",
+  "payload": {
+   "evidence": "E-07",
+   "source": "payments-runbook"
+  },
+  "refs": [
+   "E-07"
+  ]
+ },
+ {
+  "seq": 91,
+  "type": "proposal_accepted",
+  "importance": "NORMAL",
+  "payload": {
+   "skill": "interpret_evidence",
+   "reasoning_id": "R-13",
+   "detail": {
+    "evidence": "E-07",
+    "assertion": "gateway.set_capture_idempotency.requires_sh_ops_confirmation",
+    "supports": [],
+    "contradicts": [],
+    "assessment": "NONE",
+    "challenge_raised": false
+   }
+  },
+  "refs": [
+   "E-07"
+  ]
+ },
+ {
+  "seq": 92,
+  "type": "state_committed",
+  "importance": "NORMAL",
+  "payload": {
+   "reason": "DEFINE Gate FAIL",
+   "version": 22,
+   "diff": []
+  },
+  "refs": []
+ },
+ {
+  "seq": 93,
+  "type": "define_gate_result",
+  "importance": "CRITICAL",
+  "payload": {
+   "result": "FAIL",
+   "findings": [
+    {
+     "check": "unknown",
+     "severity": "CONDITIONAL",
+     "message": "critical unknown U-UNK-02 deferred to VOB-U-UNK-02"
+    },
+    {
+     "check": "authority",
+     "severity": "BLOCKING",
+     "message": "protected action set_capture_idempotency: authority owner / authorization unknown"
+    }
+   ],
+   "vobs": [
+    "VOB-U-UNK-02"
+   ]
+  },
+  "refs": []
+ },
+ {
+  "seq": 94,
+  "type": "vob_created",
+  "importance": "NORMAL",
+  "payload": {
+   "vob": "VOB-U-UNK-02",
+   "required_before": "BEFORE_PROTECTED_ACTION"
+  },
+  "refs": [
+   "VOB-U-UNK-02"
+  ]
+ },
+ {
+  "seq": 95,
+  "type": "unknown_deferred",
+  "importance": "NORMAL",
+  "payload": {
+   "unknown": "U-UNK-02",
+   "vob": "VOB-U-UNK-02"
+  },
+  "refs": []
+ },
+ {
+  "seq": 96,
+  "type": "reasoning_completed",
+  "importance": "NORMAL",
+  "payload": {
+   "reasoning_id": "R-14",
+   "skill": "interpret_evidence",
+   "status": "SUCCESS",
+   "provider": "nvidia-nim",
+   "model": "nvidia/nemotron-3-super-120b-a12b",
+   "input_state_version": 22,
+   "schema_version": "1.0",
+   "order": 14,
+   "attempts": 1,
+   "input_digest": "05e721a025299fe9",
+   "evidence_refs": [
+    "H-DUPLICATE-CHARGE-REQUEST",
+    "H-IDEMPOTENCY-KEY-FAILURE",
+    "H-ORDER-DUPLICATION-IN-LEDGER",
+    "H-PSP-RETRY-LOGIC"
+   ],
+   "confidence": 0.95,
+   "fallback_used": null,
+   "errors": [],
+   "proposal": {
+    "interpretation": "The runbook confirms that enabling idempotency-key enforcement via the gateway operation set_capture_idempotency requires runtime confirmation by the payments operations manager (SH-OPS) and is reversible, indicating a procedural gate for the proposed fix.",
+    "assertion_key": "gateway.set_capture_idempotency.requires_sh_ops_confirmation",
+    "assertion_value": "True",
+    "claim_assertion_key": "",
+    "claim_assertion_value": "",
+    "hypothesis_effects": [
+     {
+      "hypothesis": "H-DUPLICATE-CHARGE-REQUEST",
+      "effect": "NEUTRAL",
+      "rationale": "Observation concerns procedural approval for re-enabling idempotency, not the causal mechanism of duplicate charges."
+     },
+     {
+      "hypothesis": "H-IDEMPOTENCY-KEY-FAILURE",
+      "effect": "NEUTRAL",
+      "rationale": "Observation does not alter the claim that disabled idempotency enables duplicate captures."
+     },
+     {
+      "hypothesis": "H-ORDER-DUPLICATION-IN-LEDGER",
+      "effect": "NEUTRAL",
+      "rationale": "Observation does not inform on order duplication processes."
+     },
+     {
+      "hypothesis": "H-PSP-RETRY-LOGIC",
+      "effect": "NEUTRAL",
+      "rationale": "Observation does not affect PSP retry logic hypothesis."
+     }
+    ],
+    "new_hypotheses": [],
+    "fact_candidates": [],
+    "unknown_resolutions": [],
+    "authorization_candidates": [
+     {
+      "action": "set_capture_idempotency",
+      "resource": "gateway-config",
+      "authority_holder": "SH-OPS",
+      "scope_target": "gateway-config",
+      "conditions": [
+       "runtime confirmation by SH-OPS"
+      ],
+      "rationale": "Runbook states set_capture_idempotency may be executed by automation only after SH-OPS confirms it at runtime."
+     }
+    ],
+    "contradiction_assessment": {
+     "relation": "UNRELATED",
+     "target_type": "HYPOTHESIS",
+     "target_refs": [],
+     "materiality": "LOW",
+     "problem_invalidating": false,
+     "rationale": "Observation pertains to procedural control, not the problem premise or solution validity."
+    },
+    "vob_proposals": [],
+    "follow_up_actions": [],
+    "confidence": 0.95
+   }
+  },
+  "refs": [
+   "H-DUPLICATE-CHARGE-REQUEST",
+   "H-IDEMPOTENCY-KEY-FAILURE",
+   "H-ORDER-DUPLICATION-IN-LEDGER",
+   "H-PSP-RETRY-LOGIC"
+  ]
+ },
+ {
+  "seq": 97,
+  "type": "state_committed",
+  "importance": "NORMAL",
+  "payload": {
+   "reason": "domain authorization for set_capture_idempotency from E-07",
+   "version": 23,
+   "diff": [
+    {
+     "kind": "NEW",
+     "collection": "domain_authorizations",
+     "id": "DA-SET-CAPTURE-IDEMPOTENCY",
+     "importance": "HIGH"
+    }
+   ]
+  },
+  "refs": []
+ },
+ {
+  "seq": 98,
+  "type": "proposal_accepted",
+  "importance": "NORMAL",
+  "payload": {
+   "skill": "interpret_evidence",
+   "reasoning_id": "R-14",
+   "detail": {
+    "evidence": "E-07",
+    "authorizations": [
+     "DA-SET-CAPTURE-IDEMPOTENCY"
+    ],
+    "mode": "authority recheck"
+   }
+  },
+  "refs": []
+ },
+ {
+  "seq": 99,
+  "type": "state_committed",
+  "importance": "NORMAL",
+  "payload": {
+   "reason": "DEFINE Gate CONDITIONAL_PASS",
+   "version": 24,
+   "diff": [
+    {
+     "kind": "DEFERRED",
+     "collection": "unknowns",
+     "id": "U-UNK-02",
+     "importance": "HIGH"
+    },
+    {
+     "kind": "NEW",
+     "collection": "verification_obligations",
+     "id": "VOB-U-UNK-02",
+     "importance": "HIGH"
+    }
+   ]
+  },
+  "refs": []
+ },
+ {
+  "seq": 100,
+  "type": "define_gate_result",
+  "importance": "HIGH",
+  "payload": {
+   "result": "CONDITIONAL_PASS",
+   "findings": [
+    {
+     "check": "unknown",
+     "severity": "CONDITIONAL",
+     "message": "critical unknown U-UNK-02 deferred to VOB-U-UNK-02"
+    }
+   ],
+   "vobs": [
+    "VOB-U-UNK-02"
+   ]
+  },
+  "refs": []
+ },
+ {
+  "seq": 101,
+  "type": "vob_created",
+  "importance": "NORMAL",
+  "payload": {
+   "vob": "VOB-U-UNK-02",
+   "required_before": "BEFORE_PROTECTED_ACTION"
+  },
+  "refs": [
+   "VOB-U-UNK-02"
+  ]
+ },
+ {
+  "seq": 102,
+  "type": "unknown_deferred",
+  "importance": "NORMAL",
+  "payload": {
+   "unknown": "U-UNK-02",
+   "vob": "VOB-U-UNK-02"
+  },
+  "refs": []
+ },
+ {
+  "seq": 103,
+  "type": "safe_point_reached",
+  "importance": "NORMAL",
+  "payload": {
+   "kind": "BEFORE_TRANSITION"
+  },
+  "refs": []
+ },
+ {
+  "seq": 104,
+  "type": "phase_transition",
+  "importance": "NORMAL",
+  "payload": {
+   "kind": "ADVANCE",
+   "from": "DEFINE",
+   "to": "DESIGN",
+   "rationale": "DEFINE complete"
+  },
+  "refs": []
+ },
+ {
+  "seq": 105,
+  "type": "reasoning_completed",
+  "importance": "NORMAL",
+  "payload": {
+   "reasoning_id": "R-15",
+   "skill": "structural_remedy",
+   "status": "SUCCESS",
+   "provider": "nvidia-nim",
+   "model": "nvidia/nemotron-3-super-120b-a12b",
+   "input_state_version": 24,
+   "schema_version": "1.0",
+   "order": 15,
+   "attempts": 1,
+   "input_digest": "c06dc5a9e4f52894",
+   "evidence_refs": [
+    "E-02",
+    "E-03",
+    "E-06",
+    "E-07",
+    "U-UNK-02"
+   ],
+   "confidence": 0.95,
+   "fallback_used": null,
+   "errors": [],
+   "proposal": {
+    "root_cause": "Duplicate charges occur because gateway idempotency-key enforcement is disabled, allowing timeout retries to be resent without an idempotency key; re-enabling enforcement will prevent these duplicates.",
+    "remedies": [
+     {
+      "key": "R1",
+      "description": "Re-enable idempotency-key enforcement on the payment gateway via the set_capture_idempotency operation (E-07), restoring the configuration that was turned off on 2026-09-09 (E-02) and prevents gateway timeout retries without the key from creating duplicate charges (E-03, E-06).",
+      "removes_root_cause": true,
+      "feasible_in_contest_time": true,
+      "constraint_feasible": true,
+      "feasibility_rationale": "The change is a single gateway configuration update that can be executed in seconds; runtime confirmation by SH-OPS is required per constraint K-GW and can be obtained.",
+      "residual_gap": "Other potential sources of duplicate charges remain unknown (U-UNK-02)."
+     }
+    ],
+    "why_agent_needed": "",
+    "confidence": 0.95
+   }
+  },
+  "refs": [
+   "E-02",
+   "E-03",
+   "E-06",
+   "E-07",
+   "U-UNK-02"
+  ]
+ },
+ {
+  "seq": 106,
+  "type": "design_stage_recorded",
+  "importance": "NORMAL",
+  "payload": {
+   "stage": "ROOT_PROBLEM",
+   "summary": "Duplicate charges occur because gateway idempotency-key enforcement is disabled, allowing timeout retries to be resent without an idempotency key; re-enabling enforcement will prevent these duplicates."
+  },
+  "refs": []
+ },
+ {
+  "seq": 107,
+  "type": "design_stage_recorded",
+  "importance": "NORMAL",
+  "payload": {
+   "stage": "STRUCTURAL_REMEDY",
+   "summary": "1 candidate(s)"
+  },
+  "refs": []
+ },
+ {
+  "seq": 108,
+  "type": "design_stage_recorded",
+  "importance": "NORMAL",
+  "payload": {
+   "stage": "FEASIBILITY",
+   "summary": "removes_root_cause=True feasible_in_time=True"
+  },
+  "refs": []
+ },
+ {
+  "seq": 109,
+  "type": "proposal_accepted",
+  "importance": "NORMAL",
+  "payload": {
+   "skill": "structural_remedy",
+   "reasoning_id": "R-15",
+   "detail": {
+    "remedies": [
+     "SR-R1"
+    ],
+    "removes_root_cause": true,
+    "feasible_in_time": true
+   }
+  },
+  "refs": []
+ },
+ {
+  "seq": 110,
+  "type": "reasoning_completed",
+  "importance": "NORMAL",
+  "payload": {
+   "reasoning_id": "R-16",
+   "skill": "agent_design",
+   "status": "SUCCESS",
+   "provider": "nvidia-nim",
+   "model": "nvidia/nemotron-3-super-120b-a12b",
+   "input_state_version": 24,
+   "schema_version": "1.0",
+   "order": 16,
+   "attempts": 1,
+   "input_digest": "52e22de8508ad1e1",
+   "evidence_refs": [
+    "VOB-U-UNK-02"
+   ],
+   "confidence": 0.95,
+   "fallback_used": null,
+   "errors": [],
+   "proposal": {
+    "deterministic_rules_cover_cases": true,
+    "llm_reasoning_adds_value": false,
+    "autonomous_iteration_adds_value": false,
+    "residual_exceptions": true,
+    "detection_needed": true,
+    "why_agent": "Deterministic rule (re-enable idempotency via set_capture_idempotency) suffices; no LLM or iteration needed; residual unknown about other duplicate sources remains; detection needed to verify fix and monitor for other causes.",
+    "bridge_sunset_condition": "VOB-U-UNK-02 status changes from OPEN to RESOLVED/CLOSED and gate re‑evaluates PASS",
+    "deterministic_components": [],
+    "release_scope": [],
+    "minimum_useful_scope": [],
+    "scope_dependencies": [],
+    "role_suggestion": [],
+    "capabilities": [],
+    "llm_required_for": [],
+    "tools": [],
+    "authority_boundary": [],
+    "human_gate": [],
+    "termination": "bridge_sunset_condition",
+    "validation": [],
+    "known_limitations": [],
+    "vob_proposals": [],
+    "confidence": 0.95
+   }
+  },
+  "refs": [
+   "VOB-U-UNK-02"
+  ]
+ },
+ {
+  "seq": 111,
+  "type": "reasoning_completed",
+  "importance": "NORMAL",
+  "payload": {
+   "reasoning_id": "R-17",
+   "skill": "agent_design",
+   "status": "SUCCESS",
+   "provider": "nvidia-nim",
+   "model": "nvidia/nemotron-3-super-120b-a12b",
+   "input_state_version": 24,
+   "schema_version": "1.0",
+   "order": 17,
+   "attempts": 1,
+   "input_digest": "2157d8ab21ed12db",
+   "evidence_refs": [
+    "E-02",
+    "E-03",
+    "E-06",
+    "M-MET-01",
+    "U-UNK-02",
+    "VOB-U-UNK-02"
+   ],
+   "confidence": 0.85,
+   "fallback_used": null,
+   "errors": [],
+   "proposal": {
+    "deterministic_rules_cover_cases": true,
+    "llm_reasoning_adds_value": false,
+    "autonomous_iteration_adds_value": false,
+    "residual_exceptions": true,
+    "detection_needed": true,
+    "why_agent": "Deterministic rule: re-enabling idempotency-key enforcement stops duplicate charges from missing-key retries (E-02, E-03, E-06). LLM adds no value as no ambiguous data; autonomous iteration not needed; residual exception: other duplicate sources unknown (U-UNK-02); detection needed to verify fix effect (M-MET-01).",
+    "bridge_sunset_condition": "VOB-U-UNK-02 resolved",
+    "deterministic_components": [],
+    "release_scope": [],
+    "minimum_useful_scope": [],
+    "scope_dependencies": [],
+    "role_suggestion": [
+     "PRIMARY_SOLUTION"
+    ],
+    "capabilities": [],
+    "llm_required_for": [],
+    "tools": [],
+    "authority_boundary": [],
+    "human_gate": [],
+    "termination": "NO",
+    "validation": [],
+    "known_limitations": [],
+    "vob_proposals": [],
+    "confidence": 0.85
+   }
+  },
+  "refs": [
+   "E-02",
+   "E-03",
+   "E-06",
+   "M-MET-01",
+   "U-UNK-02",
+   "VOB-U-UNK-02"
+  ]
+ },
+ {
+  "seq": 112,
+  "type": "phase_transition",
+  "importance": "CRITICAL",
+  "payload": {
+   "kind": "HOLD",
+   "rationale": "no releasable scope: every intended item is blocked by an open critical VOB"
+  },
+  "refs": []
+ }
+]

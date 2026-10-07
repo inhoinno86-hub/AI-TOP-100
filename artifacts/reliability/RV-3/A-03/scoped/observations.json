@@ -1,0 +1,3144 @@
+{
+ "variant": "scoped",
+ "probes": {
+  "P1_P2_precanonical": {
+   "problem_status": "DRAFT",
+   "gate_result": "None",
+   "evidence_used": "E-06",
+   "decide_recovery_kind_on_draft": "HOLD",
+   "redefine_on_draft_error": "IllegalTransitionError: PD-1 v1 is DRAFT (gate None), not an ACTIVE canonical Problem: pre-canonical changes are hypothesis_changed / continue DEFINE, never redefine",
+   "redefine_on_draft_accepted": false,
+   "problem_status_after": "DRAFT",
+   "problem_invalidated_events": 0
+  }
+ },
+ "checkpoints": {
+  "phase1": {
+   "ok": true,
+   "problem": "PD-1 v1 ACTIVE",
+   "solution_design": true,
+   "agent_spec": true,
+   "vobs": [
+    "VOB-U-SPECIFIC-RULE-CHANGE"
+   ],
+   "success_criteria": [
+    "SC-DISPUTE-VOLUME-BASELINE"
+   ],
+   "plan": "PLAN-1"
+  }
+ },
+ "catalog": {
+  "discover": [
+   "crm-tickets:dispute_response_times",
+   "crm-tickets:dispute_volume_monthly",
+   "billing-db:disputed_bills_by_read_type",
+   "route-log:route_completion_aug_sep",
+   "mdms-export:read_events_for_disputed_estimated",
+   "billing-db:tariff_change_log",
+   "interview:SH-FIELD",
+   "interview:SH-BILL"
+  ],
+  "reprofile": [
+   "billing-config:validation_rule_changes",
+   "mdms-export:meter_firmware_units"
+  ],
+  "execute@v1": [
+   "route-log:lagging_routes",
+   "billing-db:accounts_estimated_last_cycle"
+  ],
+  "execute@v2": [
+   "billing-db:import_status_estimated_disputed",
+   "billing-db:affected_accounts_v42",
+   "mdms-export:reads_for_accounts"
+  ]
+ },
+ "late_ref": "mdms-export:read_events_for_disputed_estimated",
+ "provider": {
+  "mode": "api",
+  "model": null,
+  "transcript": null,
+  "config": {
+   "name": "nvidia-nim",
+   "model": "nvidia/nemotron-3-super-120b-a12b",
+   "base_url": "https://integrate.api.nvidia.com/v1",
+   "api_key_env": "NVIDIA_API_KEY",
+   "structured_mode": "json_schema",
+   "temperature": 0.2,
+   "max_tokens": 8192,
+   "timeout_seconds": 240.0
+  },
+  "faults": null
+ },
+ "define_gate_v1": {
+  "result": "CONDITIONAL_PASS",
+  "findings": [
+   [
+    "unknown",
+    "CONDITIONAL",
+    "critical unknown U-SPECIFIC-RULE-CHANGE deferred to VOB-U-SPECIFIC-RULE-CHANGE"
+   ]
+  ],
+  "vobs": [
+   "VOB-U-SPECIFIC-RULE-CHANGE"
+  ]
+ },
+ "inventory_define_v1": {
+  "problem_meta_version": 25,
+  "phase": "DEFINE",
+  "execution_status": "RUNNING",
+  "active_problem": {
+   "id": "PD-1",
+   "version": 1,
+   "requested_solution": "Dispute tickets doubled since August. Build an AI agent that auto-answers billing dispute tickets and fixes whatever is causing the wrong bills.",
+   "symptoms": [
+    "Dispute ticket volume rose from ~610 in June and 590 in July to 1,180 in August and 1,260 in September."
+   ],
+   "root_problem": "Changes to billing import validation rules after August cause systematic mis‑billing, which drives the observed increase in dispute tickets.",
+   "evidence_refs": [
+    "E-01",
+    "E-04"
+   ],
+   "intended_scope": [
+    {
+     "action": "identify_billing_rule_change",
+     "target": "DA-RULES"
+    },
+    {
+     "action": "revert_or_fix_billing_import_validation_rules",
+     "target": "DA-RULES"
+    },
+    {
+     "action": "monitor_dispute_volume",
+     "target": "DA-TICKET"
+    }
+   ],
+   "protected_actions": [],
+   "depends_on_mappings": [],
+   "depends_on_handoffs": [],
+   "depends_on_exports": [],
+   "required_tools": [
+    "billing-db",
+    "crm-tickets",
+    "billing-config"
+   ],
+   "success_criteria": [
+    "SC-DISPUTE-VOLUME-BASELINE"
+   ],
+   "metric_ids": [
+    "M-DISPUTE-TICKET-VOLUME-RATE"
+   ],
+   "status": "ACTIVE",
+   "gate_result": "CONDITIONAL_PASS",
+   "invalidated_by": [],
+   "supersedes": null,
+   "superseded_by": null,
+   "challenges": []
+  },
+  "problem_definition_history": [],
+  "solution_design": null,
+  "agent_spec": null,
+  "verification_obligations": {
+   "VOB-U-SPECIFIC-RULE-CHANGE": {
+    "status": "OPEN",
+    "required_before": "BEFORE_RELEASE",
+    "blocking_scope": [
+     "identify_billing_rule_change:DA-RULES",
+     "revert_or_fix_billing_import_validation_rules:DA-RULES"
+    ],
+    "question": "Which specific rule(s) in the billing import validation rule change log caused the mis‑billing?",
+    "linked_unknown": "U-SPECIFIC-RULE-CHANGE"
+   }
+  },
+  "hypotheses": {
+   "H-REQ-FRAME-AI-AGENT": {
+    "status": "SUPPORTED",
+    "supporting": [
+     "E-01"
+    ],
+    "contradicting": []
+   },
+   "H-AMI-READ-FAILURE": {
+    "status": "REJECTED",
+    "supporting": [],
+    "contradicting": [
+     "E-04"
+    ]
+   },
+   "H-FIELD-READ-ISSUE": {
+    "status": "REJECTED",
+    "supporting": [
+     "E-02",
+     "E-05"
+    ],
+    "contradicting": [
+     "E-04"
+    ]
+   },
+   "H-BILLING-RULE-CHANGE": {
+    "status": "CONFIRMED",
+    "supporting": [
+     "E-04"
+    ],
+    "contradicting": []
+   }
+  },
+  "assumptions": {
+   "A-NO-TARIFF-CHANGE": "ACTIVE",
+   "A-FIELD-READ-NOT-CAUSE": "ACTIVE"
+  },
+  "unknowns": {
+   "U-SPECIFIC-RULE-CHANGE": "DEFERRED",
+   "U-EFFECTIVENESS-OF-FIX": "OPEN"
+  },
+  "success_criteria": [
+   "SC-DISPUTE-VOLUME-BASELINE"
+  ],
+  "active_problem_success_criteria": [
+   "SC-DISPUTE-VOLUME-BASELINE"
+  ],
+  "claims": {
+   "CL-01": {
+    "status": "UNVERIFIED",
+    "evidence_refs": []
+   },
+   "CL-02": {
+    "status": "UNVERIFIED",
+    "evidence_refs": []
+   },
+   "CL-03": {
+    "status": "UNVERIFIED",
+    "evidence_refs": []
+   }
+  },
+  "conflicts": {},
+  "evidence": {
+   "E-01": {
+    "status": "ACTIVE",
+    "authority": "AUTHORITATIVE",
+    "source": "crm-tickets",
+    "content": "crm-tickets.dispute_volume_monthly → 4 record(s): {\"disputes\": 610, \"month\": \"2026-06\"}; {\"disputes\": 590, \"month\": \"2026-07\"}; {\"disputes\": 1180, \"month\": \"2026-08\"}; {\"disputes\": 1260, \"month\": \"2026-09\"}",
+    "interpretation_history": [
+     {
+      "interpretation": "Observation shows dispute ticket volume rose from ~610 in June and 590 in July to 1,180 in August and 1,260 in September, confirming a roughly two‑fold increase starting in August. This validates the claim that dispute tickets doubled since August but does not indicate the underlying cause.",
+      "reason": "proposed by reasoner R-3 (nvidia-nim/nvidia/nemotron-3-super-120b-a12b)",
+      "event_seq": null
+     }
+    ],
+    "provenance": {
+     "source_type": "TOOL",
+     "source_id": "crm-tickets",
+     "method": "dispute_volume_monthly",
+     "derived_from": [
+      "crm-tickets:dispute_volume_monthly",
+      "R-3"
+     ],
+     "event_seq": 11,
+     "recorded_at_minute": 18.0
+    }
+   },
+   "E-02": {
+    "status": "ACTIVE",
+    "authority": "AUTHORITATIVE",
+    "source": "route-log",
+    "content": "route-log.route_completion_aug_sep → 1 record(s): {\"completion\": 0.88, \"manual_read_accounts\": 9200, \"period\": \"2026-08..09\", \"target\": 0.95}",
+    "interpretation_history": [
+     {
+      "interpretation": "Route completion for August‑September is 0.88, below the 0.95 target, indicating sub‑optimal field manual read performance.",
+      "reason": "proposed by reasoner R-4 (nvidia-nim/nvidia/nemotron-3-super-120b-a12b)",
+      "event_seq": null
+     }
+    ],
+    "provenance": {
+     "source_type": "TOOL",
+     "source_id": "route-log",
+     "method": "route_completion_aug_sep",
+     "derived_from": [
+      "route-log:route_completion_aug_sep",
+      "R-4"
+     ],
+     "event_seq": 24,
+     "recorded_at_minute": 23.0
+    }
+   },
+   "E-03": {
+    "status": "ACTIVE",
+    "authority": "AUTHORITATIVE",
+    "source": "billing-db",
+    "content": "billing-db.tariff_change_log → 0 record(s): none",
+    "interpretation_history": [
+     {
+      "interpretation": "The tariff change log shows no recorded tariff changes, indicating that tariff modifications are not a source of the billing dispute surge.",
+      "reason": "proposed by reasoner R-5 (nvidia-nim/nvidia/nemotron-3-super-120b-a12b)",
+      "event_seq": null
+     }
+    ],
+    "provenance": {
+     "source_type": "TOOL",
+     "source_id": "billing-db",
+     "method": "tariff_change_log",
+     "derived_from": [
+      "billing-db:tariff_change_log",
+      "R-5"
+     ],
+     "event_seq": 36,
+     "recorded_at_minute": 26.0
+    }
+   },
+   "E-04": {
+    "status": "ACTIVE",
+    "authority": "AUTHORITATIVE",
+    "source": "billing-db",
+    "content": "billing-db.disputed_bills_by_read_type → 2 record(s): {\"count\": 1240, \"read_type\": \"ESTIMATED\"}; {\"count\": 1785, \"read_type\": \"ACTUAL\"}",
+    "interpretation_history": [
+     {
+      "interpretation": "The observation shows that disputed bills are roughly split between estimated (1240) and actual (1785) reads, indicating that the dispute surge is not limited to estimation errors; actual‑read bills also generate many disputes.",
+      "reason": "proposed by reasoner R-7 (nvidia-nim/nvidia/nemotron-3-super-120b-a12b)",
+      "event_seq": null
+     }
+    ],
+    "provenance": {
+     "source_type": "TOOL",
+     "source_id": "billing-db",
+     "method": "disputed_bills_by_read_type",
+     "derived_from": [
+      "billing-db:disputed_bills_by_read_type",
+      "R-7"
+     ],
+     "event_seq": 47,
+     "recorded_at_minute": 31.0
+    }
+   },
+   "E-05": {
+    "status": "ACTIVE",
+    "authority": "NON_AUTHORITATIVE",
+    "source": "SH-FIELD",
+    "content": "We are short three readers since July; routes run late, so those customers get estimated bills.",
+    "interpretation_history": [
+     {
+      "interpretation": "The stakeholder reports a shortage of three field readers since July, causing routes to run late and resulting in estimated bills for affected customers. This suggests field staffing issues may be contributing to estimation errors and subsequent disputes.",
+      "reason": "proposed by reasoner R-8 (nvidia-nim/nvidia/nemotron-3-super-120b-a12b)",
+      "event_seq": null
+     }
+    ],
+    "provenance": {
+     "source_type": "STAKEHOLDER",
+     "source_id": "SH-FIELD",
+     "method": "interview",
+     "derived_from": [
+      "interview:SH-FIELD",
+      "R-8"
+     ],
+     "event_seq": 65,
+     "recorded_at_minute": 36.0
+    }
+   },
+   "E-06": {
+    "status": "ACTIVE",
+    "authority": "AUTHORITATIVE",
+    "source": "crm-tickets",
+    "content": "crm-tickets.dispute_response_times → 1 record(s): {\"median_days\": 1.6, \"p90_days\": 2.8, \"sla_days\": 3.0, \"tickets\": 2440}",
+    "interpretation_history": [
+     {
+      "interpretation": "The dispute response times remain within the SLA (median 1.6 days, p90 2.8 days < SLA 3.0 days) despite a high volume of 2,440 tickets, indicating that the surge in disputes is not causing delayed responses.",
+      "reason": "proposed by reasoner R-10 (nvidia-nim/nvidia/nemotron-3-super-120b-a12b)",
+      "event_seq": null
+     }
+    ],
+    "provenance": {
+     "source_type": "TOOL",
+     "source_id": "crm-tickets",
+     "method": "dispute_response_times",
+     "derived_from": [
+      "crm-tickets:dispute_response_times",
+      "R-10"
+     ],
+     "event_seq": 74,
+     "recorded_at_minute": 41.0
+    }
+   },
+   "E-07": {
+    "status": "ACTIVE",
+    "authority": "NON_AUTHORITATIVE",
+    "source": "SH-BILL",
+    "content": "There has been no tariff change this year.",
+    "interpretation_history": [
+     {
+      "interpretation": "The stakeholder reports no tariff change this year, indicating that tariff modifications are not a source of the billing dispute surge.",
+      "reason": "proposed by reasoner R-11 (nvidia-nim/nvidia/nemotron-3-super-120b-a12b)",
+      "event_seq": null
+     }
+    ],
+    "provenance": {
+     "source_type": "STAKEHOLDER",
+     "source_id": "SH-BILL",
+     "method": "interview",
+     "derived_from": [
+      "interview:SH-BILL",
+      "R-11"
+     ],
+     "event_seq": 84,
+     "recorded_at_minute": 43.0
+    }
+   },
+   "E-08": {
+    "status": "ACTIVE",
+    "authority": "AUTHORITATIVE",
+    "source": "fieldco-service-contract",
+    "content": "Service contract §4.2: utility may request route priority changes; executed after Field Operations Manager confirmation.",
+    "interpretation_history": [
+     {
+      "interpretation": "The observation confirms that route priority changes require Field Operations Manager confirmation, aligning with the existing dispatch approval constraint.",
+      "reason": "proposed by reasoner R-15 (nvidia-nim/nvidia/nemotron-3-super-120b-a12b)",
+      "event_seq": null
+     }
+    ],
+    "provenance": {
+     "source_type": "DOCUMENT",
+     "source_id": "fieldco-service-contract",
+     "method": "document review",
+     "derived_from": [
+      "R-15"
+     ],
+     "event_seq": 106,
+     "recorded_at_minute": 55.0
+    }
+   }
+  },
+  "evidence_revisions": {},
+  "decision_log": [
+   {
+    "id": "D-1",
+    "phase": "DISCOVER",
+    "decision": "DEFINE proposal R-14",
+    "rationale": "causal chain: Billing import validation rules are modified after August → Modified rules introduce systematic errors in bill calculation → Bills contain incorrect amounts (both estimated and actual reads) → Customers dispute the incorrect bills → Dispute ticket volume rises; rejected framings: [('H-REQ-FRAME-AI-AGENT', 'Addresses symptom (ticket response) rather than root cause; no evidence that an AI agent reduces mis‑billing, and automated bill writes would violate K‑BILLWRITE without a Human Gate.')]",
+    "evidence_refs": [
+     "E-01",
+     "E-04"
+    ],
+    "event_seq": null
+   },
+   {
+    "id": "D-2",
+    "phase": "DEFINE",
+    "decision": "DEFINE Gate CONDITIONAL_PASS",
+    "rationale": "[CONDITIONAL] critical unknown U-SPECIFIC-RULE-CHANGE deferred to VOB-U-SPECIFIC-RULE-CHANGE",
+    "evidence_refs": [],
+    "event_seq": null
+   }
+  ],
+  "domain_authorizations": {
+   "DA-PUSH-ROUTE-UPDATE": "GRANTED"
+  },
+  "plan": null,
+  "pending_protected_action": null,
+  "executed_actions": [],
+  "transition_candidate": null,
+  "recovery": {
+   "candidate_transition": "REPLAN",
+   "rationale": "retry stopped (NOT_TRANSIENT); alternate path crm-tickets:dispute_response_times"
+  },
+  "release_decisions": [],
+  "supervision": {
+   "current_problem": "Changes to billing import validation rules after August cause systematic mis‑billing, which drives the observed increase in dispute tickets.",
+   "top_hypotheses": [],
+   "evidence_revisions": [],
+   "pending_verification_obligations": [],
+   "intervention": {
+    "required": false,
+    "reason": null,
+    "gate_id": null
+   },
+   "live_summary_tail": [
+    "[HIGH] STRATEGY_CHANGING_FAILURE: retry stopped (NOT_TRANSIENT); alternate path crm-tickets:dispute_response_times",
+    "[HIGH] DEFINE_GATE_RESULT: CONDITIONAL_PASS (1 findings)"
+   ]
+  }
+ },
+ "inventory_v1": {
+  "problem_meta_version": 27,
+  "phase": "EXECUTE",
+  "execution_status": "RUNNING",
+  "active_problem": {
+   "id": "PD-1",
+   "version": 1,
+   "requested_solution": "Dispute tickets doubled since August. Build an AI agent that auto-answers billing dispute tickets and fixes whatever is causing the wrong bills.",
+   "symptoms": [
+    "Dispute ticket volume rose from ~610 in June and 590 in July to 1,180 in August and 1,260 in September."
+   ],
+   "root_problem": "Changes to billing import validation rules after August cause systematic mis‑billing, which drives the observed increase in dispute tickets.",
+   "evidence_refs": [
+    "E-01",
+    "E-04"
+   ],
+   "intended_scope": [
+    {
+     "action": "identify_billing_rule_change",
+     "target": "DA-RULES"
+    },
+    {
+     "action": "revert_or_fix_billing_import_validation_rules",
+     "target": "DA-RULES"
+    },
+    {
+     "action": "monitor_dispute_volume",
+     "target": "DA-TICKET"
+    }
+   ],
+   "protected_actions": [],
+   "depends_on_mappings": [],
+   "depends_on_handoffs": [],
+   "depends_on_exports": [],
+   "required_tools": [
+    "billing-db",
+    "crm-tickets",
+    "billing-config"
+   ],
+   "success_criteria": [
+    "SC-DISPUTE-VOLUME-BASELINE"
+   ],
+   "metric_ids": [
+    "M-DISPUTE-TICKET-VOLUME-RATE"
+   ],
+   "status": "ACTIVE",
+   "gate_result": "CONDITIONAL_PASS",
+   "invalidated_by": [],
+   "supersedes": null,
+   "superseded_by": null,
+   "challenges": []
+  },
+  "problem_definition_history": [],
+  "solution_design": {
+   "id": "SD-1",
+   "problem_ref": "PD-1",
+   "problem_version": 1,
+   "agent_roles": [
+    "CONTROL_DETECTION"
+   ],
+   "structural_remedies": [
+    "SR-R1"
+   ],
+   "release_scope": [
+    "monitor_dispute_volume:DA-TICKET"
+   ]
+  },
+  "agent_spec": {
+   "identity": "agent-SD-1",
+   "problem_reference": "PD-1@v1",
+   "structural_role": [
+    "CONTROL_DETECTION"
+   ],
+   "verification_obligations": [
+    "VOB-U-SPECIFIC-RULE-CHANGE"
+   ],
+   "success_criteria": [
+    "SC-DISPUTE-VOLUME-BASELINE"
+   ]
+  },
+  "verification_obligations": {
+   "VOB-U-SPECIFIC-RULE-CHANGE": {
+    "status": "OPEN",
+    "required_before": "BEFORE_RELEASE",
+    "blocking_scope": [
+     "identify_billing_rule_change:DA-RULES",
+     "revert_or_fix_billing_import_validation_rules:DA-RULES"
+    ],
+    "question": "Which specific rule(s) in the billing import validation rule change log caused the mis‑billing?",
+    "linked_unknown": "U-SPECIFIC-RULE-CHANGE"
+   }
+  },
+  "hypotheses": {
+   "H-REQ-FRAME-AI-AGENT": {
+    "status": "SUPPORTED",
+    "supporting": [
+     "E-01"
+    ],
+    "contradicting": []
+   },
+   "H-AMI-READ-FAILURE": {
+    "status": "REJECTED",
+    "supporting": [],
+    "contradicting": [
+     "E-04"
+    ]
+   },
+   "H-FIELD-READ-ISSUE": {
+    "status": "REJECTED",
+    "supporting": [
+     "E-02",
+     "E-05"
+    ],
+    "contradicting": [
+     "E-04"
+    ]
+   },
+   "H-BILLING-RULE-CHANGE": {
+    "status": "CONFIRMED",
+    "supporting": [
+     "E-04"
+    ],
+    "contradicting": []
+   }
+  },
+  "assumptions": {
+   "A-NO-TARIFF-CHANGE": "ACTIVE",
+   "A-FIELD-READ-NOT-CAUSE": "ACTIVE"
+  },
+  "unknowns": {
+   "U-SPECIFIC-RULE-CHANGE": "DEFERRED",
+   "U-EFFECTIVENESS-OF-FIX": "OPEN"
+  },
+  "success_criteria": [
+   "SC-DISPUTE-VOLUME-BASELINE"
+  ],
+  "active_problem_success_criteria": [
+   "SC-DISPUTE-VOLUME-BASELINE"
+  ],
+  "claims": {
+   "CL-01": {
+    "status": "UNVERIFIED",
+    "evidence_refs": []
+   },
+   "CL-02": {
+    "status": "UNVERIFIED",
+    "evidence_refs": []
+   },
+   "CL-03": {
+    "status": "UNVERIFIED",
+    "evidence_refs": []
+   }
+  },
+  "conflicts": {},
+  "evidence": {
+   "E-01": {
+    "status": "ACTIVE",
+    "authority": "AUTHORITATIVE",
+    "source": "crm-tickets",
+    "content": "crm-tickets.dispute_volume_monthly → 4 record(s): {\"disputes\": 610, \"month\": \"2026-06\"}; {\"disputes\": 590, \"month\": \"2026-07\"}; {\"disputes\": 1180, \"month\": \"2026-08\"}; {\"disputes\": 1260, \"month\": \"2026-09\"}",
+    "interpretation_history": [
+     {
+      "interpretation": "Observation shows dispute ticket volume rose from ~610 in June and 590 in July to 1,180 in August and 1,260 in September, confirming a roughly two‑fold increase starting in August. This validates the claim that dispute tickets doubled since August but does not indicate the underlying cause.",
+      "reason": "proposed by reasoner R-3 (nvidia-nim/nvidia/nemotron-3-super-120b-a12b)",
+      "event_seq": null
+     }
+    ],
+    "provenance": {
+     "source_type": "TOOL",
+     "source_id": "crm-tickets",
+     "method": "dispute_volume_monthly",
+     "derived_from": [
+      "crm-tickets:dispute_volume_monthly",
+      "R-3"
+     ],
+     "event_seq": 11,
+     "recorded_at_minute": 18.0
+    }
+   },
+   "E-02": {
+    "status": "ACTIVE",
+    "authority": "AUTHORITATIVE",
+    "source": "route-log",
+    "content": "route-log.route_completion_aug_sep → 1 record(s): {\"completion\": 0.88, \"manual_read_accounts\": 9200, \"period\": \"2026-08..09\", \"target\": 0.95}",
+    "interpretation_history": [
+     {
+      "interpretation": "Route completion for August‑September is 0.88, below the 0.95 target, indicating sub‑optimal field manual read performance.",
+      "reason": "proposed by reasoner R-4 (nvidia-nim/nvidia/nemotron-3-super-120b-a12b)",
+      "event_seq": null
+     }
+    ],
+    "provenance": {
+     "source_type": "TOOL",
+     "source_id": "route-log",
+     "method": "route_completion_aug_sep",
+     "derived_from": [
+      "route-log:route_completion_aug_sep",
+      "R-4"
+     ],
+     "event_seq": 24,
+     "recorded_at_minute": 23.0
+    }
+   },
+   "E-03": {
+    "status": "ACTIVE",
+    "authority": "AUTHORITATIVE",
+    "source": "billing-db",
+    "content": "billing-db.tariff_change_log → 0 record(s): none",
+    "interpretation_history": [
+     {
+      "interpretation": "The tariff change log shows no recorded tariff changes, indicating that tariff modifications are not a source of the billing dispute surge.",
+      "reason": "proposed by reasoner R-5 (nvidia-nim/nvidia/nemotron-3-super-120b-a12b)",
+      "event_seq": null
+     }
+    ],
+    "provenance": {
+     "source_type": "TOOL",
+     "source_id": "billing-db",
+     "method": "tariff_change_log",
+     "derived_from": [
+      "billing-db:tariff_change_log",
+      "R-5"
+     ],
+     "event_seq": 36,
+     "recorded_at_minute": 26.0
+    }
+   },
+   "E-04": {
+    "status": "ACTIVE",
+    "authority": "AUTHORITATIVE",
+    "source": "billing-db",
+    "content": "billing-db.disputed_bills_by_read_type → 2 record(s): {\"count\": 1240, \"read_type\": \"ESTIMATED\"}; {\"count\": 1785, \"read_type\": \"ACTUAL\"}",
+    "interpretation_history": [
+     {
+      "interpretation": "The observation shows that disputed bills are roughly split between estimated (1240) and actual (1785) reads, indicating that the dispute surge is not limited to estimation errors; actual‑read bills also generate many disputes.",
+      "reason": "proposed by reasoner R-7 (nvidia-nim/nvidia/nemotron-3-super-120b-a12b)",
+      "event_seq": null
+     }
+    ],
+    "provenance": {
+     "source_type": "TOOL",
+     "source_id": "billing-db",
+     "method": "disputed_bills_by_read_type",
+     "derived_from": [
+      "billing-db:disputed_bills_by_read_type",
+      "R-7"
+     ],
+     "event_seq": 47,
+     "recorded_at_minute": 31.0
+    }
+   },
+   "E-05": {
+    "status": "ACTIVE",
+    "authority": "NON_AUTHORITATIVE",
+    "source": "SH-FIELD",
+    "content": "We are short three readers since July; routes run late, so those customers get estimated bills.",
+    "interpretation_history": [
+     {
+      "interpretation": "The stakeholder reports a shortage of three field readers since July, causing routes to run late and resulting in estimated bills for affected customers. This suggests field staffing issues may be contributing to estimation errors and subsequent disputes.",
+      "reason": "proposed by reasoner R-8 (nvidia-nim/nvidia/nemotron-3-super-120b-a12b)",
+      "event_seq": null
+     }
+    ],
+    "provenance": {
+     "source_type": "STAKEHOLDER",
+     "source_id": "SH-FIELD",
+     "method": "interview",
+     "derived_from": [
+      "interview:SH-FIELD",
+      "R-8"
+     ],
+     "event_seq": 65,
+     "recorded_at_minute": 36.0
+    }
+   },
+   "E-06": {
+    "status": "ACTIVE",
+    "authority": "AUTHORITATIVE",
+    "source": "crm-tickets",
+    "content": "crm-tickets.dispute_response_times → 1 record(s): {\"median_days\": 1.6, \"p90_days\": 2.8, \"sla_days\": 3.0, \"tickets\": 2440}",
+    "interpretation_history": [
+     {
+      "interpretation": "The dispute response times remain within the SLA (median 1.6 days, p90 2.8 days < SLA 3.0 days) despite a high volume of 2,440 tickets, indicating that the surge in disputes is not causing delayed responses.",
+      "reason": "proposed by reasoner R-10 (nvidia-nim/nvidia/nemotron-3-super-120b-a12b)",
+      "event_seq": null
+     }
+    ],
+    "provenance": {
+     "source_type": "TOOL",
+     "source_id": "crm-tickets",
+     "method": "dispute_response_times",
+     "derived_from": [
+      "crm-tickets:dispute_response_times",
+      "R-10"
+     ],
+     "event_seq": 74,
+     "recorded_at_minute": 41.0
+    }
+   },
+   "E-07": {
+    "status": "ACTIVE",
+    "authority": "NON_AUTHORITATIVE",
+    "source": "SH-BILL",
+    "content": "There has been no tariff change this year.",
+    "interpretation_history": [
+     {
+      "interpretation": "The stakeholder reports no tariff change this year, indicating that tariff modifications are not a source of the billing dispute surge.",
+      "reason": "proposed by reasoner R-11 (nvidia-nim/nvidia/nemotron-3-super-120b-a12b)",
+      "event_seq": null
+     }
+    ],
+    "provenance": {
+     "source_type": "STAKEHOLDER",
+     "source_id": "SH-BILL",
+     "method": "interview",
+     "derived_from": [
+      "interview:SH-BILL",
+      "R-11"
+     ],
+     "event_seq": 84,
+     "recorded_at_minute": 43.0
+    }
+   },
+   "E-08": {
+    "status": "ACTIVE",
+    "authority": "AUTHORITATIVE",
+    "source": "fieldco-service-contract",
+    "content": "Service contract §4.2: utility may request route priority changes; executed after Field Operations Manager confirmation.",
+    "interpretation_history": [
+     {
+      "interpretation": "The observation confirms that route priority changes require Field Operations Manager confirmation, aligning with the existing dispatch approval constraint.",
+      "reason": "proposed by reasoner R-15 (nvidia-nim/nvidia/nemotron-3-super-120b-a12b)",
+      "event_seq": null
+     }
+    ],
+    "provenance": {
+     "source_type": "DOCUMENT",
+     "source_id": "fieldco-service-contract",
+     "method": "document review",
+     "derived_from": [
+      "R-15"
+     ],
+     "event_seq": 106,
+     "recorded_at_minute": 55.0
+    }
+   }
+  },
+  "evidence_revisions": {},
+  "decision_log": [
+   {
+    "id": "D-1",
+    "phase": "DISCOVER",
+    "decision": "DEFINE proposal R-14",
+    "rationale": "causal chain: Billing import validation rules are modified after August → Modified rules introduce systematic errors in bill calculation → Bills contain incorrect amounts (both estimated and actual reads) → Customers dispute the incorrect bills → Dispute ticket volume rises; rejected framings: [('H-REQ-FRAME-AI-AGENT', 'Addresses symptom (ticket response) rather than root cause; no evidence that an AI agent reduces mis‑billing, and automated bill writes would violate K‑BILLWRITE without a Human Gate.')]",
+    "evidence_refs": [
+     "E-01",
+     "E-04"
+    ],
+    "event_seq": null
+   },
+   {
+    "id": "D-2",
+    "phase": "DEFINE",
+    "decision": "DEFINE Gate CONDITIONAL_PASS",
+    "rationale": "[CONDITIONAL] critical unknown U-SPECIFIC-RULE-CHANGE deferred to VOB-U-SPECIFIC-RULE-CHANGE",
+    "evidence_refs": [],
+    "event_seq": null
+   }
+  ],
+  "domain_authorizations": {
+   "DA-PUSH-ROUTE-UPDATE": "GRANTED"
+  },
+  "plan": {
+   "id": "PLAN-1",
+   "version": 1,
+   "work_items": {
+    "W-WI1": {
+     "status": "PENDING",
+     "description": "Monitor dispute ticket volume daily to track return to pre-August baseline."
+    },
+    "W-VERIFY": {
+     "status": "PENDING",
+     "description": "release-blocking verification"
+    },
+    "W-PACK": {
+     "status": "PENDING",
+     "description": "packaging + submission"
+    }
+   }
+  },
+  "pending_protected_action": null,
+  "executed_actions": [],
+  "transition_candidate": null,
+  "recovery": {
+   "candidate_transition": "REPLAN",
+   "rationale": "retry stopped (NOT_TRANSIENT); alternate path crm-tickets:dispute_response_times"
+  },
+  "release_decisions": [],
+  "supervision": {
+   "current_problem": "Changes to billing import validation rules after August cause systematic mis‑billing, which drives the observed increase in dispute tickets. (v1, ACTIVE)",
+   "top_hypotheses": [
+    "H-REQ-FRAME-AI-AGENT: Dispute tickets doubled since August; the appropriate response is an AI agent that auto-answers tickets and corrects underlying billing errors. [SUPPORTED]",
+    "H-BILLING-RULE-CHANGE: Changes to billing import validation rules since August introduced systematic mis‑billing, generating the dispute surge. [CONFIRMED]"
+   ],
+   "evidence_revisions": [],
+   "pending_verification_obligations": [
+    "VOB-U-SPECIFIC-RULE-CHANGE [BEFORE_RELEASE] Which specific rule(s) in the billing import validation rule change log caused the mis‑billing?"
+   ],
+   "intervention": {
+    "required": false,
+    "reason": null,
+    "gate_id": null
+   },
+   "live_summary_tail": [
+    "[HIGH] STRATEGY_CHANGING_FAILURE: retry stopped (NOT_TRANSIENT); alternate path crm-tickets:dispute_response_times",
+    "[HIGH] DEFINE_GATE_RESULT: CONDITIONAL_PASS (1 findings)"
+   ]
+  }
+ },
+ "late_evidence_provisioned_at_minute": 100.0,
+ "release_v1": {
+  "decision": "RELEASE_WITH_KNOWN_LIMITATION",
+  "hold": [],
+  "limitations": [
+   "DEFINE Gate CONDITIONAL_PASS (deferred items tracked as VOBs)",
+   "semantic: semantic:scope_addresses_root_problem: Release scope only includes monitoring dispute volume and omits the required actions to identify and revert the billing import validation rule changes that are the root cause.",
+   "semantic: semantic:consistency_with_evidence: The implied approval rationale that monitoring alone is sufficient conflicts with evidence showing rule changes drive the dispute surge."
+  ],
+  "minimum_useful": {
+   "ok": true,
+   "reasons": []
+  }
+ },
+ "result": {
+  "release_decision": "RELEASE_WITH_KNOWN_LIMITATION",
+  "halt_reason": null,
+  "phase": "RELEASE",
+  "execution_status": "RELEASED",
+  "problem_ref": "PD-1@v1",
+  "operator_reasoner_calls": 0,
+  "trace_actors": [
+   "ENVIRONMENT",
+   "HARNESS",
+   "REASONER"
+  ],
+  "wall_seconds": 631.9
+ },
+ "tool_failure_recovery": {
+  "kind": "REPLAN",
+  "rationale": "retry stopped (NOT_TRANSIENT); alternate path crm-tickets:dispute_response_times",
+  "stop_reason": "NOT_TRANSIENT"
+ },
+ "transition_decision": {
+  "kind": null
+ },
+ "inventory_final": {
+  "problem_meta_version": 35,
+  "phase": "RELEASE",
+  "execution_status": "RELEASED",
+  "active_problem": {
+   "id": "PD-1",
+   "version": 1,
+   "requested_solution": "Dispute tickets doubled since August. Build an AI agent that auto-answers billing dispute tickets and fixes whatever is causing the wrong bills.",
+   "symptoms": [
+    "Dispute ticket volume rose from ~610 in June and 590 in July to 1,180 in August and 1,260 in September."
+   ],
+   "root_problem": "Changes to billing import validation rules after August cause systematic mis‑billing, which drives the observed increase in dispute tickets.",
+   "evidence_refs": [
+    "E-01",
+    "E-04"
+   ],
+   "intended_scope": [
+    {
+     "action": "identify_billing_rule_change",
+     "target": "DA-RULES"
+    },
+    {
+     "action": "revert_or_fix_billing_import_validation_rules",
+     "target": "DA-RULES"
+    },
+    {
+     "action": "monitor_dispute_volume",
+     "target": "DA-TICKET"
+    }
+   ],
+   "protected_actions": [],
+   "depends_on_mappings": [],
+   "depends_on_handoffs": [],
+   "depends_on_exports": [],
+   "required_tools": [
+    "billing-db",
+    "crm-tickets",
+    "billing-config"
+   ],
+   "success_criteria": [
+    "SC-DISPUTE-VOLUME-BASELINE"
+   ],
+   "metric_ids": [
+    "M-DISPUTE-TICKET-VOLUME-RATE"
+   ],
+   "status": "ACTIVE",
+   "gate_result": "CONDITIONAL_PASS",
+   "invalidated_by": [],
+   "supersedes": null,
+   "superseded_by": null,
+   "challenges": []
+  },
+  "problem_definition_history": [],
+  "solution_design": {
+   "id": "SD-1",
+   "problem_ref": "PD-1",
+   "problem_version": 1,
+   "agent_roles": [
+    "CONTROL_DETECTION"
+   ],
+   "structural_remedies": [
+    "SR-R1"
+   ],
+   "release_scope": [
+    "monitor_dispute_volume:DA-TICKET"
+   ]
+  },
+  "agent_spec": {
+   "identity": "agent-SD-1",
+   "problem_reference": "PD-1@v1",
+   "structural_role": [
+    "CONTROL_DETECTION"
+   ],
+   "verification_obligations": [
+    "VOB-U-SPECIFIC-RULE-CHANGE"
+   ],
+   "success_criteria": [
+    "SC-DISPUTE-VOLUME-BASELINE"
+   ]
+  },
+  "verification_obligations": {
+   "VOB-U-SPECIFIC-RULE-CHANGE": {
+    "status": "RESOLVED",
+    "required_before": "BEFORE_RELEASE",
+    "blocking_scope": [
+     "identify_billing_rule_change:DA-RULES",
+     "revert_or_fix_billing_import_validation_rules:DA-RULES"
+    ],
+    "question": "Which specific rule(s) in the billing import validation rule change log caused the mis‑billing?",
+    "linked_unknown": "U-SPECIFIC-RULE-CHANGE"
+   }
+  },
+  "hypotheses": {
+   "H-REQ-FRAME-AI-AGENT": {
+    "status": "SUPPORTED",
+    "supporting": [
+     "E-01"
+    ],
+    "contradicting": []
+   },
+   "H-AMI-READ-FAILURE": {
+    "status": "REJECTED",
+    "supporting": [],
+    "contradicting": [
+     "E-04",
+     "E-10"
+    ]
+   },
+   "H-FIELD-READ-ISSUE": {
+    "status": "REJECTED",
+    "supporting": [
+     "E-02",
+     "E-05"
+    ],
+    "contradicting": [
+     "E-04",
+     "E-10"
+    ]
+   },
+   "H-BILLING-RULE-CHANGE": {
+    "status": "CONFIRMED",
+    "supporting": [
+     "E-04",
+     "E-10"
+    ],
+    "contradicting": []
+   }
+  },
+  "assumptions": {
+   "A-NO-TARIFF-CHANGE": "ACTIVE",
+   "A-FIELD-READ-NOT-CAUSE": "ACTIVE"
+  },
+  "unknowns": {
+   "U-SPECIFIC-RULE-CHANGE": "RESOLVED",
+   "U-EFFECTIVENESS-OF-FIX": "OPEN"
+  },
+  "success_criteria": [
+   "SC-DISPUTE-VOLUME-BASELINE"
+  ],
+  "active_problem_success_criteria": [
+   "SC-DISPUTE-VOLUME-BASELINE"
+  ],
+  "claims": {
+   "CL-01": {
+    "status": "UNVERIFIED",
+    "evidence_refs": []
+   },
+   "CL-02": {
+    "status": "UNVERIFIED",
+    "evidence_refs": []
+   },
+   "CL-03": {
+    "status": "UNVERIFIED",
+    "evidence_refs": []
+   },
+   "CL-04": {
+    "status": "UNVERIFIED",
+    "evidence_refs": []
+   }
+  },
+  "conflicts": {},
+  "evidence": {
+   "E-01": {
+    "status": "ACTIVE",
+    "authority": "AUTHORITATIVE",
+    "source": "crm-tickets",
+    "content": "crm-tickets.dispute_volume_monthly → 4 record(s): {\"disputes\": 610, \"month\": \"2026-06\"}; {\"disputes\": 590, \"month\": \"2026-07\"}; {\"disputes\": 1180, \"month\": \"2026-08\"}; {\"disputes\": 1260, \"month\": \"2026-09\"}",
+    "interpretation_history": [
+     {
+      "interpretation": "Observation shows dispute ticket volume rose from ~610 in June and 590 in July to 1,180 in August and 1,260 in September, confirming a roughly two‑fold increase starting in August. This validates the claim that dispute tickets doubled since August but does not indicate the underlying cause.",
+      "reason": "proposed by reasoner R-3 (nvidia-nim/nvidia/nemotron-3-super-120b-a12b)",
+      "event_seq": null
+     }
+    ],
+    "provenance": {
+     "source_type": "TOOL",
+     "source_id": "crm-tickets",
+     "method": "dispute_volume_monthly",
+     "derived_from": [
+      "crm-tickets:dispute_volume_monthly",
+      "R-3"
+     ],
+     "event_seq": 11,
+     "recorded_at_minute": 18.0
+    }
+   },
+   "E-02": {
+    "status": "ACTIVE",
+    "authority": "AUTHORITATIVE",
+    "source": "route-log",
+    "content": "route-log.route_completion_aug_sep → 1 record(s): {\"completion\": 0.88, \"manual_read_accounts\": 9200, \"period\": \"2026-08..09\", \"target\": 0.95}",
+    "interpretation_history": [
+     {
+      "interpretation": "Route completion for August‑September is 0.88, below the 0.95 target, indicating sub‑optimal field manual read performance.",
+      "reason": "proposed by reasoner R-4 (nvidia-nim/nvidia/nemotron-3-super-120b-a12b)",
+      "event_seq": null
+     }
+    ],
+    "provenance": {
+     "source_type": "TOOL",
+     "source_id": "route-log",
+     "method": "route_completion_aug_sep",
+     "derived_from": [
+      "route-log:route_completion_aug_sep",
+      "R-4"
+     ],
+     "event_seq": 24,
+     "recorded_at_minute": 23.0
+    }
+   },
+   "E-03": {
+    "status": "ACTIVE",
+    "authority": "AUTHORITATIVE",
+    "source": "billing-db",
+    "content": "billing-db.tariff_change_log → 0 record(s): none",
+    "interpretation_history": [
+     {
+      "interpretation": "The tariff change log shows no recorded tariff changes, indicating that tariff modifications are not a source of the billing dispute surge.",
+      "reason": "proposed by reasoner R-5 (nvidia-nim/nvidia/nemotron-3-super-120b-a12b)",
+      "event_seq": null
+     }
+    ],
+    "provenance": {
+     "source_type": "TOOL",
+     "source_id": "billing-db",
+     "method": "tariff_change_log",
+     "derived_from": [
+      "billing-db:tariff_change_log",
+      "R-5"
+     ],
+     "event_seq": 36,
+     "recorded_at_minute": 26.0
+    }
+   },
+   "E-04": {
+    "status": "ACTIVE",
+    "authority": "AUTHORITATIVE",
+    "source": "billing-db",
+    "content": "billing-db.disputed_bills_by_read_type → 2 record(s): {\"count\": 1240, \"read_type\": \"ESTIMATED\"}; {\"count\": 1785, \"read_type\": \"ACTUAL\"}",
+    "interpretation_history": [
+     {
+      "interpretation": "The observation shows that disputed bills are roughly split between estimated (1240) and actual (1785) reads, indicating that the dispute surge is not limited to estimation errors; actual‑read bills also generate many disputes.",
+      "reason": "proposed by reasoner R-7 (nvidia-nim/nvidia/nemotron-3-super-120b-a12b)",
+      "event_seq": null
+     }
+    ],
+    "provenance": {
+     "source_type": "TOOL",
+     "source_id": "billing-db",
+     "method": "disputed_bills_by_read_type",
+     "derived_from": [
+      "billing-db:disputed_bills_by_read_type",
+      "R-7"
+     ],
+     "event_seq": 47,
+     "recorded_at_minute": 31.0
+    }
+   },
+   "E-05": {
+    "status": "ACTIVE",
+    "authority": "NON_AUTHORITATIVE",
+    "source": "SH-FIELD",
+    "content": "We are short three readers since July; routes run late, so those customers get estimated bills.",
+    "interpretation_history": [
+     {
+      "interpretation": "The stakeholder reports a shortage of three field readers since July, causing routes to run late and resulting in estimated bills for affected customers. This suggests field staffing issues may be contributing to estimation errors and subsequent disputes.",
+      "reason": "proposed by reasoner R-8 (nvidia-nim/nvidia/nemotron-3-super-120b-a12b)",
+      "event_seq": null
+     }
+    ],
+    "provenance": {
+     "source_type": "STAKEHOLDER",
+     "source_id": "SH-FIELD",
+     "method": "interview",
+     "derived_from": [
+      "interview:SH-FIELD",
+      "R-8"
+     ],
+     "event_seq": 65,
+     "recorded_at_minute": 36.0
+    }
+   },
+   "E-06": {
+    "status": "ACTIVE",
+    "authority": "AUTHORITATIVE",
+    "source": "crm-tickets",
+    "content": "crm-tickets.dispute_response_times → 1 record(s): {\"median_days\": 1.6, \"p90_days\": 2.8, \"sla_days\": 3.0, \"tickets\": 2440}",
+    "interpretation_history": [
+     {
+      "interpretation": "The dispute response times remain within the SLA (median 1.6 days, p90 2.8 days < SLA 3.0 days) despite a high volume of 2,440 tickets, indicating that the surge in disputes is not causing delayed responses.",
+      "reason": "proposed by reasoner R-10 (nvidia-nim/nvidia/nemotron-3-super-120b-a12b)",
+      "event_seq": null
+     }
+    ],
+    "provenance": {
+     "source_type": "TOOL",
+     "source_id": "crm-tickets",
+     "method": "dispute_response_times",
+     "derived_from": [
+      "crm-tickets:dispute_response_times",
+      "R-10"
+     ],
+     "event_seq": 74,
+     "recorded_at_minute": 41.0
+    }
+   },
+   "E-07": {
+    "status": "ACTIVE",
+    "authority": "NON_AUTHORITATIVE",
+    "source": "SH-BILL",
+    "content": "There has been no tariff change this year.",
+    "interpretation_history": [
+     {
+      "interpretation": "The stakeholder reports no tariff change this year, indicating that tariff modifications are not a source of the billing dispute surge.",
+      "reason": "proposed by reasoner R-11 (nvidia-nim/nvidia/nemotron-3-super-120b-a12b)",
+      "event_seq": null
+     }
+    ],
+    "provenance": {
+     "source_type": "STAKEHOLDER",
+     "source_id": "SH-BILL",
+     "method": "interview",
+     "derived_from": [
+      "interview:SH-BILL",
+      "R-11"
+     ],
+     "event_seq": 84,
+     "recorded_at_minute": 43.0
+    }
+   },
+   "E-08": {
+    "status": "ACTIVE",
+    "authority": "AUTHORITATIVE",
+    "source": "fieldco-service-contract",
+    "content": "Service contract §4.2: utility may request route priority changes; executed after Field Operations Manager confirmation.",
+    "interpretation_history": [
+     {
+      "interpretation": "The observation confirms that route priority changes require Field Operations Manager confirmation, aligning with the existing dispatch approval constraint.",
+      "reason": "proposed by reasoner R-15 (nvidia-nim/nvidia/nemotron-3-super-120b-a12b)",
+      "event_seq": null
+     }
+    ],
+    "provenance": {
+     "source_type": "DOCUMENT",
+     "source_id": "fieldco-service-contract",
+     "method": "document review",
+     "derived_from": [
+      "R-15"
+     ],
+     "event_seq": 106,
+     "recorded_at_minute": 55.0
+    }
+   },
+   "E-09": {
+    "status": "ACTIVE",
+    "authority": "NON_AUTHORITATIVE",
+    "source": "SH-AMI",
+    "content": "MDMS export access for Lakeside is provisioned as of today (vendor ticket TX-4471).",
+    "interpretation_history": [
+     {
+      "interpretation": "The stakeholder reports that MDMS export access for Lakeside has been provisioned, enabling retrieval of AMI read events.",
+      "reason": "proposed by reasoner R-19 (nvidia-nim/nvidia/nemotron-3-super-120b-a12b)",
+      "event_seq": null
+     }
+    ],
+    "provenance": {
+     "source_type": "STAKEHOLDER",
+     "source_id": "SH-AMI",
+     "method": "message",
+     "derived_from": [
+      "R-19"
+     ],
+     "event_seq": 138,
+     "recorded_at_minute": 100.0
+    }
+   },
+   "E-10": {
+    "status": "ACTIVE",
+    "authority": "AUTHORITATIVE",
+    "source": "mdms-export",
+    "content": "mdms-export.read_events_for_disputed_estimated → 2 record(s): {\"ami_read_before_cutoff\": true, \"billing_import_status\": \"REJECTED_HIGH_CONSUMPTION\", \"count\": 1184, \"exported_to_billing\": true, \"firmware\": \"v4.2\", \"read_channel\": \"AMI\"}; {\"ami_read_before_cutoff\": false, \"billing_import_status\": \"NO_READ_RECEIVED\", \"count\": 56, \"exported_to_billing\": false, \"firmware\": \"mixed\", \"read_channel\": \"AMI\"}",
+    "interpretation_history": [
+     {
+      "interpretation": "The observation shows that among disputed estimated bills, most (1184) had AMI reads taken before cutoff but were rejected due to high consumption, while a small minority (56) had no read received. This points to high‑consumption read rejections as a likely source of the dispute surge.",
+      "reason": "proposed by reasoner R-20 (nvidia-nim/nvidia/nemotron-3-super-120b-a12b)",
+      "event_seq": null
+     }
+    ],
+    "provenance": {
+     "source_type": "TOOL",
+     "source_id": "mdms-export",
+     "method": "read_events_for_disputed_estimated",
+     "derived_from": [
+      "mdms-export:read_events_for_disputed_estimated",
+      "R-20"
+     ],
+     "event_seq": 146,
+     "recorded_at_minute": 104.0
+    }
+   }
+  },
+  "evidence_revisions": {},
+  "decision_log": [
+   {
+    "id": "D-1",
+    "phase": "DISCOVER",
+    "decision": "DEFINE proposal R-14",
+    "rationale": "causal chain: Billing import validation rules are modified after August → Modified rules introduce systematic errors in bill calculation → Bills contain incorrect amounts (both estimated and actual reads) → Customers dispute the incorrect bills → Dispute ticket volume rises; rejected framings: [('H-REQ-FRAME-AI-AGENT', 'Addresses symptom (ticket response) rather than root cause; no evidence that an AI agent reduces mis‑billing, and automated bill writes would violate K‑BILLWRITE without a Human Gate.')]",
+    "evidence_refs": [
+     "E-01",
+     "E-04"
+    ],
+    "event_seq": null
+   },
+   {
+    "id": "D-2",
+    "phase": "DEFINE",
+    "decision": "DEFINE Gate CONDITIONAL_PASS",
+    "rationale": "[CONDITIONAL] critical unknown U-SPECIFIC-RULE-CHANGE deferred to VOB-U-SPECIFIC-RULE-CHANGE",
+    "evidence_refs": [],
+    "event_seq": null
+   }
+  ],
+  "domain_authorizations": {
+   "DA-PUSH-ROUTE-UPDATE": "GRANTED"
+  },
+  "plan": {
+   "id": "PLAN-1",
+   "version": 1,
+   "work_items": {
+    "W-WI1": {
+     "status": "PENDING",
+     "description": "Monitor dispute ticket volume daily to track return to pre-August baseline."
+    },
+    "W-VERIFY": {
+     "status": "PENDING",
+     "description": "release-blocking verification"
+    },
+    "W-PACK": {
+     "status": "PENDING",
+     "description": "packaging + submission"
+    }
+   }
+  },
+  "pending_protected_action": null,
+  "executed_actions": [],
+  "transition_candidate": null,
+  "recovery": {
+   "candidate_transition": "REPLAN",
+   "rationale": "retry stopped (NOT_TRANSIENT); alternate path crm-tickets:dispute_response_times"
+  },
+  "release_decisions": [
+   "RELEASE_WITH_KNOWN_LIMITATION"
+  ],
+  "supervision": {
+   "current_problem": "Changes to billing import validation rules after August cause systematic mis‑billing, which drives the observed increase in dispute tickets. (v1, ACTIVE)",
+   "top_hypotheses": [
+    "H-REQ-FRAME-AI-AGENT: Dispute tickets doubled since August; the appropriate response is an AI agent that auto-answers tickets and corrects underlying billing errors. [SUPPORTED]",
+    "H-BILLING-RULE-CHANGE: Changes to billing import validation rules since August introduced systematic mis‑billing, generating the dispute surge. [CONFIRMED]"
+   ],
+   "evidence_revisions": [],
+   "pending_verification_obligations": [],
+   "intervention": {
+    "required": false,
+    "reason": null,
+    "gate_id": null
+   },
+   "live_summary_tail": [
+    "[HIGH] STRATEGY_CHANGING_FAILURE: retry stopped (NOT_TRANSIENT); alternate path crm-tickets:dispute_response_times",
+    "[HIGH] DEFINE_GATE_RESULT: CONDITIONAL_PASS (1 findings)",
+    "[HIGH] STATE_DIFF: VERIFY failed: ['semantic:scope_addresses_root_problem', 'semantic:consistency_with_evidence']",
+    "[CRITICAL] RELEASE_GATE_RESULT: RELEASE_WITH_KNOWN_LIMITATION"
+   ]
+  }
+ },
+ "final_live_summary": [
+  "[HIGH] STRATEGY_CHANGING_FAILURE: retry stopped (NOT_TRANSIENT); alternate path crm-tickets:dispute_response_times",
+  "[HIGH] DEFINE_GATE_RESULT: CONDITIONAL_PASS (1 findings)",
+  "[HIGH] STATE_DIFF: VERIFY failed: ['semantic:scope_addresses_root_problem', 'semantic:consistency_with_evidence']",
+  "[CRITICAL] RELEASE_GATE_RESULT: RELEASE_WITH_KNOWN_LIMITATION"
+ ],
+ "human": [],
+ "release_summary": {
+  "summary": "Dispute ticket volume doubled from ~610 in June/July to 1,180 in August and 1,260 in September, indicating a billing issue that generates incorrect bills. Root cause identified as changes to billing import validation rules after August causing systematic mis‑billing. Evidence shows the ticket surge (E-01), disputed bills split between estimated and actual reads (E-04), and high‑consumption AMI read rejections (E-10) that point to rule‑change‑driven mis‑billing; hypothesis H‑BILLING‑RULE‑CHANGE is confirmed with E-04 and E-10. The released capability monitors dispute ticket volume daily (action: monitor_dispute_volume on DA‑TICKET) to track return to pre‑August baseline. Release is granted as a known‑limitation release because the scope only provides monitoring; it does not include the required actions to identify and revert the billing import validation rule changes that are the root cause. Known limitations: DEFINE Gate CONDITIONAL_PASS (deferred items tracked as VOBs); semantic:scope_addresses_root_problem: Release scope only includes monitoring dispute volume and omits the required actions to identify and revert the billing import validation rule changes that are the root cause.; semantic:consistency_with_evidence: The implied approval rationale that monitoring alone is sufficient conflicts with evidence showing rule changes drive the dispute surge.",
+  "key_points": [
+   "Problem: Dispute ticket volume doubled since August due to billing import validation rule changes (E-01, E-04, E-10).",
+   "Establishment: Evidence E-01 shows volume increase; E-04 shows disputed bills across read types; E-10 shows high‑consumption read rejections, confirming H‑BILLING‑RULE‑CHANGE.",
+   "Released: Monitoring dispute ticket volume daily (release scope).",
+   "Decision: RELEASE_WITH_KNOWN_LIMITATION because release omits root‑cause actions.",
+   "Limitations: Gate CONDITIONAL_PASS deferred items; scope does not address root cause; monitoring alone contradicts evidence of rule‑change drive."
+  ],
+  "limitations_explained": [
+   "The DEFINE Gate resulted in a CONDITIONAL_PASS, deferring specific rule‑change items as VOBs.",
+   "The release scope only monitors dispute ticket volume and does not include identifying or reverting the billing import validation rule changes that are the root cause.",
+   "Approval rationale that monitoring is sufficient conflicts with evidence that rule changes drive the dispute surge."
+  ]
+ },
+ "reasoning": [
+  {
+   "reasoning_id": "R-1",
+   "skill": "hypothesis_init",
+   "status": "SUCCESS",
+   "provider": "nvidia-nim",
+   "model": "nvidia/nemotron-3-super-120b-a12b",
+   "input_state_version": 0,
+   "schema_version": "1.0",
+   "order": 1,
+   "attempts": 1,
+   "input_digest": "83d36969fc6dc068",
+   "evidence_refs": [],
+   "confidence": 0.7,
+   "errors": [],
+   "output": null,
+   "fallback_used": null
+  },
+  {
+   "reasoning_id": "R-2",
+   "skill": "discover_actions",
+   "status": "SUCCESS",
+   "provider": "nvidia-nim",
+   "model": "nvidia/nemotron-3-super-120b-a12b",
+   "input_state_version": 2,
+   "schema_version": "1.0",
+   "order": 2,
+   "attempts": 1,
+   "input_digest": "63e8451089d57558",
+   "evidence_refs": [
+    "H-AMI-READ-FAILURE",
+    "H-BILLING-RULE-CHANGE",
+    "H-FIELD-READ-ISSUE",
+    "H-REQ-FRAME-AI-AGENT"
+   ],
+   "confidence": null,
+   "errors": [],
+   "output": null,
+   "fallback_used": null
+  },
+  {
+   "reasoning_id": "R-3",
+   "skill": "interpret_evidence",
+   "status": "SUCCESS",
+   "provider": "nvidia-nim",
+   "model": "nvidia/nemotron-3-super-120b-a12b",
+   "input_state_version": 2,
+   "schema_version": "1.0",
+   "order": 3,
+   "attempts": 1,
+   "input_digest": "0a272e88bdbbb556",
+   "evidence_refs": [
+    "CL-01",
+    "E-01",
+    "H-AMI-READ-FAILURE",
+    "H-BILLING-RULE-CHANGE",
+    "H-FIELD-READ-ISSUE",
+    "H-REQ-FRAME-AI-AGENT"
+   ],
+   "confidence": 0.95,
+   "errors": [],
+   "output": null,
+   "fallback_used": null
+  },
+  {
+   "reasoning_id": "R-4",
+   "skill": "interpret_evidence",
+   "status": "SUCCESS",
+   "provider": "nvidia-nim",
+   "model": "nvidia/nemotron-3-super-120b-a12b",
+   "input_state_version": 4,
+   "schema_version": "1.0",
+   "order": 4,
+   "attempts": 1,
+   "input_digest": "512a85760714c3a5",
+   "evidence_refs": [
+    "E-02",
+    "H-AMI-READ-FAILURE",
+    "H-BILLING-RULE-CHANGE",
+    "H-FIELD-READ-ISSUE",
+    "H-REQ-FRAME-AI-AGENT"
+   ],
+   "confidence": 0.9,
+   "errors": [],
+   "output": null,
+   "fallback_used": null
+  },
+  {
+   "reasoning_id": "R-5",
+   "skill": "interpret_evidence",
+   "status": "SUCCESS",
+   "provider": "nvidia-nim",
+   "model": "nvidia/nemotron-3-super-120b-a12b",
+   "input_state_version": 6,
+   "schema_version": "1.0",
+   "order": 5,
+   "attempts": 1,
+   "input_digest": "9c9790139d21fd72",
+   "evidence_refs": [
+    "E-03",
+    "H-AMI-READ-FAILURE",
+    "H-BILLING-RULE-CHANGE",
+    "H-FIELD-READ-ISSUE",
+    "H-REQ-FRAME-AI-AGENT"
+   ],
+   "confidence": 0.95,
+   "errors": [],
+   "output": null,
+   "fallback_used": null
+  },
+  {
+   "reasoning_id": "R-6",
+   "skill": "discover_actions",
+   "status": "SUCCESS",
+   "provider": "nvidia-nim",
+   "model": "nvidia/nemotron-3-super-120b-a12b",
+   "input_state_version": 8,
+   "schema_version": "1.0",
+   "order": 6,
+   "attempts": 1,
+   "input_digest": "3579eeff185eae78",
+   "evidence_refs": [
+    "H-AMI-READ-FAILURE",
+    "H-BILLING-RULE-CHANGE",
+    "H-FIELD-READ-ISSUE"
+   ],
+   "confidence": null,
+   "errors": [],
+   "output": null,
+   "fallback_used": null
+  },
+  {
+   "reasoning_id": "R-7",
+   "skill": "interpret_evidence",
+   "status": "SUCCESS",
+   "provider": "nvidia-nim",
+   "model": "nvidia/nemotron-3-super-120b-a12b",
+   "input_state_version": 8,
+   "schema_version": "1.0",
+   "order": 7,
+   "attempts": 1,
+   "input_digest": "e01478c44df68aa9",
+   "evidence_refs": [
+    "E-04",
+    "H-AMI-READ-FAILURE",
+    "H-BILLING-RULE-CHANGE",
+    "H-FIELD-READ-ISSUE",
+    "H-REQ-FRAME-AI-AGENT"
+   ],
+   "confidence": 0.9,
+   "errors": [],
+   "output": null,
+   "fallback_used": null
+  },
+  {
+   "reasoning_id": "R-8",
+   "skill": "interpret_evidence",
+   "status": "SUCCESS",
+   "provider": "nvidia-nim",
+   "model": "nvidia/nemotron-3-super-120b-a12b",
+   "input_state_version": 10,
+   "schema_version": "1.0",
+   "order": 8,
+   "attempts": 1,
+   "input_digest": "bcf95bf8c488fb94",
+   "evidence_refs": [
+    "H-AMI-READ-FAILURE",
+    "H-BILLING-RULE-CHANGE",
+    "H-FIELD-READ-ISSUE",
+    "H-REQ-FRAME-AI-AGENT"
+   ],
+   "confidence": 0.9,
+   "errors": [],
+   "output": null,
+   "fallback_used": null
+  },
+  {
+   "reasoning_id": "R-9",
+   "skill": "discover_actions",
+   "status": "SUCCESS",
+   "provider": "nvidia-nim",
+   "model": "nvidia/nemotron-3-super-120b-a12b",
+   "input_state_version": 12,
+   "schema_version": "1.0",
+   "order": 9,
+   "attempts": 1,
+   "input_digest": "d38f44edb93057a6",
+   "evidence_refs": [
+    "H-BILLING-RULE-CHANGE",
+    "H-REQ-FRAME-AI-AGENT"
+   ],
+   "confidence": null,
+   "errors": [],
+   "output": null,
+   "fallback_used": null
+  },
+  {
+   "reasoning_id": "R-10",
+   "skill": "interpret_evidence",
+   "status": "SUCCESS",
+   "provider": "nvidia-nim",
+   "model": "nvidia/nemotron-3-super-120b-a12b",
+   "input_state_version": 12,
+   "schema_version": "1.0",
+   "order": 10,
+   "attempts": 1,
+   "input_digest": "7afa77c021b0b3a9",
+   "evidence_refs": [
+    "E-06",
+    "H-AMI-READ-FAILURE",
+    "H-BILLING-RULE-CHANGE",
+    "H-FIELD-READ-ISSUE",
+    "H-REQ-FRAME-AI-AGENT"
+   ],
+   "confidence": 0.95,
+   "errors": [],
+   "output": null,
+   "fallback_used": null
+  },
+  {
+   "reasoning_id": "R-11",
+   "skill": "interpret_evidence",
+   "status": "SUCCESS",
+   "provider": "nvidia-nim",
+   "model": "nvidia/nemotron-3-super-120b-a12b",
+   "input_state_version": 14,
+   "schema_version": "1.0",
+   "order": 11,
+   "attempts": 1,
+   "input_digest": "5205fb9a780f61c0",
+   "evidence_refs": [
+    "H-AMI-READ-FAILURE",
+    "H-BILLING-RULE-CHANGE",
+    "H-FIELD-READ-ISSUE",
+    "H-REQ-FRAME-AI-AGENT"
+   ],
+   "confidence": 0.9,
+   "errors": [],
+   "output": null,
+   "fallback_used": null
+  },
+  {
+   "reasoning_id": "R-12",
+   "skill": "discover_actions",
+   "status": "SUCCESS",
+   "provider": "nvidia-nim",
+   "model": "nvidia/nemotron-3-super-120b-a12b",
+   "input_state_version": 16,
+   "schema_version": "1.0",
+   "order": 12,
+   "attempts": 1,
+   "input_digest": "ede42b9a9e77498c",
+   "evidence_refs": [],
+   "confidence": null,
+   "errors": [],
+   "output": null,
+   "fallback_used": null
+  },
+  {
+   "reasoning_id": "R-13",
+   "skill": "assess_hypotheses",
+   "status": "SUCCESS",
+   "provider": "nvidia-nim",
+   "model": "nvidia/nemotron-3-super-120b-a12b",
+   "input_state_version": 16,
+   "schema_version": "1.0",
+   "order": 13,
+   "attempts": 1,
+   "input_digest": "61fb4fbc964b5a77",
+   "evidence_refs": [
+    "E-01",
+    "E-04",
+    "H-AMI-READ-FAILURE",
+    "H-BILLING-RULE-CHANGE",
+    "H-FIELD-READ-ISSUE",
+    "H-REQ-FRAME-AI-AGENT"
+   ],
+   "confidence": null,
+   "errors": [],
+   "output": null,
+   "fallback_used": null
+  },
+  {
+   "reasoning_id": "R-14",
+   "skill": "define_problem",
+   "status": "SUCCESS",
+   "provider": "nvidia-nim",
+   "model": "nvidia/nemotron-3-super-120b-a12b",
+   "input_state_version": 20,
+   "schema_version": "1.0",
+   "order": 14,
+   "attempts": 1,
+   "input_digest": "d0442c5b866460be",
+   "evidence_refs": [
+    "E-01",
+    "E-02",
+    "E-03",
+    "E-04",
+    "E-05",
+    "E-07",
+    "H-BILLING-RULE-CHANGE",
+    "H-REQ-FRAME-AI-AGENT"
+   ],
+   "confidence": 0.86,
+   "errors": [],
+   "output": null,
+   "fallback_used": null
+  },
+  {
+   "reasoning_id": "R-15",
+   "skill": "interpret_evidence",
+   "status": "SUCCESS",
+   "provider": "nvidia-nim",
+   "model": "nvidia/nemotron-3-super-120b-a12b",
+   "input_state_version": 22,
+   "schema_version": "1.0",
+   "order": 15,
+   "attempts": 1,
+   "input_digest": "8d2b6930bc7fe95d",
+   "evidence_refs": [
+    "H-AMI-READ-FAILURE",
+    "H-BILLING-RULE-CHANGE",
+    "H-FIELD-READ-ISSUE",
+    "H-REQ-FRAME-AI-AGENT"
+   ],
+   "confidence": 0.95,
+   "errors": [],
+   "output": null,
+   "fallback_used": null
+  },
+  {
+   "reasoning_id": "R-16",
+   "skill": "structural_remedy",
+   "status": "SUCCESS",
+   "provider": "nvidia-nim",
+   "model": "nvidia/nemotron-3-super-120b-a12b",
+   "input_state_version": 25,
+   "schema_version": "1.0",
+   "order": 16,
+   "attempts": 1,
+   "input_digest": "cc8b43f9da4b6c50",
+   "evidence_refs": [
+    "E-04",
+    "H-BILLING-RULE-CHANGE",
+    "U-EFFECTIVENESS-OF-FIX"
+   ],
+   "confidence": 0.85,
+   "errors": [],
+   "output": null,
+   "fallback_used": null
+  },
+  {
+   "reasoning_id": "R-17",
+   "skill": "agent_design",
+   "status": "LOW_CONFIDENCE",
+   "provider": "nvidia-nim",
+   "model": "nvidia/nemotron-3-super-120b-a12b",
+   "input_state_version": 25,
+   "schema_version": "1.0",
+   "order": 17,
+   "attempts": 1,
+   "input_digest": "6fbc8861e7134c0e",
+   "evidence_refs": [],
+   "confidence": 0.0,
+   "errors": [],
+   "output": null,
+   "fallback_used": null
+  },
+  {
+   "reasoning_id": "R-18",
+   "skill": "plan_execution",
+   "status": "SUCCESS",
+   "provider": "nvidia-nim",
+   "model": "nvidia/nemotron-3-super-120b-a12b",
+   "input_state_version": 27,
+   "schema_version": "1.0",
+   "order": 18,
+   "attempts": 1,
+   "input_digest": "0d134ce3ff7c8bdf",
+   "evidence_refs": [
+    "E-01"
+   ],
+   "confidence": null,
+   "errors": [],
+   "output": null,
+   "fallback_used": null
+  },
+  {
+   "reasoning_id": "R-19",
+   "skill": "interpret_evidence",
+   "status": "SUCCESS",
+   "provider": "nvidia-nim",
+   "model": "nvidia/nemotron-3-super-120b-a12b",
+   "input_state_version": 27,
+   "schema_version": "1.0",
+   "order": 19,
+   "attempts": 1,
+   "input_digest": "120b9f5db4d085ee",
+   "evidence_refs": [
+    "H-AMI-READ-FAILURE",
+    "H-BILLING-RULE-CHANGE",
+    "H-FIELD-READ-ISSUE",
+    "H-REQ-FRAME-AI-AGENT"
+   ],
+   "confidence": 0.95,
+   "errors": [],
+   "output": null,
+   "fallback_used": null
+  },
+  {
+   "reasoning_id": "R-20",
+   "skill": "interpret_evidence",
+   "status": "SUCCESS",
+   "provider": "nvidia-nim",
+   "model": "nvidia/nemotron-3-super-120b-a12b",
+   "input_state_version": 29,
+   "schema_version": "1.0",
+   "order": 20,
+   "attempts": 1,
+   "input_digest": "4e92c8ad8562a8a1",
+   "evidence_refs": [
+    "E-10",
+    "H-AMI-READ-FAILURE",
+    "H-BILLING-RULE-CHANGE",
+    "H-FIELD-READ-ISSUE",
+    "H-REQ-FRAME-AI-AGENT",
+    "U-SPECIFIC-RULE-CHANGE"
+   ],
+   "confidence": 0.92,
+   "errors": [],
+   "output": null,
+   "fallback_used": null
+  },
+  {
+   "reasoning_id": "R-21",
+   "skill": "semantic_judge",
+   "status": "SUCCESS",
+   "provider": "nvidia-nim",
+   "model": "nvidia/nemotron-3-super-120b-a12b",
+   "input_state_version": 33,
+   "schema_version": "1.0",
+   "order": 21,
+   "attempts": 1,
+   "input_digest": "a27d8471f16b7f21",
+   "evidence_refs": [
+    "E-04",
+    "E-10",
+    "H-BILLING-RULE-CHANGE",
+    "U-EFFECTIVENESS-OF-FIX"
+   ],
+   "confidence": null,
+   "errors": [],
+   "output": null,
+   "fallback_used": null
+  },
+  {
+   "reasoning_id": "R-22",
+   "skill": "release_summary",
+   "status": "SUCCESS",
+   "provider": "nvidia-nim",
+   "model": "nvidia/nemotron-3-super-120b-a12b",
+   "input_state_version": 35,
+   "schema_version": "1.0",
+   "order": 22,
+   "attempts": 1,
+   "input_digest": "623fccda9433815d",
+   "evidence_refs": [
+    "E-01",
+    "E-04",
+    "E-10",
+    "E-10."
+   ],
+   "confidence": null,
+   "errors": [],
+   "output": null,
+   "fallback_used": null
+  }
+ ],
+ "proposals": {
+  "R-1": {
+   "skill": "hypothesis_init",
+   "status": "SUCCESS",
+   "output": {
+    "framing_assertion": {
+     "key": "REQ_FRAME_AI_AGENT",
+     "value": "dispute_tickets.doubled_since_august",
+     "rationale": "The requester states dispute tickets doubled since August and seeks an AI agent to answer tickets and fix wrong bills."
+    },
+    "hypotheses": [
+     {
+      "key": "REQ_FRAME_AI_AGENT",
+      "statement": "Dispute tickets doubled since August; the appropriate response is an AI agent that auto-answers tickets and corrects underlying billing errors.",
+      "origin": "REQUESTER_FRAMING",
+      "decision_impact": "HIGH",
+      "rationale": "If true, building an AI agent addresses the problem; if false, a different root‑cause fix is needed.",
+      "discriminating_evidence": [
+       "DA-TICKET"
+      ]
+     },
+     {
+      "key": "AMI_READ_FAILURE",
+      "statement": "Increased AMI read errors or missing reads since August lead to estimation substitutions and incorrect bills, driving dispute tickets.",
+      "origin": "ALTERNATIVE",
+      "decision_impact": "HIGH",
+      "rationale": "If AMI read quality is the cause, fixing the AMI/MDMS pipeline reduces disputes; otherwise AI agent would not address the core issue.",
+      "discriminating_evidence": [
+       "DA-MDMS",
+       "DA-BILL"
+      ]
+     },
+     {
+      "key": "FIELD_READ_ISSUE",
+      "statement": "Field manual read processes deteriorated (missed reads, unconfirmed route changes) after August, causing estimation errors and billing disputes.",
+      "origin": "ALTERNATIVE",
+      "decision_impact": "HIGH",
+      "rationale": "If field‑read issues are responsible, improving route confirmation and read capture reduces disputes; otherwise the AI agent does not fix the source.",
+      "discriminating_evidence": [
+       "DA-ROUTE",
+       "DA-TICKET"
+      ]
+     },
+     {
+      "key": "BILLING_RULE_CHANGE",
+      "statement": "Changes to billing import validation rules since August introduced systematic mis‑billing, generating the dispute surge.",
+      "origin": "ALTERNATIVE",
+      "decision_impact": "HIGH",
+      "rationale": "If rule changes are the root cause, reverting or correcting the rules resolves disputes; otherwise an AI agent only treats symptoms.",
+      "discriminating_evidence": [
+       "DA-RULES",
+       "DA-BILL"
+      ]
+     }
+    ],
+    "confidence": 0.7
+   }
+  },
+  "R-2": {
+   "skill": "discover_actions",
+   "status": "SUCCESS",
+   "output": {
+    "actions": [
+     {
+      "catalog_ref": "crm-tickets:dispute_volume_monthly",
+      "question": "Monthly dispute ticket volume since August",
+      "decision_impact": 0.9,
+      "uncertainty": 0.7,
+      "discriminative_power": 0.6,
+      "answerability": 0.9,
+      "process_data_handoff_impact": 0.4,
+      "action_proximity": 0.9,
+      "constraint_risk": 0.1,
+      "estimated_cost_minutes": 5,
+      "expected_information_gain": ": not required",
+      "decision_impact_rationale": "Directly tests the claim that dispute tickets doubled since August, which drives the AI agent request.",
+      "discriminates_hypotheses": [
+       "H-REQ-FRAME-AI-AGENT"
+      ],
+      "resolves_unknowns": [],
+      "addresses": [],
+      "why_now": "Baseline data needed before any causal analysis."
+     },
+     {
+      "catalog_ref": "billing-db:disputed_bills_by_read_type",
+      "question": "Count of disputed bills segmented by read type (AMI vs manual)",
+      "decision_impact": 0.8,
+      "uncertainty": 0.6,
+      "discriminative_power": 0.8,
+      "answerability": 0.9,
+      "process_data_handoff_impact": 0.5,
+      "action_proximity": 0.8,
+      "constraint_risk": 0.1,
+      "estimated_cost_minutes": 10,
+      "expected_information_gain": ": not required",
+      "decision_impact_rationale": "Shows whether disputed bills cluster with AMI reads, manual reads, or both, separating AMI vs field causes.",
+      "discriminates_hypotheses": [
+       "H-AMI-READ-FAILURE",
+       "H-FIELD-READ-ISSUE"
+      ],
+      "resolves_unknowns": [],
+      "addresses": [],
+      "why_now": "Read‑type breakdown is cheap and directly informs the two leading causal hypotheses."
+     },
+     {
+      "catalog_ref": "route-log:route_completion_aug_sep",
+      "question": "Field route completion percentages for August‑September",
+      "decision_impact": 0.7,
+      "uncertainty": 0.5,
+      "discriminative_power": 0.7,
+      "answerability": 0.9,
+      "process_data_handoff_impact": 0.6,
+      "action_proximity": 0.9,
+      "constraint_risk": 0.1,
+      "estimated_cost_minutes": 5,
+      "expected_information_gain": ": not required",
+      "decision_impact_rationale": "Low completion would support the field‑read‑issue hypothesis; high completion would weaken it.",
+      "discriminates_hypotheses": [
+       "H-FIELD-READ-ISSUE"
+      ],
+      "resolves_unknowns": [],
+      "addresses": [],
+      "why_now": "Route data is already logged; a quick query can confirm or refute field‑process deterioration."
+     },
+     {
+      "catalog_ref": "mdms-export:read_events_for_disputed_estimated",
+      "question": "AMI read events (successful/missing) for bills that ended in estimation",
+      "decision_impact": 0.8,
+      "uncertainty": 0.6,
+      "discriminative_power": 0.8,
+      "answerability": 0.8,
+      "process_data_handoff_impact": 0.5,
+      "action_proximity": 0.7,
+      "constraint_risk": 0.1,
+      "estimated_cost_minutes": 15,
+      "expected_information_gain": ": not required",
+      "decision_impact_rationale": "Direct evidence of AMI read failures that force estimation and generate wrong bills.",
+      "discriminates_hypotheses": [
+       "H-AMI-READ-FAILURE"
+      ],
+      "resolves_unknowns": [],
+      "addresses": [],
+      "why_now": "Requires vendor‑provisioned export but is the most direct test of the AMI‑failure hypothesis."
+     },
+     {
+      "catalog_ref": "billing-db:tariff_change_log",
+      "question": "Log of billing‑import validation rule changes since August",
+      "decision_impact": 0.7,
+      "uncertainty": 0.5,
+      "discriminative_power": 0.7,
+      "answerability": 0.9,
+      "process_data_handoff_impact": 0.4,
+      "action_proximity": 0.9,
+      "constraint_risk": 0.1,
+      "estimated_cost_minutes": 5,
+      "expected_information_gain": ": not required",
+      "decision_impact_rationale": "Any rule change would substantiate the billing‑rule‑change hypothesis; absence would weaken it.",
+      "discriminates_hypotheses": [
+       "H-BILLING-RULE-CHANGE"
+      ],
+      "resolves_unknowns": [],
+      "addresses": [],
+      "why_now": "Rule‑change logs are small and quick to retrieve."
+     },
+     {
+      "catalog_ref": "interview:SH-FIELD",
+      "question": "Interview with Field Operations Manager on route adherence, staffing, and any process changes after August",
+      "decision_impact": 0.6,
+      "uncertainty": 0.4,
+      "discriminative_power": 0.5,
+      "answerability": 0.8,
+      "process_data_handoff_impact": 0.3,
+      "action_proximity": 0.6,
+      "constraint_risk": 0.2,
+      "estimated_cost_minutes": 30,
+      "expected_information_gain": ": not required",
+      "decision_impact_rationale": "Field perspective can confirm whether route changes or staffing issues explain missed reads.",
+      "discriminates_hypotheses": [
+       "H-FIELD-READ-ISSUE",
+       "H-REQ-FRAME-AI-AGENT"
+      ],
+      "resolves_unknowns": [],
+      "addresses": [],
+      "why_now": "Stakeholder insight is needed to interpret route‑completion data and uncover unreported changes."
+     },
+     {
+      "catalog_ref": "interview:SH-BILL",
+      "question": "Interview with Billing Operations Lead on any validation‑rule tweaks, tariff updates, or bill‑adjustment practices since August",
+      "decision_impact": 0.6,
+      "uncertainty": 0.4,
+      "discriminative_power": 0.5,
+      "answerability": 0.8,
+      "process_data_handoff_impact": 0.3,
+      "action_proximity": 0.6,
+      "constraint_risk": 0.2,
+      "estimated_cost_minutes": 30,
+      "expected_information_gain": ": not required",
+      "decision_impact_rationale": "Billing lead can confirm whether import‑validation rules were altered, driving systematic mis‑billing.",
+      "discriminates_hypotheses": [
+       "H-BILLING-RULE-CHANGE",
+       "H-REQ-FRAME-AI-AGENT"
+      ],
+      "resolves_unknowns": [],
+      "addresses": [],
+      "why_now": "Complements the tariff‑change log with contextual knowledge of intent and impact."
+     }
+    ],
+    "stop": false,
+    "stop_reason": ""
+   }
+  },
+  "R-3": {
+   "skill": "interpret_evidence",
+   "status": "SUCCESS",
+   "output": {
+    "interpretation": "Observation shows dispute ticket volume rose from ~610 in June and 590 in July to 1,180 in August and 1,260 in September, confirming a roughly two‑fold increase starting in August. This validates the claim that dispute tickets doubled since August but does not indicate the underlying cause.",
+    "assertion_key": "req_frame_ai_agent",
+    "assertion_value": "CL-01='dispute_tickets.doubled_since_august'",
+    "claim_assertion_key": "",
+    "claim_assertion_value": "",
+    "hypothesis_effects": [
+     {
+      "hypothesis": "H-AMI-READ-FAILURE",
+      "effect": "NEUTRAL",
+      "rationale": "Observation confirms increased dispute tickets but does not provide evidence about AMI read errors or missing reads."
+     },
+     {
+      "hypothesis": "H-BILLING-RULE-CHANGE",
+      "effect": "NEUTRAL",
+      "rationale": "Observation confirms increased dispute tickets but does not speak to billing import validation rule changes."
+     },
+     {
+      "hypothesis": "H-FIELD-READ-ISSUE",
+      "effect": "NEUTRAL",
+      "rationale": "Observation confirms increased dispute tickets but does not provide evidence about field manual read process deterioration."
+     },
+     {
+      "hypothesis": "H-REQ-FRAME-AI-AGENT",
+      "effect": "SUPPORTS",
+      "rationale": "Observation shows dispute ticket volume roughly doubled since August, supporting the hypothesis' claim of a doubling."
+     }
+    ],
+    "new_hypotheses": [],
+    "fact_candidates": [
+     {
+      "statement": "Dispute ticket volume for June‑September 2026: 610 (Jun), 590 (Jul), 1,180 (Aug), 1,260 (Sep).",
+      "assertion_key": "req_frame_ai_agent",
+      "value": "CL-01='dispute_tickets.doubled_since_august'",
+      "evidence_refs": [
+       "E-01"
+      ]
+     }
+    ],
+    "unknown_resolutions": [],
+    "authorization_candidates": [],
+    "contradiction_assessment": {
+     "relation": "UNRELATED",
+     "target_type": "NONE",
+     "target_refs": [],
+     "materiality": "LOW",
+     "problem_invalidating": false,
+     "rationale": "No problem definition present to assess against."
+    },
+    "vob_proposals": [],
+    "follow_up_actions": [
+     "billing-db:disputed_bills_by_read_type",
+     "billing-db:tariff_change_log",
+     "route-log:route_completion_aug_sep",
+     "mdms-export:read_events_for_disputed_estimated"
+    ],
+    "confidence": 0.95
+   }
+  },
+  "R-4": {
+   "skill": "interpret_evidence",
+   "status": "SUCCESS",
+   "output": {
+    "interpretation": "Route completion for August‑September is 0.88, below the 0.95 target, indicating sub‑optimal field manual read performance.",
+    "assertion_key": "field_route_completion.value",
+    "assertion_value": 0.88,
+    "hypothesis_effects": [
+     {
+      "hypothesis": "H-AMI-READ-FAILURE",
+      "effect": "NEUTRAL",
+      "rationale": "Observation concerns field route completion, not AMI read errors."
+     },
+     {
+      "hypothesis": "H-BILLING-RULE-CHANGE",
+      "effect": "NEUTRAL",
+      "rationale": "Observation does not address billing import validation rule changes."
+     },
+     {
+      "hypothesis": "H-FIELD-READ-ISSUE",
+      "effect": "SUPPORTS",
+      "rationale": "Below‑target route completion suggests field manual read processes may be deteriorated."
+     },
+     {
+      "hypothesis": "H-REQ-FRAME-AI-AGENT",
+      "effect": "NEUTRAL",
+      "rationale": "Observation does not inform on the need for an AI agent to answer tickets."
+     }
+    ],
+    "new_hypotheses": [],
+    "fact_candidates": [
+     {
+      "statement": "Route completion for Aug‑Sep is 0.88 with a target of 0.95 and 9,200 manual read accounts.",
+      "assertion_key": "field_route_completion.value",
+      "value": 0.88,
+      "evidence_refs": [
+       "E-02"
+      ]
+     }
+    ],
+    "unknown_resolutions": [],
+    "authorization_candidates": [],
+    "contradiction_assessment": {
+     "relation": "UNRELATED",
+     "target_type": "NONE",
+     "target_refs": [],
+     "materiality": "LOW",
+     "problem_invalidating": false,
+     "rationale": "No problem definition present to assess against."
+    },
+    "vob_proposals": [],
+    "follow_up_actions": [
+     "crm-tickets:dispute_response_times",
+     "billing-db:disputed_bills_by_read_type"
+    ],
+    "confidence": 0.9
+   }
+  },
+  "R-5": {
+   "skill": "interpret_evidence",
+   "status": "SUCCESS",
+   "output": {
+    "interpretation": "The tariff change log shows no recorded tariff changes, indicating that tariff modifications are not a source of the billing dispute surge.",
+    "assertion_key": "tariff_change_log.empty",
+    "assertion_value": true,
+    "claim_assertion_key": "",
+    "claim_assertion_value": "",
+    "hypothesis_effects": [
+     {
+      "hypothesis": "H-AMI-READ-FAILURE",
+      "effect": "NEUTRAL",
+      "rationale": "Observation about tariff changes does not inform this hypothesis."
+     },
+     {
+      "hypothesis": "H-BILLING-RULE-CHANGE",
+      "effect": "NEUTRAL",
+      "rationale": "Observation about tariff changes does not inform this hypothesis."
+     },
+     {
+      "hypothesis": "H-FIELD-READ-ISSUE",
+      "effect": "NEUTRAL",
+      "rationale": "Observation about tariff changes does not inform this hypothesis."
+     },
+     {
+      "hypothesis": "H-REQ-FRAME-AI-AGENT",
+      "effect": "NEUTRAL",
+      "rationale": "Observation about tariff changes does not inform this hypothesis."
+     }
+    ],
+    "new_hypotheses": [],
+    "fact_candidates": [
+     {
+      "statement": "Tariff change log contains zero records.",
+      "assertion_key": "tariff_change_log.empty",
+      "value": true,
+      "evidence_refs": [
+       "E-03"
+      ]
+     }
+    ],
+    "unknown_resolutions": [],
+    "authorization_candidates": [],
+    "contradiction_assessment": {
+     "relation": "UNRELATED",
+     "target_type": "NONE",
+     "target_refs": [],
+     "materiality": "LOW",
+     "problem_invalidating": false,
+     "rationale": "No problem definition present; observation unrelated to any stated premises."
+    },
+    "vob_proposals": [],
+    "follow_up_actions": [],
+    "confidence": 0.95
+   }
+  },
+  "R-6": {
+   "skill": "discover_actions",
+   "status": "SUCCESS",
+   "output": {
+    "actions": [
+     {
+      "catalog_ref": "mdms-export:read_events_for_disputed_estimated",
+      "question": "dispute tickets, response times",
+      "decision_impact": 0.9,
+      "uncertainty": 0.8,
+      "discriminative_power": 0.9,
+      "answerability": 0.6,
+      "process_data_handoff_impact": 0.2,
+      "action_proximity": 0.9,
+      "constraint_risk": 0.1,
+      "estimated_cost_minutes": 10,
+      "expected_information_gain": ":",
+      "decision_impact_rationale": "Result would directly inform whether AMI read errors are driving disputes, influencing next steps on root-cause mitigation.",
+      "discriminates_hypotheses": [
+       "H-AMI-READ-FAILURE"
+      ],
+      "resolves_unknowns": [],
+      "addresses": [],
+      "why_now": "AMI read events are the most direct test of the AMI-read-failure hypothesis and have not yet been examined."
+     },
+     {
+      "catalog_ref": "billing-db:disputed_bills_by_read_type",
+      "question": "bills, read types, tariffs, import status",
+      "decision_impact": 0.85,
+      "uncertainty": 0.7,
+      "discriminative_power": 0.8,
+      "answerability": 0.9,
+      "process_data_handoff_impact": 0.3,
+      "action_proximity": 0.9,
+      "constraint_risk": 0.05,
+      "estimated_cost_minutes": 8,
+      "expected_information_gain": "Shows whether disputed bills cluster by read type (estimated vs actual) and by import rule version.",
+      "decision_impact_rationale": "Helps distinguish AMI-read failure, field-read issues, and billing-rule changes by linking disputes to read source and validation rules.",
+      "discriminates_hypotheses": [
+       "H-AMI-READ-FAILURE",
+       "H-FIELD-READ-ISSUE",
+       "H-BILLING-RULE-CHANGE"
+      ],
+      "resolves_unknowns": [],
+      "addresses": [],
+      "why_now": "Read-type breakdown is a low‑cost, high‑yield query that can immediately narrow the cause space."
+     },
+     {
+      "catalog_ref": "interview:SH-FIELD",
+      "question": "interview stakeholder SH-FIELD",
+      "decision_impact": 0.8,
+      "uncertainty": 0.75,
+      "discriminative_power": 0.85,
+      "answerability": 0.95,
+      "process_data_handoff_impact": 0.4,
+      "action_proximity": 0.8,
+      "constraint_risk": 0.05,
+      "estimated_cost_minutes": 20,
+      "expected_information_gain": "Insights on field manual‑read processes, route adherence, and any post‑August changes in staffing or procedures.",
+      "decision_impact_rationale": "Directly tests the field‑read‑issue hypothesis and can reveal whether route‑completion problems are causing estimation substitutions.",
+      "discriminates_hypotheses": [
+       "H-FIELD-READ-ISSUE"
+      ],
+      "resolves_unknowns": [],
+      "addresses": [],
+      "why_now": "Field stakeholder perspective is needed to validate or refute the field‑read‑issue hypothesis before investing in process changes."
+     },
+     {
+      "catalog_ref": "interview:SH-BILL",
+      "question": "interview stakeholder SH-BILL",
+      "decision_impact": 0.8,
+      "uncertainty": 0.75,
+      "discriminative_power": 0.85,
+      "answerability": 0.95,
+      "process_data_handoff_impact": 0.4,
+      "action_proximity": 0.8,
+      "constraint_risk": 0.05,
+      "estimated_cost_minutes": 20,
+      "expected_information_gain": "Information on billing import validation rule changes, tariff updates, and any systematic billing‑adjustment practices since August.",
+      "decision_impact_rationale": "Directly addresses the billing‑rule‑change hypothesis and can confirm whether rule modifications correlate with the dispute surge.",
+      "discriminates_hypotheses": [
+       "H-BILLING-RULE-CHANGE"
+      ],
+      "resolves_unknowns": [],
+      "addresses": [],
+      "why_now": "Billing‑operations insight is required to verify or reject the rule‑change explanation for the dispute increase."
+     }
+    ],
+    "stop": false,
+    "stop_reason": "Several high‑value catalog actions remain that could discriminate among the leading hypotheses and thus change the next decision."
+   }
+  },
+  "R-7": {
+   "skill": "interpret_evidence",
+   "status": "SUCCESS",
+   "output": {
+    "interpretation": "The observation shows that disputed bills are roughly split between estimated (1240) and actual (1785) reads, indicating that the dispute surge is not limited to estimation errors; actual‑read bills also generate many disputes.",
+    "assertion_key": "disputed_bills_more_actual_than_estimated",
+    "assertion_value": true,
+    "hypothesis_effects": [
+     {
+      "hypothesis": "H-AMI-READ-FAILURE",
+      "effect": "CONTRADICTS",
+      "rationale": "Disputes on actual reads are high, showing the surge cannot be explained solely by AMI read failures that cause estimation substitutions."
+     },
+     {
+      "hypothesis": "H-BILLING-RULE-CHANGE",
+      "effect": "SUPPORTS",
+      "rationale": "A systematic rule change would affect both estimated and actual reads, matching the observed dispute distribution."
+     },
+     {
+      "hypothesis": "H-FIELD-READ-ISSUE",
+      "effect": "CONTRADICTS",
+      "rationale": "Field‑read issues would mainly increase estimation‑related disputes, yet actual‑read disputes are also substantial."
+     },
+     {
+      "hypothesis": "H-REQ-FRAME-AI-AGENT",
+      "effect": "NEUTRAL",
+      "rationale": "The observation concerns the cause of disputes, not the proposed AI‑agent solution."
+     }
+    ],
+    "new_hypotheses": [],
+    "fact_candidates": [
+     {
+      "statement": "Disputed bills by read type: ESTIMATED 1240, ACTUAL 1785.",
+      "assertion_key": "disputed_bills_more_actual_than_estimated",
+      "value": true,
+      "evidence_refs": [
+       "E-04"
+      ]
+     }
+    ],
+    "unknown_resolutions": [],
+    "authorization_candidates": [],
+    "contradiction_assessment": {
+     "relation": "UNRELATED",
+     "target_type": "NONE",
+     "target_refs": [],
+     "materiality": "LOW",
+     "problem_invalidating": false,
+     "rationale": "No problem_definition present to assess against."
+    },
+    "vob_proposals": [],
+    "follow_up_actions": [
+     "crm-tickets:dispute_response_times",
+     "mdms-export:read_events_for_disputed_estimated"
+    ],
+    "confidence": 0.9
+   }
+  },
+  "R-8": {
+   "skill": "interpret_evidence",
+   "status": "SUCCESS",
+   "output": {
+    "interpretation": "The stakeholder reports a shortage of three field readers since July, causing routes to run late and resulting in estimated bills for affected customers. This suggests field staffing issues may be contributing to estimation errors and subsequent disputes.",
+    "assertion_key": "field_reader_shortage_count_since_july",
+    "assertion_value": 3,
+    "claim_assertion_key": "field_reader_shortage_count_since_july",
+    "claim_assertion_value": 3,
+    "hypothesis_effects": [
+     {
+      "hypothesis": "H-AMI-READ-FAILURE",
+      "effect": "NEUTRAL",
+      "rationale": "Observation concerns field reader shortage, not AMI read errors."
+     },
+     {
+      "hypothesis": "H-BILLING-RULE-CHANGE",
+      "effect": "NEUTRAL",
+      "rationale": "Observation does not address billing rule changes."
+     },
+     {
+      "hypothesis": "H-FIELD-READ-ISSUE",
+      "effect": "SUPPORTS",
+      "rationale": "Observation indicates a shortage of field readers leading to late routes and estimated bills, supporting the hypothesis that deteriorated field manual read processes cause estimation errors and disputes."
+     },
+     {
+      "hypothesis": "H-REQ-FRAME-AI-AGENT",
+      "effect": "NEUTRAL",
+      "rationale": "Observation does not pertain to AI agent request or dispute volume."
+     }
+    ],
+    "new_hypotheses": [],
+    "fact_candidates": [],
+    "unknown_resolutions": [],
+    "authorization_candidates": [],
+    "contradiction_assessment": {
+     "relation": "UNRELATED",
+     "target_type": "NONE",
+     "target_refs": [],
+     "materiality": "LOW",
+     "problem_invalidating": false,
+     "rationale": "No problem definition present to assess against."
+    },
+    "vob_proposals": [],
+    "follow_up_actions": [
+     "route-log:route_completion_aug_sep"
+    ],
+    "confidence": 0.9
+   }
+  },
+  "R-9": {
+   "skill": "discover_actions",
+   "status": "SUCCESS",
+   "output": {
+    "actions": [
+     {
+      "catalog_ref": "crm-tickets:dispute_response_times",
+      "question": "dispute tickets, response times",
+      "decision_impact": 0.5,
+      "uncertainty": 0.6,
+      "discriminative_power": 0.4,
+      "answerability": 0.9,
+      "process_data_handoff_impact": 0.2,
+      "action_proximity": 0.9,
+      "constraint_risk": 0.1,
+      "estimated_cost_minutes": 5,
+      "expected_information_gain": ": not required",
+      "decision_impact_rationale": "Response time data may affect whether an AI agent for ticket triage is warranted.",
+      "discriminates_hypotheses": [
+       "H-REQ-FRAME-AI-AGENT"
+      ],
+      "resolves_unknowns": [],
+      "addresses": [],
+      "why_now": "Low cost, high answerability, can quickly test if response‑time issues drive ticket volume."
+     },
+     {
+      "catalog_ref": "interview:SH-BILL",
+      "question": "interview stakeholder SH-BILL",
+      "decision_impact": 0.8,
+      "uncertainty": 0.5,
+      "discriminative_power": 0.7,
+      "answerability": 0.8,
+      "process_data_handoff_impact": 0.4,
+      "action_proximity": 0.6,
+      "constraint_risk": 0.1,
+      "estimated_cost_minutes": 20,
+      "expected_information_gain": ": not required",
+      "decision_impact_rationale": "Billing Operations Lead can confirm or refute recent billing‑import rule changes and tariff stability, directly testing the rule‑change hypothesis.",
+      "discriminates_hypotheses": [
+       "H-BILLING-RULE-CHANGE",
+       "H-REQ-FRAME-AI-AGENT"
+      ],
+      "resolves_unknowns": [],
+      "addresses": [],
+      "why_now": "Moderate cost, high decision impact, can separate rule‑change from other causes."
+     }
+    ],
+    "stop": false,
+    "stop_reason": "Both remaining catalog actions could still change the problem definition; budget remains sufficient."
+   }
+  },
+  "R-10": {
+   "skill": "interpret_evidence",
+   "status": "SUCCESS",
+   "output": {
+    "interpretation": "The dispute response times remain within the SLA (median 1.6 days, p90 2.8 days < SLA 3.0 days) despite a high volume of 2,440 tickets, indicating that the surge in disputes is not causing delayed responses.",
+    "assertion_key": "dispute_response_times.within_sla",
+    "assertion_value": true,
+    "claim_assertion_key": "",
+    "claim_assertion_value": "",
+    "hypothesis_effects": [
+     {
+      "hypothesis": "H-AMI-READ-FAILURE",
+      "effect": "NEUTRAL",
+      "rationale": "Response time metrics do not inform about AMI read errors or missing reads."
+     },
+     {
+      "hypothesis": "H-BILLING-RULE-CHANGE",
+      "effect": "NEUTRAL",
+      "rationale": "Response time metrics do not inform about billing import validation rule changes."
+     },
+     {
+      "hypothesis": "H-FIELD-READ-ISSUE",
+      "effect": "NEUTRAL",
+      "rationale": "Response time metrics do not inform about field manual read processes or route completion."
+     },
+     {
+      "hypothesis": "H-REQ-FRAME-AI-AGENT",
+      "effect": "NEUTRAL",
+      "rationale": "Response time metrics do not inform about the suitability of an AI agent for dispute tickets."
+     }
+    ],
+    "new_hypotheses": [],
+    "fact_candidates": [
+     {
+      "statement": "Dispute response times: median 1.6 days, p90 2.8 days, SLA 3.0 days, tickets 2,440.",
+      "assertion_key": "dispute_response_times.within_sla",
+      "value": true,
+      "evidence_refs": [
+       "E-06"
+      ]
+     }
+    ],
+    "unknown_resolutions": [],
+    "authorization_candidates": [],
+    "contradiction_assessment": {
+     "relation": "UNRELATED",
+     "target_type": "NONE",
+     "target_refs": [],
+     "materiality": "LOW",
+     "problem_invalidating": false,
+     "rationale": "No problem definition present; observation about response times does not affect problem premises."
+    },
+    "vob_proposals": [],
+    "follow_up_actions": [],
+    "confidence": 0.95
+   }
+  },
+  "R-11": {
+   "skill": "interpret_evidence",
+   "status": "SUCCESS",
+   "output": {
+    "interpretation": "The stakeholder reports no tariff change this year, indicating that tariff modifications are not a source of the billing dispute surge.",
+    "assertion_key": "tariff_change_log.empty",
+    "assertion_value": true,
+    "claim_assertion_key": "tariff_change_log.empty",
+    "claim_assertion_value": true,
+    "hypothesis_effects": [
+     {
+      "hypothesis": "H-AMI-READ-FAILURE",
+      "effect": "NEUTRAL",
+      "rationale": "Observation indicates no tariff change, which does not inform AMI read error rates."
+     },
+     {
+      "hypothesis": "H-BILLING-RULE-CHANGE",
+      "effect": "NEUTRAL",
+      "rationale": "Observation concerns tariff changes, not billing import validation rule changes."
+     },
+     {
+      "hypothesis": "H-FIELD-READ-ISSUE",
+      "effect": "NEUTRAL",
+      "rationale": "Observation indicates no tariff change, unrelated to field manual read processes."
+     },
+     {
+      "hypothesis": "H-REQ-FRAME-AI-AGENT",
+      "effect": "NEUTRAL",
+      "rationale": "Observation concerns tariff changes, not the request for an AI agent."
+     }
+    ],
+    "new_hypotheses": [],
+    "fact_candidates": [],
+    "unknown_resolutions": [],
+    "authorization_candidates": [],
+    "contradiction_assessment": {
+     "relation": "UNRELATED",
+     "target_type": "NONE",
+     "target_refs": [],
+     "materiality": "LOW",
+     "problem_invalidating": false,
+     "rationale": "No problem definition present; observation does not relate to any premises."
+    },
+    "vob_proposals": [],
+    "follow_up_actions": [],
+    "confidence": 0.9
+   }
+  },
+  "R-12": {
+   "skill": "discover_actions",
+   "status": "SUCCESS",
+   "output": {
+    "actions": [],
+    "stop": true,
+    "stop_reason": "catalog empty"
+   }
+  },
+  "R-13": {
+   "skill": "assess_hypotheses",
+   "status": "SUCCESS",
+   "output": {
+    "updates": [
+     {
+      "hypothesis": "H-AMI-READ-FAILURE",
+      "status": "REJECTED",
+      "rationale": "Contradicted by evidence E-04 showing disputes in actual‑read bills, not limited to estimation errors.",
+      "evidence_refs": [
+       "E-04"
+      ]
+     },
+     {
+      "hypothesis": "H-BILLING-RULE-CHANGE",
+      "status": "CONFIRMED",
+      "rationale": "Supported by authoritative complete evidence E-04 with no contradiction.",
+      "evidence_refs": [
+       "E-04"
+      ]
+     },
+     {
+      "hypothesis": "H-FIELD-READ-ISSUE",
+      "status": "REJECTED",
+      "rationale": "Contradicted by evidence E-04 showing disputes in actual‑read bills, not limited to estimation errors.",
+      "evidence_refs": [
+       "E-04"
+      ]
+     },
+     {
+      "hypothesis": "H-REQ-FRAME-AI-AGENT",
+      "status": "SUPPORTED",
+      "rationale": "Supported by evidence E-01 confirming dispute ticket doubling since August; no contradiction.",
+      "evidence_refs": [
+       "E-01"
+      ]
+     }
+    ],
+    "ready_to_define": true,
+    "rationale": "All hypothesis status changes derived solely from linked evidence."
+   }
+  },
+  "R-14": {
+   "skill": "define_problem",
+   "status": "SUCCESS",
+   "output": {
+    "root_problem": "Changes to billing import validation rules after August cause systematic mis‑billing, which drives the observed increase in dispute tickets.",
+    "requested_solution": "Dispute tickets doubled since August. Build an AI agent that auto-answers billing dispute tickets and fixes whatever is causing the wrong bills.",
+    "symptoms": [
+     "Dispute ticket volume rose from ~610 in June and 590 in July to 1,180 in August and 1,260 in September."
+    ],
+    "affected_process": "meter-to-cash",
+    "causal_chain": [
+     "Billing import validation rules are modified after August",
+     "Modified rules introduce systematic errors in bill calculation",
+     "Bills contain incorrect amounts (both estimated and actual reads)",
+     "Customers dispute the incorrect bills",
+     "Dispute ticket volume rises"
+    ],
+    "premise_hypotheses": [
+     "H-BILLING-RULE-CHANGE"
+    ],
+    "evidence_refs": [
+     "E-01",
+     "E-04"
+    ],
+    "assumptions": [
+     {
+      "key": "no_tariff_change",
+      "statement": "No tariff changes occurred during the period, so tariff is not a contributing factor.",
+      "evidence_refs": [
+       "E-03",
+       "E-07"
+      ],
+      "risk_if_wrong": "MEDIUM"
+     },
+     {
+      "key": "field_read_not_cause",
+      "statement": "Field manual read performance did not deteriorate enough to explain the dispute surge.",
+      "evidence_refs": [
+       "E-02",
+       "E-05"
+      ],
+      "risk_if_wrong": "MEDIUM"
+     }
+    ],
+    "unknowns": [
+     {
+      "key": "specific_rule_change",
+      "question": "Which specific rule(s) in the billing import validation rule change log caused the mis‑billing?",
+      "criticality": "HIGH",
+      "decision_impact": "HIGH",
+      "affects_scope": [
+       {
+        "action": "identify_billing_rule_change",
+        "target": "DA-RULES"
+       },
+       {
+        "action": "revert_or_fix_billing_import_validation_rules",
+        "target": "DA-RULES"
+       }
+      ],
+      "resolution_path": "Audit the billing-config change log to pinpoint altered rules and test their impact on bill calculations using a sandbox.",
+      "safe_placeholder": "Continue operating under the current rule set while monitoring dispute volume; any rule change will be deployed via a controlled config change after validation."
+     },
+     {
+      "key": "effectiveness_of_fix",
+      "question": "Will correcting the identified rule(s) reduce dispute volume to pre‑August baseline across all customer segments?",
+      "criticality": "MEDIUM",
+      "decision_impact": "MEDIUM",
+      "affects_scope": [
+       {
+        "action": "monitor_dispute_volume",
+        "target": "DA-TICKET"
+       }
+      ],
+      "resolution_path": "After deploying the corrected rule set, track weekly dispute ticket counts and compare to the June‑July baseline.",
+      "safe_placeholder": "Track dispute ticket volume weekly; if volume does not decline after rule correction, investigate additional causes."
+     }
+    ],
+    "metrics": [
+     {
+      "key": "dispute_ticket_volume_rate",
+      "name": "Dispute tickets per month",
+      "metric_type": "RATE",
+      "numerator": "dispute_ticket_count",
+      "denominator": "month",
+      "current_value": 1260,
+      "current_value_evidence_refs": [
+       "E-01"
+      ],
+      "target_value": 650
+     }
+    ],
+    "success_criteria": [
+     {
+      "key": "dispute_volume_baseline",
+      "statement": "Dispute ticket volume returns to pre‑August baseline (≤650 tickets per month).",
+      "kind": "MUST",
+      "metric": "dispute_ticket_volume_rate",
+      "threshold": "}], ",
+      "validation_method": "Compare monthly dispute ticket count from CRM after fix to baseline of 610 (June) or 590 (July)."
+     }
+    ],
+    "intended_scope": [
+     {
+      "action": "identify_billing_rule_change",
+      "target": "DA-RULES"
+     },
+     {
+      "action": "revert_or_fix_billing_import_validation_rules",
+      "target": "DA-RULES"
+     },
+     {
+      "action": "monitor_dispute_volume",
+      "target": "DA-TICKET"
+     }
+    ],
+    "protected_actions": [],
+    "required_tools": [
+     "billing-db",
+     "crm-tickets",
+     "billing-config"
+    ],
+    "depends_on_handoffs": [],
+    "constraint_refs": [
+     "K-BILLWRITE",
+     "K-DISPATCH"
+    ],
+    "rejected_framings": [
+     {
+      "hypothesis": "H-REQ-FRAME-AI-AGENT",
+      "why": "Addresses symptom (ticket response) rather than root cause; no evidence that an AI agent reduces mis‑billing, and automated bill writes would violate K‑BILLWRITE without a Human Gate."
+     }
+    ],
+    "vob_reevaluation": [],
+    "confidence": 0.86
+   }
+  },
+  "R-15": {
+   "skill": "interpret_evidence",
+   "status": "SUCCESS",
+   "output": {
+    "interpretation": "The observation confirms that route priority changes require Field Operations Manager confirmation, aligning with the existing dispatch approval constraint.",
+    "assertion_key": "route_priority_change.requires_field_ops_confirmation",
+    "assertion_value": true,
+    "claim_assertion_key": "",
+    "claim_assertion_value": "",
+    "hypothesis_effects": [
+     {
+      "hypothesis": "H-AMI-READ-FAILURE",
+      "effect": "NEUTRAL",
+      "rationale": "Observation about route priority changes does not pertain to AMI read failures."
+     },
+     {
+      "hypothesis": "H-BILLING-RULE-CHANGE",
+      "effect": "NEUTRAL",
+      "rationale": "Observation does not address billing import validation rules."
+     },
+     {
+      "hypothesis": "H-FIELD-READ-ISSUE",
+      "effect": "NEUTRAL",
+      "rationale": "Observation concerns route priority confirmation, not field manual read performance."
+     },
+     {
+      "hypothesis": "H-REQ-FRAME-AI-AGENT",
+      "effect": "NEUTRAL",
+      "rationale": "Observation does not relate to dispute ticket volume or AI agent proposal."
+     }
+    ],
+    "new_hypotheses": [],
+    "fact_candidates": [],
+    "unknown_resolutions": [],
+    "authorization_candidates": [
+     {
+      "action": "push_route_update",
+      "resource": "field-dispatch",
+      "authority_holder": "SH-FIELD",
+      "scope_target": "route priority changes",
+      "conditions": [
+       "executed after Field Operations Manager confirmation"
+      ],
+      "rationale": "Service contract §4.2 grants the utility the ability to request route priority changes, but execution requires confirmation by the Field Operations Manager."
+     }
+    ],
+    "contradiction_assessment": {
+     "relation": "UNRELATED",
+     "target_type": "NONE",
+     "target_refs": [],
+     "materiality": "LOW",
+     "problem_invalidating": false,
+     "rationale": "The observation does not address the problem premise that billing import validation rule changes cause the dispute surge."
+    },
+    "vob_proposals": [],
+    "follow_up_actions": [],
+    "confidence": 0.95
+   }
+  },
+  "R-16": {
+   "skill": "structural_remedy",
+   "status": "SUCCESS",
+   "output": {
+    "root_cause": "Changes to billing import validation rules after August cause systematic mis‑billing (problem_definition.root_problem, H-BILLING-RULE-CHANGE supported by E-04).",
+    "remedies": [
+     {
+      "key": "R1",
+      "description": "Identify and revert the specific billing import validation rule change(s) introduced after August that caused the mis‑billing (see problem_definition.root_problem, H-BILLING-RULE-CHANGE, E-04).",
+      "removes_root_cause": true,
+      "feasible_in_contest_time": true,
+      "constraint_feasible": true,
+      "feasibility_rationale": "Rule change is a configuration edit; no bill write required, so K-BILLWRITE and K-DISPATCH constraints are not violated. 225 minutes remain, sufficient for analysis and rollback.",
+      "residual_gap": "Uncertainty whether fixing the rule(s) will reduce dispute volume to pre‑August baseline (U-EFFECTIVENESS-OF-FIX medium)."
+     }
+    ],
+    "why_agent_needed": "",
+    "confidence": 0.85
+   }
+  },
+  "R-17": {
+   "skill": "agent_design",
+   "status": "LOW_CONFIDENCE",
+   "output": {
+    "deterministic_rules_cover_cases": true,
+    "llm_reasoning_adds_value": true,
+    "autonomous_iteration_adds_value": false,
+    "residual_exceptions": false,
+    "detection_needed": true,
+    "why_agent": "",
+    "bridge_sunset_condition": "",
+    "deterministic_components": [],
+    "release_scope": [
+     {
+      "action": "monitor_dispute_volume",
+      "target": "DA-TICKET"
+     }
+    ],
+    "minimum_useful_scope": [
+     {
+      "action": "monitor_dispute_volume",
+      "target": "DA-TICKET"
+     }
+    ],
+    "scope_dependencies": [
+     {
+      "action": "monitor_dispute_volume:DA-TICKET",
+      "depends_on": [
+       "DA-TICKET"
+      ]
+     }
+    ],
+    "role_suggestion": [
+     "CONTROL_DETECTION"
+    ],
+    "capabilities": [],
+    "llm_required_for": [],
+    "tools": [],
+    "authority_boundary": [],
+    "human_gate": [],
+    "termination": "NOT_SET",
+    "validation": [],
+    "known_limitations": [],
+    "vob_proposals": [],
+    "confidence": 0.0
+   }
+  },
+  "R-18": {
+   "skill": "plan_execution",
+   "status": "SUCCESS",
+   "output": {
+    "work_items": [
+     {
+      "key": "wi1",
+      "description": "Monitor dispute ticket volume daily to track return to pre-August baseline.",
+      "work_class": "CORE_FEATURE",
+      "est_minutes": 30,
+      "scope_items": [
+       {
+        "action": "monitor_dispute_volume",
+        "target": "DA-TICKET"
+       }
+      ],
+      "root_problem_aligned": true,
+      "release_blocking": true,
+      "data_ops": [],
+      "output_name": "dispute_volume_daily",
+      "output_key_fields": [
+       "date"
+      ],
+      "output_join": false,
+      "output_constant_fields": []
+     }
+    ],
+    "protected_actions": [],
+    "rationale": "Evidence E-01 shows dispute ticket volume rose from ~610 in June and 590 in July to 1,180 in August and 1,260 in September, confirming a roughly two‑fold increase; monitoring volume is needed to assess whether corrective actions restore baseline (F-01). Read‑only query of CRM dispute tickets; no system state change. Not applicable (read‑only). Could monitor via weekly aggregates or rely on manual reporting; however daily monitoring provides timely feedback."
+   }
+  },
+  "R-19": {
+   "skill": "interpret_evidence",
+   "status": "SUCCESS",
+   "output": {
+    "interpretation": "The stakeholder reports that MDMS export access for Lakeside has been provisioned, enabling retrieval of AMI read events.",
+    "assertion_key": "mdms_export_access.provisioned",
+    "assertion_value": true,
+    "claim_assertion_key": "mdms_export_access.provisioned",
+    "claim_assertion_value": true,
+    "hypothesis_effects": [
+     {
+      "hypothesis": "H-AMI-READ-FAILURE",
+      "effect": "NEUTRAL",
+      "rationale": "Observation indicates access is now available but does not provide evidence about AMI read errors or missing reads."
+     },
+     {
+      "hypothesis": "H-BILLING-RULE-CHANGE",
+      "effect": "NEUTRAL",
+      "rationale": "Observation is unrelated to billing import validation rule changes."
+     },
+     {
+      "hypothesis": "H-FIELD-READ-ISSUE",
+      "effect": "NEUTRAL",
+      "rationale": "Observation does not speak to field manual read processes or route completion."
+     },
+     {
+      "hypothesis": "H-REQ-FRAME-AI-AGENT",
+      "effect": "NEUTRAL",
+      "rationale": "Observation does not address dispute ticket volume or the need for an AI agent."
+     }
+    ],
+    "new_hypotheses": [],
+    "fact_candidates": [],
+    "unknown_resolutions": [],
+    "authorization_candidates": [],
+    "contradiction_assessment": {
+     "relation": "UNRELATED",
+     "target_type": "NONE",
+     "target_refs": [],
+     "materiality": "LOW",
+     "problem_invalidating": false,
+     "rationale": "Observation does not affect any premise hypothesis, claim, or solution path of the problem definition."
+    },
+    "vob_proposals": [],
+    "follow_up_actions": [
+     "mdms-export:read_events_for_disputed_estimated"
+    ],
+    "confidence": 0.95
+   }
+  },
+  "R-20": {
+   "skill": "interpret_evidence",
+   "status": "SUCCESS",
+   "output": {
+    "interpretation": "The observation shows that among disputed estimated bills, most (1184) had AMI reads taken before cutoff but were rejected due to high consumption, while a small minority (56) had no read received. This points to high‑consumption read rejections as a likely source of the dispute surge.",
+    "assertion_key": "disputed_estimated_ami_read.rejected_high_consumption_count",
+    "assertion_value": 1184,
+    "claim_assertion_key": "",
+    "claim_assertion_value": "",
+    "hypothesis_effects": [
+     {
+      "hypothesis": "H-AMI-READ-FAILURE",
+      "effect": "CONTRADICTS",
+      "rationale": "Observation shows AMI reads are present but rejected due to high consumption, indicating disputes are not driven by missing reads."
+     },
+     {
+      "hypothesis": "H-BILLING-RULE-CHANGE",
+      "effect": "SUPPORTS",
+      "rationale": "Many records show billing import status REJECTED_HIGH_CONSUMPTION, consistent with a validation rule change that rejects high‑consumption reads."
+     },
+     {
+      "hypothesis": "H-FIELD-READ-ISSUE",
+      "effect": "CONTRADICTS",
+      "rationale": "Observation shows disputed estimated bills have AMI reads (not field reads), suggesting field‑read issues are not the primary cause."
+     },
+     {
+      "hypothesis": "H-REQ-FRAME-AI-AGENT",
+      "effect": "NEUTRAL",
+      "rationale": "Observation does not address the suitability of an AI agent for dispute ticket response."
+     }
+    ],
+    "new_hypotheses": [],
+    "fact_candidates": [
+     {
+      "statement": "mdms-export.read_events_for_disputed_estimated → 2 record(s): ...",
+      "assertion_key": "disputed_estimated_ami_read.rejected_high_consumption_count",
+      "value": 1184,
+      "evidence_refs": [
+       "E-10"
+      ]
+     }
+    ],
+    "unknown_resolutions": [
+     {
+      "unknown": "U-SPECIFIC-RULE-CHANGE",
+      "resolution": "RESOLVED"
+     }
+    ],
+    "authorization_candidates": [],
+    "contradiction_assessment": {
+     "relation": "UNRELATED",
+     "target_type": "NONE",
+     "target_refs": [],
+     "materiality": "LOW",
+     "problem_invalidating": false,
+     "rationale": "Observation supports the premise hypothesis (H-BILLING-RULE-CHANGE) and does not contradict any problem premise."
+    },
+    "vob_proposals": [],
+    "follow_up_actions": [],
+    "confidence": 0.92
+   }
+  },
+  "R-21": {
+   "skill": "semantic_judge",
+   "status": "SUCCESS",
+   "output": {
+    "checks": [
+     {
+      "name": "scope_addresses_root_problem",
+      "status": "FAIL",
+      "detail": "Release scope only includes monitoring dispute volume and omits the required actions to identify and revert the billing import validation rule changes that are the root cause.",
+      "refs": [
+       "E-04",
+       "E-10",
+       "H-BILLING-RULE-CHANGE"
+      ]
+     },
+     {
+      "name": "consistency_with_evidence",
+      "status": "FAIL",
+      "detail": "The implied approval rationale that monitoring alone is sufficient conflicts with evidence showing rule changes drive the dispute surge.",
+      "refs": [
+       "E-04",
+       "E-10",
+       "H-BILLING-RULE-CHANGE"
+      ]
+     },
+     {
+      "name": "limitations_honestly_stated",
+      "status": "WARN",
+      "detail": "Design does not explicitly state that monitoring alone may not fix the root problem; unknown U-EFFECTIVENESS-OF-FIX signals this uncertainty.",
+      "refs": [
+       "U-EFFECTIVENESS-OF-FIX"
+      ]
+     }
+    ]
+   }
+  },
+  "R-22": {
+   "skill": "release_summary",
+   "status": "SUCCESS",
+   "output": {
+    "summary": "Dispute ticket volume doubled from ~610 in June/July to 1,180 in August and 1,260 in September, indicating a billing issue that generates incorrect bills. Root cause identified as changes to billing import validation rules after August causing systematic mis‑billing. Evidence shows the ticket surge (E-01), disputed bills split between estimated and actual reads (E-04), and high‑consumption AMI read rejections (E-10) that point to rule‑change‑driven mis‑billing; hypothesis H‑BILLING‑RULE‑CHANGE is confirmed with E-04 and E-10. The released capability monitors dispute ticket volume daily (action: monitor_dispute_volume on DA‑TICKET) to track return to pre‑August baseline. Release is granted as a known‑limitation release because the scope only provides monitoring; it does not include the required actions to identify and revert the billing import validation rule changes that are the root cause. Known limitations: DEFINE Gate CONDITIONAL_PASS (deferred items tracked as VOBs); semantic:scope_addresses_root_problem: Release scope only includes monitoring dispute volume and omits the required actions to identify and revert the billing import validation rule changes that are the root cause.; semantic:consistency_with_evidence: The implied approval rationale that monitoring alone is sufficient conflicts with evidence showing rule changes drive the dispute surge.",
+    "key_points": [
+     "Problem: Dispute ticket volume doubled since August due to billing import validation rule changes (E-01, E-04, E-10).",
+     "Establishment: Evidence E-01 shows volume increase; E-04 shows disputed bills across read types; E-10 shows high‑consumption read rejections, confirming H‑BILLING‑RULE‑CHANGE.",
+     "Released: Monitoring dispute ticket volume daily (release scope).",
+     "Decision: RELEASE_WITH_KNOWN_LIMITATION because release omits root‑cause actions.",
+     "Limitations: Gate CONDITIONAL_PASS deferred items; scope does not address root cause; monitoring alone contradicts evidence of rule‑change drive."
+    ],
+    "limitations_explained": [
+     "The DEFINE Gate resulted in a CONDITIONAL_PASS, deferring specific rule‑change items as VOBs.",
+     "The release scope only monitors dispute ticket volume and does not include identifying or reverting the billing import validation rule changes that are the root cause.",
+     "Approval rationale that monitoring is sufficient conflicts with evidence that rule changes drive the dispute surge."
+    ]
+   }
+  }
+ }
+}

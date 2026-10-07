@@ -1,0 +1,1903 @@
+[
+ {
+  "seq": 1,
+  "type": "reasoning_completed",
+  "importance": "NORMAL",
+  "payload": {
+   "reasoning_id": "R-1",
+   "skill": "hypothesis_init",
+   "status": "SUCCESS",
+   "provider": "nvidia-nim",
+   "model": "nvidia/nemotron-3-super-120b-a12b",
+   "input_state_version": 0,
+   "schema_version": "1.0",
+   "order": 1,
+   "attempts": 1,
+   "input_digest": "bfdd8034fd3057d7",
+   "evidence_refs": [
+    "H-1"
+   ],
+   "confidence": 0.6,
+   "fallback_used": null,
+   "errors": [],
+   "proposal": {
+    "framing_assertion": {
+     "key": "shipment_notice.auto_fix_possible",
+     "value": true,
+     "rationale": "The initial request assumes shipment notices can be auto-fixed by an AI agent."
+    },
+    "hypotheses": [
+     {
+      "key": "REQ_FRAMING",
+      "statement": "Rejects stem from correctable data errors in shipment notices that an AI agent can detect and fix.",
+      "origin": "REQUESTER_FRAMING",
+      "decision_impact": "HIGH",
+      "rationale": "If true, an AI auto-fix/resubmit loop would resolve most rejects.",
+      "discriminating_evidence": [
+       "DA-REJ"
+      ]
+     },
+     {
+      "key": "ALT_RULE_CHANGE",
+      "statement": "Carrier updated validation/business rules, causing previously valid notices to be rejected.",
+      "origin": "ALTERNATIVE",
+      "decision_impact": "MEDIUM",
+      "rationale": "If true, fixing requires rule mapping updates rather than notice correction.",
+      "discriminating_evidence": [
+       "DA-REJ"
+      ]
+     },
+     {
+      "key": "ALT_HANDOFF_CORRUPTION",
+      "statement": "Corruption or formatting issues occur during the handoff from shipper to carrier, leading to rejects.",
+      "origin": "ALTERNATIVE",
+      "decision_impact": "LOW",
+      "rationale": "If true, improving the handoff process (e.g., encoding, validation) is needed; AI auto-fix less effective.",
+      "discriminating_evidence": [
+       "H-1",
+       "DA-REJ"
+      ]
+     }
+    ],
+    "confidence": 0.6
+   }
+  },
+  "refs": [
+   "H-1"
+  ]
+ },
+ {
+  "seq": 2,
+  "type": "state_committed",
+  "importance": "NORMAL",
+  "payload": {
+   "reason": "initial hypotheses (R-1)",
+   "version": 1,
+   "diff": [
+    {
+     "kind": "NEW",
+     "collection": "hypotheses",
+     "id": "H-REQ-FRAMING",
+     "importance": "NORMAL"
+    },
+    {
+     "kind": "NEW",
+     "collection": "hypotheses",
+     "id": "H-ALT-RULE-CHANGE",
+     "importance": "NORMAL"
+    },
+    {
+     "kind": "NEW",
+     "collection": "hypotheses",
+     "id": "H-ALT-HANDOFF-CORRUPTION",
+     "importance": "NORMAL"
+    }
+   ]
+  },
+  "refs": []
+ },
+ {
+  "seq": 3,
+  "type": "state_committed",
+  "importance": "NORMAL",
+  "payload": {
+   "reason": "claim CL-01",
+   "version": 2,
+   "diff": [
+    {
+     "kind": "NEW",
+     "collection": "claims",
+     "id": "CL-01",
+     "importance": "LOW"
+    }
+   ]
+  },
+  "refs": []
+ },
+ {
+  "seq": 4,
+  "type": "claim_recorded",
+  "importance": "NORMAL",
+  "payload": {
+   "claim": "CL-01",
+   "stakeholder": "SH-REQ"
+  },
+  "refs": []
+ },
+ {
+  "seq": 5,
+  "type": "proposal_accepted",
+  "importance": "NORMAL",
+  "payload": {
+   "skill": "hypothesis_init",
+   "reasoning_id": "R-1",
+   "detail": {
+    "hypotheses": [
+     "H-REQ-FRAMING",
+     "H-ALT-RULE-CHANGE",
+     "H-ALT-HANDOFF-CORRUPTION"
+    ],
+    "framing": [
+     "H-REQ-FRAMING"
+    ]
+   }
+  },
+  "refs": []
+ },
+ {
+  "seq": 6,
+  "type": "reasoning_completed",
+  "importance": "NORMAL",
+  "payload": {
+   "reasoning_id": "R-2",
+   "skill": "discover_actions",
+   "status": "SUCCESS",
+   "provider": "nvidia-nim",
+   "model": "nvidia/nemotron-3-super-120b-a12b",
+   "input_state_version": 2,
+   "schema_version": "1.0",
+   "order": 2,
+   "attempts": 1,
+   "input_digest": "8c2f04ca0cf7395e",
+   "evidence_refs": [
+    "H-ALT-HANDOFF-CORRUPTION",
+    "H-ALT-RULE-CHANGE",
+    "H-REQ-FRAMING"
+   ],
+   "confidence": null,
+   "fallback_used": null,
+   "errors": [],
+   "proposal": {
+    "actions": [
+     {
+      "catalog_ref": "reject-log:rejects_by_reason",
+      "question": "What are the reasons for carrier rejects?",
+      "decision_impact": 0.9,
+      "uncertainty": 0.7,
+      "discriminative_power": 0.85,
+      "answerability": 0.9,
+      "process_data_handoff_impact": 0.2,
+      "action_proximity": 0.9,
+      "constraint_risk": 0.1,
+      "estimated_cost_minutes": 10,
+      "expected_information_gain": ":",
+      "decision_impact_rationale": "Knowing reject reasons directly informs whether auto-fix is viable.",
+      "discriminates_hypotheses": [
+       "H-ALT-HANDOFF-CORRUPTION",
+       "H-ALT-RULE-CHANGE",
+       "H-REQ-FRAMING"
+      ],
+      "resolves_unknowns": [],
+      "addresses": [],
+      "why_now": "High impact, low cost, clarifies core uncertainty."
+     },
+     {
+      "catalog_ref": "interview:SH-REQ",
+      "question": "Interview SH-REQ on feasibility and constraints of auto-fixing shipment notices.",
+      "decision_impact": 0.8,
+      "uncertainty": 0.5,
+      "discriminative_power": 0.6,
+      "answerability": 0.85,
+      "process_data_handoff_impact": 0.1,
+      "action_proximity": 0.6,
+      "constraint_risk": 0.1,
+      "estimated_cost_minutes": 20,
+      "expected_information_gain": ":",
+      "decision_impact_rationale": "Stakeholder view may reveal organizational readiness or hidden constraints.",
+      "discriminates_hypotheses": [
+       "H-REQ-FRAMING"
+      ],
+      "resolves_unknowns": [],
+      "addresses": [],
+      "why_now": "Adds context to technical findings."
+     }
+    ],
+    "stop": false,
+    "stop_reason": ""
+   }
+  },
+  "refs": [
+   "H-ALT-HANDOFF-CORRUPTION",
+   "H-ALT-RULE-CHANGE",
+   "H-REQ-FRAMING"
+  ]
+ },
+ {
+  "seq": 7,
+  "type": "discovery_action_selected",
+  "importance": "NORMAL",
+  "payload": {
+   "selected": "reject-log:rejects_by_reason",
+   "ranking": [
+    {
+     "id": "reject-log:rejects_by_reason",
+     "score": 13.9643,
+     "excluded": false,
+     "reason": "value=29.32 cost=11.0"
+    },
+    {
+     "id": "interview:SH-REQ",
+     "score": 8.5156,
+     "excluded": false,
+     "reason": "value=27.25 cost=22.0"
+    }
+   ]
+  },
+  "refs": []
+ },
+ {
+  "seq": 8,
+  "type": "safe_point_reached",
+  "importance": "NORMAL",
+  "payload": {
+   "kind": "BEFORE_ACTION"
+  },
+  "refs": []
+ },
+ {
+  "seq": 9,
+  "type": "tool_called",
+  "importance": "LOW",
+  "payload": {
+   "tool": "reject-log",
+   "operation": "rejects_by_reason",
+   "status": "SUCCESS",
+   "completeness": "COMPLETE",
+   "cost": 2.0
+  },
+  "refs": []
+ },
+ {
+  "seq": 10,
+  "type": "tool_health_changed",
+  "importance": "NORMAL",
+  "payload": {
+   "tool": "reject-log",
+   "from": "UNKNOWN",
+   "to": "HEALTHY"
+  },
+  "refs": []
+ },
+ {
+  "seq": 11,
+  "type": "safe_point_reached",
+  "importance": "NORMAL",
+  "payload": {
+   "kind": "AFTER_TOOL_RESULT"
+  },
+  "refs": []
+ },
+ {
+  "seq": 12,
+  "type": "reasoning_completed",
+  "importance": "NORMAL",
+  "payload": {
+   "reasoning_id": "R-3",
+   "skill": "interpret_evidence",
+   "status": "SUCCESS",
+   "provider": "nvidia-nim",
+   "model": "nvidia/nemotron-3-super-120b-a12b",
+   "input_state_version": 2,
+   "schema_version": "1.0",
+   "order": 3,
+   "attempts": 1,
+   "input_digest": "ab37992059c03c50",
+   "evidence_refs": [
+    "E-01",
+    "H-ALT-HANDOFF-CORRUPTION",
+    "H-ALT-RULE-CHANGE",
+    "H-REQ-FRAMING"
+   ],
+   "confidence": 0.9,
+   "fallback_used": null,
+   "errors": [],
+   "proposal": {
+    "interpretation": "The observation shows three rejected shipment notices: two due to LOC_UNKNOWN and one due to EVENT_ORDER, indicating that not all rejects are correctable data errors that an AI agent could fix.",
+    "assertion_key": "shipment_notice.auto_fix_possible",
+    "assertion_value": false,
+    "claim_assertion_key": "",
+    "claim_assertion_value": "",
+    "hypothesis_effects": [
+     {
+      "hypothesis": "H-ALT-HANDOFF-CORRUPTION",
+      "effect": "NEUTRAL",
+      "rationale": "The reject reasons (LOC_UNKNOWN, EVENT_ORDER) do not clearly indicate handoff corruption or formatting issues."
+     },
+     {
+      "hypothesis": "H-ALT-RULE-CHANGE",
+      "effect": "NEUTRAL",
+      "rationale": "No evidence of carrier rule changes in the observed reject reasons."
+     },
+     {
+      "hypothesis": "H-REQ-FRAMING",
+      "effect": "CONTRADICTS",
+      "rationale": "LOC_UNKNOWN and EVENT_ORDER reasons suggest not all rejects are correctable data errors fixable by an AI agent."
+     }
+    ],
+    "new_hypotheses": [],
+    "fact_candidates": [
+     {
+      "statement": "Three rejected shipment notices observed: N-1 and N-2 due to LOC_UNKNOWN, N-3 due to EVENT_ORDER.",
+      "assertion_key": "shipment_notice.auto_fix_possible",
+      "value": false,
+      "evidence_refs": [
+       "E-01"
+      ]
+     }
+    ],
+    "unknown_resolutions": [],
+    "authorization_candidates": [],
+    "contradiction_assessment": {
+     "relation": "UNRELATED",
+     "target_type": "NONE",
+     "target_refs": [],
+     "materiality": "LOW",
+     "problem_invalidating": false,
+     "rationale": "No problem definition present to assess against."
+    },
+    "vob_proposals": [],
+    "follow_up_actions": [
+     "interview:SH-REQ"
+    ],
+    "confidence": 0.9
+   }
+  },
+  "refs": [
+   "E-01",
+   "H-ALT-HANDOFF-CORRUPTION",
+   "H-ALT-RULE-CHANGE",
+   "H-REQ-FRAMING"
+  ]
+ },
+ {
+  "seq": 13,
+  "type": "conflict_detected",
+  "importance": "HIGH",
+  "payload": {
+   "conflict": "C-1",
+   "assertion": "shipment_notice.auto_fix_possible",
+   "sides": [
+    "CL-01",
+    "E-01"
+   ]
+  },
+  "refs": []
+ },
+ {
+  "seq": 14,
+  "type": "state_committed",
+  "importance": "NORMAL",
+  "payload": {
+   "reason": "evidence E-01",
+   "version": 3,
+   "diff": [
+    {
+     "kind": "CHANGED",
+     "collection": "claims",
+     "id": "CL-01",
+     "importance": "LOW"
+    },
+    {
+     "kind": "CHANGED",
+     "collection": "hypotheses",
+     "id": "H-REQ-FRAMING",
+     "importance": "NORMAL"
+    },
+    {
+     "kind": "NEW",
+     "collection": "evidence",
+     "id": "E-01",
+     "importance": "LOW"
+    },
+    {
+     "kind": "NEW",
+     "collection": "conflicts",
+     "id": "C-1",
+     "importance": "HIGH"
+    }
+   ]
+  },
+  "refs": []
+ },
+ {
+  "seq": 15,
+  "type": "evidence_added",
+  "importance": "NORMAL",
+  "payload": {
+   "evidence": "E-01",
+   "source": "reject-log"
+  },
+  "refs": [
+   "E-01"
+  ]
+ },
+ {
+  "seq": 16,
+  "type": "state_committed",
+  "importance": "NORMAL",
+  "payload": {
+   "reason": "fact F-01",
+   "version": 4,
+   "diff": [
+    {
+     "kind": "NEW",
+     "collection": "facts",
+     "id": "F-01",
+     "importance": "LOW"
+    }
+   ]
+  },
+  "refs": []
+ },
+ {
+  "seq": 17,
+  "type": "fact_established",
+  "importance": "NORMAL",
+  "payload": {
+   "fact": "F-01"
+  },
+  "refs": [
+   "E-01"
+  ]
+ },
+ {
+  "seq": 18,
+  "type": "proposal_accepted",
+  "importance": "NORMAL",
+  "payload": {
+   "skill": "interpret_evidence",
+   "reasoning_id": "R-3",
+   "detail": {
+    "evidence": "E-01",
+    "assertion": "shipment_notice.auto_fix_possible",
+    "supports": [],
+    "contradicts": [
+     "H-REQ-FRAMING"
+    ],
+    "assessment": "NONE",
+    "challenge_raised": false
+   }
+  },
+  "refs": [
+   "E-01"
+  ]
+ },
+ {
+  "seq": 19,
+  "type": "proposal_adjusted",
+  "importance": "NORMAL",
+  "payload": {
+   "skill": "interpret_evidence",
+   "reasoning_id": "R-3",
+   "detail": [
+    "follow-up 'interview:SH-REQ' not run: only deferred queries are re-attempted, and only on new external input (Information-Value ranking decides the rest)"
+   ]
+  },
+  "refs": []
+ },
+ {
+  "seq": 20,
+  "type": "discovery_action_selected",
+  "importance": "NORMAL",
+  "payload": {
+   "selected": "interview:SH-REQ",
+   "ranking": [
+    {
+     "id": "interview:SH-REQ",
+     "score": 8.4452,
+     "excluded": false,
+     "reason": "value=27.25 cost=22.3"
+    }
+   ]
+  },
+  "refs": []
+ },
+ {
+  "seq": 21,
+  "type": "reasoning_completed",
+  "importance": "NORMAL",
+  "payload": {
+   "reasoning_id": "R-4",
+   "skill": "interpret_evidence",
+   "status": "SUCCESS",
+   "provider": "nvidia-nim",
+   "model": "nvidia/nemotron-3-super-120b-a12b",
+   "input_state_version": 4,
+   "schema_version": "1.0",
+   "order": 4,
+   "attempts": 1,
+   "input_digest": "c8202c4c57b67624",
+   "evidence_refs": [
+    "H-ALT-HANDOFF-CORRUPTION",
+    "H-ALT-RULE-CHANGE",
+    "H-REQ-FRAMING"
+   ],
+   "confidence": 0.8,
+   "fallback_used": null,
+   "errors": [],
+   "proposal": {
+    "interpretation": "The stakeholder indicates the carrier system is flaky and that resubmitting notices resolves rejects, suggesting transient issues rather than correctable data errors.",
+    "assertion_key": "carrier_system_flaky",
+    "assertion_value": true,
+    "claim_assertion_key": "carrier_system_flaky",
+    "claim_assertion_value": true,
+    "hypothesis_effects": [
+     {
+      "hypothesis": "H-ALT-HANDOFF-CORRUPTION",
+      "effect": "CONTRADICTS",
+      "rationale": "Observation points to flaky carrier system, not handoff corruption."
+     },
+     {
+      "hypothesis": "H-ALT-RULE-CHANGE",
+      "effect": "CONTRADICTS",
+      "rationale": "Observation points to flaky carrier system, not rule changes."
+     },
+     {
+      "hypothesis": "H-REQ-FRAMING",
+      "effect": "CONTRADICTS",
+      "rationale": "Observation suggests rejects are due to flakiness, not correctable data errors."
+     }
+    ],
+    "new_hypotheses": [],
+    "fact_candidates": [],
+    "unknown_resolutions": [],
+    "authorization_candidates": [],
+    "contradiction_assessment": {
+     "relation": "UNRELATED",
+     "target_type": "NONE",
+     "target_refs": [],
+     "materiality": "LOW",
+     "problem_invalidating": false,
+     "rationale": "No problem definition present."
+    },
+    "vob_proposals": [],
+    "follow_up_actions": [],
+    "confidence": 0.8
+   }
+  },
+  "refs": [
+   "H-ALT-HANDOFF-CORRUPTION",
+   "H-ALT-RULE-CHANGE",
+   "H-REQ-FRAMING"
+  ]
+ },
+ {
+  "seq": 22,
+  "type": "state_committed",
+  "importance": "NORMAL",
+  "payload": {
+   "reason": "claim CL-02",
+   "version": 5,
+   "diff": [
+    {
+     "kind": "NEW",
+     "collection": "claims",
+     "id": "CL-02",
+     "importance": "LOW"
+    }
+   ]
+  },
+  "refs": []
+ },
+ {
+  "seq": 23,
+  "type": "claim_recorded",
+  "importance": "NORMAL",
+  "payload": {
+   "claim": "CL-02",
+   "stakeholder": "SH-REQ"
+  },
+  "refs": []
+ },
+ {
+  "seq": 24,
+  "type": "state_committed",
+  "importance": "NORMAL",
+  "payload": {
+   "reason": "evidence E-02",
+   "version": 6,
+   "diff": [
+    {
+     "kind": "CHANGED",
+     "collection": "hypotheses",
+     "id": "H-REQ-FRAMING",
+     "importance": "NORMAL"
+    },
+    {
+     "kind": "CHANGED",
+     "collection": "hypotheses",
+     "id": "H-ALT-RULE-CHANGE",
+     "importance": "NORMAL"
+    },
+    {
+     "kind": "CHANGED",
+     "collection": "hypotheses",
+     "id": "H-ALT-HANDOFF-CORRUPTION",
+     "importance": "NORMAL"
+    },
+    {
+     "kind": "NEW",
+     "collection": "evidence",
+     "id": "E-02",
+     "importance": "LOW"
+    }
+   ]
+  },
+  "refs": []
+ },
+ {
+  "seq": 25,
+  "type": "evidence_added",
+  "importance": "NORMAL",
+  "payload": {
+   "evidence": "E-02",
+   "source": "SH-REQ"
+  },
+  "refs": [
+   "E-02"
+  ]
+ },
+ {
+  "seq": 26,
+  "type": "proposal_accepted",
+  "importance": "NORMAL",
+  "payload": {
+   "skill": "interpret_evidence",
+   "reasoning_id": "R-4",
+   "detail": {
+    "evidence": "E-02",
+    "assertion": "carrier_system_flaky",
+    "supports": [],
+    "contradicts": [
+     "H-ALT-HANDOFF-CORRUPTION",
+     "H-ALT-RULE-CHANGE",
+     "H-REQ-FRAMING"
+    ],
+    "assessment": "NONE",
+    "challenge_raised": false
+   }
+  },
+  "refs": [
+   "E-02"
+  ]
+ },
+ {
+  "seq": 27,
+  "type": "reasoning_completed",
+  "importance": "NORMAL",
+  "payload": {
+   "reasoning_id": "R-5",
+   "skill": "discover_actions",
+   "status": "SUCCESS",
+   "provider": "nvidia-nim",
+   "model": "nvidia/nemotron-3-super-120b-a12b",
+   "input_state_version": 6,
+   "schema_version": "1.0",
+   "order": 5,
+   "attempts": 1,
+   "input_digest": "bc27eb05e206c218",
+   "evidence_refs": [],
+   "confidence": null,
+   "fallback_used": null,
+   "errors": [],
+   "proposal": {
+    "actions": [],
+    "stop": true,
+    "stop_reason": "catalog empty"
+   }
+  },
+  "refs": []
+ },
+ {
+  "seq": 28,
+  "type": "reasoning_completed",
+  "importance": "NORMAL",
+  "payload": {
+   "reasoning_id": "R-6",
+   "skill": "assess_hypotheses",
+   "status": "SUCCESS",
+   "provider": "nvidia-nim",
+   "model": "nvidia/nemotron-3-super-120b-a12b",
+   "input_state_version": 6,
+   "schema_version": "1.0",
+   "order": 6,
+   "attempts": 1,
+   "input_digest": "1b60971a65940e93",
+   "evidence_refs": [
+    "E-01",
+    "E-02",
+    "E-02.",
+    "H-ALT-HANDOFF-CORRUPTION",
+    "H-ALT-RULE-CHANGE",
+    "H-REQ-FRAMING"
+   ],
+   "confidence": null,
+   "fallback_used": null,
+   "errors": [],
+   "proposal": {
+    "updates": [
+     {
+      "hypothesis": "H-ALT-HANDOFF-CORRUPTION",
+      "status": "REJECTED",
+      "rationale": "Contradicted by E-02 indicating flaky carrier system rather than handoff corruption.",
+      "evidence_refs": [
+       "E-02"
+      ]
+     },
+     {
+      "hypothesis": "H-ALT-RULE-CHANGE",
+      "status": "REJECTED",
+      "rationale": "Contradicted by E-02 indicating flaky carrier system rather than rule change.",
+      "evidence_refs": [
+       "E-02"
+      ]
+     },
+     {
+      "hypothesis": "H-REQ-FRAMING",
+      "status": "REJECTED",
+      "rationale": "Contradicted by E-01 (authoritative, complete) showing not all rejects are correctable data errors, and E-02.",
+      "evidence_refs": [
+       "E-01",
+       "E-02"
+      ]
+     }
+    ],
+    "ready_to_define": false,
+    "rationale": "All hypotheses are contradicted by evidence; none remain as candidates."
+   }
+  },
+  "refs": [
+   "E-01",
+   "E-02",
+   "E-02.",
+   "H-ALT-HANDOFF-CORRUPTION",
+   "H-ALT-RULE-CHANGE",
+   "H-REQ-FRAMING"
+  ]
+ },
+ {
+  "seq": 29,
+  "type": "state_committed",
+  "importance": "NORMAL",
+  "payload": {
+   "reason": "hypothesis H-ALT-HANDOFF-CORRUPTION → REJECTED",
+   "version": 7,
+   "diff": [
+    {
+     "kind": "CHANGED",
+     "collection": "hypotheses",
+     "id": "H-ALT-HANDOFF-CORRUPTION",
+     "importance": "NORMAL"
+    }
+   ]
+  },
+  "refs": []
+ },
+ {
+  "seq": 30,
+  "type": "hypothesis_changed",
+  "importance": "NORMAL",
+  "payload": {
+   "hypothesis": "H-ALT-HANDOFF-CORRUPTION",
+   "from": "CANDIDATE",
+   "to": "REJECTED",
+   "reason": "Contradicted by E-02 indicating flaky carrier system rather than handoff corruption. [E-02] (R-6)"
+  },
+  "refs": []
+ },
+ {
+  "seq": 31,
+  "type": "state_committed",
+  "importance": "NORMAL",
+  "payload": {
+   "reason": "hypothesis H-ALT-RULE-CHANGE → REJECTED",
+   "version": 8,
+   "diff": [
+    {
+     "kind": "CHANGED",
+     "collection": "hypotheses",
+     "id": "H-ALT-RULE-CHANGE",
+     "importance": "NORMAL"
+    }
+   ]
+  },
+  "refs": []
+ },
+ {
+  "seq": 32,
+  "type": "hypothesis_changed",
+  "importance": "NORMAL",
+  "payload": {
+   "hypothesis": "H-ALT-RULE-CHANGE",
+   "from": "CANDIDATE",
+   "to": "REJECTED",
+   "reason": "Contradicted by E-02 indicating flaky carrier system rather than rule change. [E-02] (R-6)"
+  },
+  "refs": []
+ },
+ {
+  "seq": 33,
+  "type": "state_committed",
+  "importance": "NORMAL",
+  "payload": {
+   "reason": "hypothesis H-REQ-FRAMING → REJECTED",
+   "version": 9,
+   "diff": [
+    {
+     "kind": "CHANGED",
+     "collection": "hypotheses",
+     "id": "H-REQ-FRAMING",
+     "importance": "NORMAL"
+    }
+   ]
+  },
+  "refs": []
+ },
+ {
+  "seq": 34,
+  "type": "hypothesis_changed",
+  "importance": "NORMAL",
+  "payload": {
+   "hypothesis": "H-REQ-FRAMING",
+   "from": "CANDIDATE",
+   "to": "REJECTED",
+   "reason": "Contradicted by E-01 (authoritative, complete) showing not all rejects are correctable data errors, and E-02. [E-01, E-02] (R-6)"
+  },
+  "refs": []
+ },
+ {
+  "seq": 35,
+  "type": "proposal_accepted",
+  "importance": "NORMAL",
+  "payload": {
+   "skill": "assess_hypotheses",
+   "reasoning_id": "R-6",
+   "detail": {
+    "changed": [
+     "H-ALT-HANDOFF-CORRUPTION",
+     "H-ALT-RULE-CHANGE",
+     "H-REQ-FRAMING"
+    ]
+   }
+  },
+  "refs": []
+ },
+ {
+  "seq": 36,
+  "type": "reasoning_completed",
+  "importance": "NORMAL",
+  "payload": {
+   "reasoning_id": "R-7",
+   "skill": "define_problem",
+   "status": "SUCCESS",
+   "provider": "nvidia-nim",
+   "model": "nvidia/nemotron-3-super-120b-a12b",
+   "input_state_version": 9,
+   "schema_version": "1.0",
+   "order": 7,
+   "attempts": 1,
+   "input_digest": "8ffa28efa5c94ae3",
+   "evidence_refs": [
+    "E-01",
+    "E-02",
+    "H-1",
+    "H-ALT-HANDOFF-CORRUPTION",
+    "H-ALT-RULE-CHANGE",
+    "H-REQ-FRAMING"
+   ],
+   "confidence": 0.85,
+   "fallback_used": null,
+   "errors": [],
+   "proposal": {
+    "root_problem": "Rejected shipment notices occur because carrier validation flags LOC_UNKNOWN or EVENT_ORDER, which are not correctable data errors that an AI agent can fix (E-01).",
+    "requested_solution": "None",
+    "symptoms": [
+     "Increased rejected shipment notices"
+    ],
+    "affected_process": "shipment notice",
+    "causal_chain": [
+     "Carrier validation rejects due to LOC_UNKNOWN or EVENT_ORDER reasons",
+     "Shipment notice is rejected",
+     "Observed increase in rejected shipment notices"
+    ],
+    "premise_hypotheses": [],
+    "evidence_refs": [
+     "E-01"
+    ],
+    "assumptions": [
+     {
+      "key": "A1",
+      "statement": "LOC_UNKNOWN and EVENT_ORDER reasons are not correctable data errors.",
+      "evidence_refs": [
+       "E-01"
+      ],
+      "risk_if_wrong": "MEDIUM"
+     },
+     {
+      "key": "A2",
+      "statement": "Resubmitting the same notice will not resolve LOC_UNKNOWN or EVENT_ORDER rejects.",
+      "evidence_refs": [],
+      "risk_if_wrong": "MEDIUM"
+     }
+    ],
+    "unknowns": [
+     {
+      "key": "U1",
+      "question": "Are LOC_UNKNOWN rejects truly non‑correctable, or could they be fixed with additional data enrichment?",
+      "criticality": "HIGH",
+      "decision_impact": "Could change whether an AI auto‑fix is viable.",
+      "affects_scope": [
+       {
+        "action": "analyze_reject_reasons",
+        "target": "DA-REJ"
+       }
+      ],
+      "resolution_path": "Engage carrier to examine LOC_UNKNOWN cases and test if supplemental data (e.g., geolocation lookup) eliminates the reject.",
+      "safe_placeholder": "Continue manual review of LOC_UNKNOWN rejects while investigation proceeds."
+     },
+     {
+      "key": "U2",
+      "question": "Does simple resubmission resolve EVENT_ORDER rejects, or are they persistent?",
+      "criticality": "MEDIUM",
+      "decision_impact": "Determines whether a retry‑only strategy is sufficient.",
+      "affects_scope": [
+       {
+        "action": "notify_carrier_interface",
+        "target": "SH-INT"
+       },
+       {
+        "action": "escalate_issue_to_ops",
+        "target": "SH-REQ"
+       }
+      ],
+      "resolution_path": "Run a controlled A/B test: resubmit a sample of EVENT_ORDER rejects vs. hold and analyze success rate.",
+      "safe_placeholder": "Do not auto‑resubmit EVENT_ORDER rejects; treat them as requiring manual review."
+     }
+    ],
+    "metrics": [
+     {
+      "key": "M1",
+      "name": "rejection_rate",
+      "metric_type": "RATE",
+      "numerator": "Number of shipment notices rejected by carrier",
+      "denominator": "Total shipment notices sent",
+      "current_value": 0.0,
+      "current_value_evidence_refs": []
+     }
+    ],
+    "success_criteria": [
+     {
+      "key": "S1",
+      "statement": "Zero rejects due to LOC_UNKNOWN or EVENT_ORDER observed over a rolling 7‑day window.",
+      "kind": "MUST",
+      "metric": "M1",
+      "threshold": "> 0",
+      "validation_method": "Query reject-log for reason in {LOC_UNKNOWN, EVENT_ORDER} and confirm count = 0."
+     },
+     {
+      "key": "S2",
+      "statement": "Overall rejection rate reduced by at least 50% relative to baseline.",
+      "kind": "TARGET",
+      "metric": "M1",
+      "threshold": "<= 0.5 * baseline",
+      "validation_method": "Compare baseline rejection rate (pre‑intervention) to post‑intervention rate using reject-log counts."
+     }
+    ],
+    "intended_scope": [
+     {
+      "action": "analyze_reject_reasons",
+      "target": "DA-REJ"
+     },
+     {
+      "action": "notify_carrier_interface",
+      "target": "SH-INT"
+     },
+     {
+      "action": "escalate_issue_to_ops",
+      "target": "SH-REQ"
+     }
+    ],
+    "protected_actions": [],
+    "required_tools": [
+     "reject-log"
+    ],
+    "depends_on_handoffs": [
+     "H-1"
+    ],
+    "constraint_refs": [],
+    "rejected_framings": [
+     {
+      "hypothesis": "H-REQ-FRAMING",
+      "why": "Contradicted by authoritative evidence E-01 which shows not all rejects are correctable data errors."
+     },
+     {
+      "hypothesis": "H-ALT-HANDOFF-CORRUPTION",
+      "why": "No supporting evidence; contradicted by stakeholder claim E-02 and lacks data‑asset confirmation."
+     },
+     {
+      "hypothesis": "H-ALT-RULE-CHANGE",
+      "why": "No supporting evidence; contradicted by stakeholder claim E-02 and lacks data‑asset confirmation."
+     }
+    ],
+    "vob_reevaluation": [],
+    "confidence": 0.85
+   }
+  },
+  "refs": [
+   "E-01",
+   "E-02",
+   "H-1",
+   "H-ALT-HANDOFF-CORRUPTION",
+   "H-ALT-RULE-CHANGE",
+   "H-REQ-FRAMING"
+  ]
+ },
+ {
+  "seq": 37,
+  "type": "state_committed",
+  "importance": "NORMAL",
+  "payload": {
+   "reason": "DEFINE inputs (R-7)",
+   "version": 10,
+   "diff": [
+    {
+     "kind": "NEW",
+     "collection": "metrics",
+     "id": "M-M1",
+     "importance": "LOW"
+    },
+    {
+     "kind": "NEW",
+     "collection": "unknowns",
+     "id": "U-U1",
+     "importance": "NORMAL"
+    },
+    {
+     "kind": "NEW",
+     "collection": "unknowns",
+     "id": "U-U2",
+     "importance": "NORMAL"
+    },
+    {
+     "kind": "NEW",
+     "collection": "assumptions",
+     "id": "A-A1",
+     "importance": "LOW"
+    },
+    {
+     "kind": "NEW",
+     "collection": "assumptions",
+     "id": "A-A2",
+     "importance": "LOW"
+    },
+    {
+     "kind": "NEW",
+     "collection": "success_criteria",
+     "id": "SC-S1",
+     "importance": "LOW"
+    },
+    {
+     "kind": "NEW",
+     "collection": "success_criteria",
+     "id": "SC-S2",
+     "importance": "LOW"
+    }
+   ]
+  },
+  "refs": []
+ },
+ {
+  "seq": 38,
+  "type": "state_committed",
+  "importance": "NORMAL",
+  "payload": {
+   "reason": "problem definition PD-1 v1",
+   "version": 11,
+   "diff": []
+  },
+  "refs": []
+ },
+ {
+  "seq": 39,
+  "type": "proposal_adjusted",
+  "importance": "NORMAL",
+  "payload": {
+   "skill": "define_problem",
+   "reasoning_id": "R-7",
+   "detail": [
+    "M-M1 current_value has no evidence: marked speculative"
+   ]
+  },
+  "refs": []
+ },
+ {
+  "seq": 40,
+  "type": "proposal_accepted",
+  "importance": "NORMAL",
+  "payload": {
+   "skill": "define_problem",
+   "reasoning_id": "R-7",
+   "detail": {
+    "problem": "PD-1@v1",
+    "premise_hypotheses": [],
+    "confidence": 0.85
+   }
+  },
+  "refs": [
+   "E-01"
+  ]
+ },
+ {
+  "seq": 41,
+  "type": "safe_point_reached",
+  "importance": "NORMAL",
+  "payload": {
+   "kind": "BEFORE_TRANSITION"
+  },
+  "refs": []
+ },
+ {
+  "seq": 42,
+  "type": "phase_transition",
+  "importance": "NORMAL",
+  "payload": {
+   "kind": "ADVANCE",
+   "from": "DISCOVER",
+   "to": "DEFINE",
+   "rationale": "DISCOVER complete"
+  },
+  "refs": []
+ },
+ {
+  "seq": 43,
+  "type": "state_committed",
+  "importance": "NORMAL",
+  "payload": {
+   "reason": "DEFINE Gate CONDITIONAL_PASS",
+   "version": 12,
+   "diff": [
+    {
+     "kind": "DEFERRED",
+     "collection": "unknowns",
+     "id": "U-U1",
+     "importance": "HIGH"
+    },
+    {
+     "kind": "NEW",
+     "collection": "verification_obligations",
+     "id": "VOB-U-U1",
+     "importance": "HIGH"
+    }
+   ]
+  },
+  "refs": []
+ },
+ {
+  "seq": 44,
+  "type": "define_gate_result",
+  "importance": "HIGH",
+  "payload": {
+   "result": "CONDITIONAL_PASS",
+   "findings": [
+    {
+     "check": "unknown",
+     "severity": "CONDITIONAL",
+     "message": "critical unknown U-U1 deferred to VOB-U-U1"
+    },
+    {
+     "check": "metric",
+     "severity": "CONDITIONAL",
+     "message": "metric M-M1 current value speculative"
+    }
+   ],
+   "vobs": [
+    "VOB-U-U1"
+   ]
+  },
+  "refs": []
+ },
+ {
+  "seq": 45,
+  "type": "vob_created",
+  "importance": "NORMAL",
+  "payload": {
+   "vob": "VOB-U-U1",
+   "required_before": "BEFORE_RELEASE"
+  },
+  "refs": [
+   "VOB-U-U1"
+  ]
+ },
+ {
+  "seq": 46,
+  "type": "unknown_deferred",
+  "importance": "NORMAL",
+  "payload": {
+   "unknown": "U-U1",
+   "vob": "VOB-U-U1"
+  },
+  "refs": []
+ },
+ {
+  "seq": 47,
+  "type": "safe_point_reached",
+  "importance": "NORMAL",
+  "payload": {
+   "kind": "BEFORE_TRANSITION"
+  },
+  "refs": []
+ },
+ {
+  "seq": 48,
+  "type": "phase_transition",
+  "importance": "NORMAL",
+  "payload": {
+   "kind": "ADVANCE",
+   "from": "DEFINE",
+   "to": "DESIGN",
+   "rationale": "DEFINE complete"
+  },
+  "refs": []
+ },
+ {
+  "seq": 49,
+  "type": "reasoning_completed",
+  "importance": "NORMAL",
+  "payload": {
+   "reasoning_id": "R-8",
+   "skill": "structural_remedy",
+   "status": "SUCCESS",
+   "provider": "nvidia-nim",
+   "model": "nvidia/nemotron-3-super-120b-a12b",
+   "input_state_version": 12,
+   "schema_version": "1.0",
+   "order": 8,
+   "attempts": 1,
+   "input_digest": "047a45d82149552e",
+   "evidence_refs": [
+    "E-01",
+    "U-U1"
+   ],
+   "confidence": 0.85,
+   "fallback_used": null,
+   "errors": [],
+   "proposal": {
+    "root_cause": "Rejected shipment notices occur because carrier validation flags LOC_UNKNOWN or EVENT_ORDER, which are not correctable data errors that an AI agent can fix (E-01).",
+    "remedies": [
+     {
+      "key": "SR-1",
+      "description": "Add upstream data enrichment and validation step to ensure location data completeness and correct event ordering before shipment notice generation.",
+      "removes_root_cause": true,
+      "feasible_in_contest_time": true,
+      "constraint_feasible": true,
+      "feasibility_rationale": "Can be implemented as a lightweight data-quality check within the existing notice generation pipeline; fits within 225 minutes.",
+      "residual_gap": "Effectiveness depends on enrichment completeness; unknown U-U1 indicates LOC_UNKNOWN may not be fully correctable via enrichment alone."
+     },
+     {
+      "key": "SR-2",
+      "description": "Revise carrier interface agreement to relax LOC_UNKNOWN/EVENT_ORDER validation or implement real-time pre-submission validation with carrier feedback.",
+      "removes_root_cause": true,
+      "feasible_in_contest_time": true,
+      "constraint_feasible": true,
+      "feasibility_rationale": "Contractual or process change can be negotiated quickly; no technical build required.",
+      "residual_gap": "Dependent on carrier acceptance; if carrier declines, the gap remains."
+     }
+    ],
+    "why_agent_needed": "",
+    "confidence": 0.85
+   }
+  },
+  "refs": [
+   "E-01",
+   "U-U1"
+  ]
+ },
+ {
+  "seq": 50,
+  "type": "design_stage_recorded",
+  "importance": "NORMAL",
+  "payload": {
+   "stage": "ROOT_PROBLEM",
+   "summary": "Rejected shipment notices occur because carrier validation flags LOC_UNKNOWN or EVENT_ORDER, which are not correctable data errors that an AI agent can fix (E-01)."
+  },
+  "refs": []
+ },
+ {
+  "seq": 51,
+  "type": "design_stage_recorded",
+  "importance": "NORMAL",
+  "payload": {
+   "stage": "STRUCTURAL_REMEDY",
+   "summary": "2 candidate(s)"
+  },
+  "refs": []
+ },
+ {
+  "seq": 52,
+  "type": "design_stage_recorded",
+  "importance": "NORMAL",
+  "payload": {
+   "stage": "FEASIBILITY",
+   "summary": "removes_root_cause=True feasible_in_time=True"
+  },
+  "refs": []
+ },
+ {
+  "seq": 53,
+  "type": "proposal_accepted",
+  "importance": "NORMAL",
+  "payload": {
+   "skill": "structural_remedy",
+   "reasoning_id": "R-8",
+   "detail": {
+    "remedies": [
+     "SR-1",
+     "SR-2"
+    ],
+    "removes_root_cause": true,
+    "feasible_in_time": true
+   }
+  },
+  "refs": []
+ },
+ {
+  "seq": 54,
+  "type": "reasoning_completed",
+  "importance": "NORMAL",
+  "payload": {
+   "reasoning_id": "R-9",
+   "skill": "agent_design",
+   "status": "SUCCESS",
+   "provider": "nvidia-nim",
+   "model": "nvidia/nemotron-3-super-120b-a12b",
+   "input_state_version": 12,
+   "schema_version": "1.0",
+   "order": 9,
+   "attempts": 1,
+   "input_digest": "e56df27d89edd0c9",
+   "evidence_refs": [
+    "SC-S1",
+    "SC-S2",
+    "U-U1",
+    "U-U2"
+   ],
+   "confidence": 0.78,
+   "fallback_used": null,
+   "errors": [],
+   "proposal": {
+    "deterministic_rules_cover_cases": false,
+    "llm_reasoning_adds_value": true,
+    "autonomous_iteration_adds_value": true,
+    "residual_exceptions": true,
+    "detection_needed": true,
+    "why_agent": "Agent needed to monitor reject reasons, negotiate carrier interface changes, and drive enrichment when possible.",
+    "bridge_sunset_condition": "If carrier does not agree to revised interface within the remaining 150 minutes, fallback to manual review and pause auto-fix attempts.",
+    "deterministic_components": [
+     "identify reject reasons",
+     "simple resubmission for EVENT_ORDER"
+    ],
+    "release_scope": [
+     {
+      "action": "notify_carrier_interface",
+      "target": "SH-INT"
+     },
+     {
+      "action": "escalate_issue_to_ops",
+      "target": "SH-REQ"
+     }
+    ],
+    "minimum_useful_scope": [
+     {
+      "action": "notify_carrier_interface",
+      "target": "SH-INT"
+     }
+    ],
+    "scope_dependencies": [
+     {
+      "action": "notify_carrier_interface",
+      "depends_on": []
+     },
+     {
+      "action": "escalate_issue_to_ops",
+      "depends_on": []
+     }
+    ],
+    "role_suggestion": [
+     "CONTROL_DETECTION",
+     "CONTROL_DETECTION"
+    ],
+    "capabilities": [
+     "monitoring",
+     "negotiation",
+     "escalation"
+    ],
+    "llm_required_for": [
+     "interpret reject reasons",
+     "suggest enrichment sources"
+    ],
+    "tools": [
+     "reject-log"
+    ],
+    "authority_boundary": [],
+    "human_gate": [],
+    "termination": "When either SR-1 or SR-2 is verified to have reduced rejection rate by 50% or when time expires.",
+    "validation": [
+     "SC-S1",
+     "SC-S2"
+    ],
+    "known_limitations": [
+     "U-U1 blocks analysis of DA-REJ",
+     "U-U2 open about EVENT_ORDER resubmission"
+    ],
+    "vob_proposals": [],
+    "confidence": 0.78
+   }
+  },
+  "refs": [
+   "SC-S1",
+   "SC-S2",
+   "U-U1",
+   "U-U2"
+  ]
+ },
+ {
+  "seq": 55,
+  "type": "design_stage_recorded",
+  "importance": "NORMAL",
+  "payload": {
+   "stage": "WHY_AGENT",
+   "summary": "Agent needed to monitor reject reasons, negotiate carrier interface changes, and drive enrichment when possible."
+  },
+  "refs": []
+ },
+ {
+  "seq": 56,
+  "type": "design_stage_recorded",
+  "importance": "NORMAL",
+  "payload": {
+   "stage": "AGENT_ROLE",
+   "summary": "CONTROL_DETECTION, EXCEPTION_HANDLER"
+  },
+  "refs": []
+ },
+ {
+  "seq": 57,
+  "type": "design_stage_recorded",
+  "importance": "NORMAL",
+  "payload": {
+   "stage": "AGENTIFICATION_GATE",
+   "summary": "agent_justified=True"
+  },
+  "refs": []
+ },
+ {
+  "seq": 58,
+  "type": "agentification_gate_result",
+  "importance": "NORMAL",
+  "payload": {
+   "agent_justified": true,
+   "roles": [
+    "CONTROL_DETECTION",
+    "EXCEPTION_HANDLER"
+   ]
+  },
+  "refs": []
+ },
+ {
+  "seq": 59,
+  "type": "state_committed",
+  "importance": "NORMAL",
+  "payload": {
+   "reason": "solution design SD-1",
+   "version": 13,
+   "diff": []
+  },
+  "refs": []
+ },
+ {
+  "seq": 60,
+  "type": "state_committed",
+  "importance": "NORMAL",
+  "payload": {
+   "reason": "design details SD-1 (R-9)",
+   "version": 14,
+   "diff": []
+  },
+  "refs": []
+ },
+ {
+  "seq": 61,
+  "type": "proposal_adjusted",
+  "importance": "NORMAL",
+  "payload": {
+   "skill": "agent_design",
+   "reasoning_id": "R-9",
+   "detail": [
+    "role suggestion ['CONTROL_DETECTION', 'CONTROL_DETECTION'] ≠ Core classification ['CONTROL_DETECTION', 'EXCEPTION_HANDLER'] (Core wins)"
+   ]
+  },
+  "refs": []
+ },
+ {
+  "seq": 62,
+  "type": "proposal_accepted",
+  "importance": "NORMAL",
+  "payload": {
+   "skill": "agent_design",
+   "reasoning_id": "R-9",
+   "detail": {
+    "design": "SD-1",
+    "roles": [
+     "CONTROL_DETECTION",
+     "EXCEPTION_HANDLER"
+    ],
+    "release_scope": [
+     "notify_carrier_interface:SH-INT",
+     "escalate_issue_to_ops:SH-REQ"
+    ]
+   }
+  },
+  "refs": []
+ },
+ {
+  "seq": 63,
+  "type": "safe_point_reached",
+  "importance": "NORMAL",
+  "payload": {
+   "kind": "BEFORE_TRANSITION"
+  },
+  "refs": []
+ },
+ {
+  "seq": 64,
+  "type": "phase_transition",
+  "importance": "NORMAL",
+  "payload": {
+   "kind": "ADVANCE",
+   "from": "DESIGN",
+   "to": "EXECUTE",
+   "rationale": "DESIGN complete"
+  },
+  "refs": []
+ },
+ {
+  "seq": 65,
+  "type": "reasoning_completed",
+  "importance": "NORMAL",
+  "payload": {
+   "reasoning_id": "R-10",
+   "skill": "plan_execution",
+   "status": "SUCCESS",
+   "provider": "nvidia-nim",
+   "model": "nvidia/nemotron-3-super-120b-a12b",
+   "input_state_version": 14,
+   "schema_version": "1.0",
+   "order": 10,
+   "attempts": 1,
+   "input_digest": "f9ebd38b2c2e0bdb",
+   "evidence_refs": [
+    "E-01",
+    "E-02",
+    "SC-S1",
+    "SC-S2"
+   ],
+   "confidence": null,
+   "fallback_used": null,
+   "errors": [],
+   "proposal": {
+    "work_items": [
+     {
+      "key": "notify_carrier_interface:SH-INT",
+      "description": "Notify carrier of observed rejects (E-01) and address stakeholder suggestion of carrier flakiness (E-02).",
+      "work_class": "CORE_FEATURE",
+      "est_minutes": 5,
+      "scope_items": [],
+      "root_problem_aligned": true,
+      "release_blocking": false,
+      "data_ops": [],
+      "output_name": "",
+      "output_key_fields": [],
+      "output_join": false,
+      "output_constant_fields": []
+     },
+     {
+      "key": "escalate_issue_to_ops:SH-REQ",
+      "description": "Escalate observed rejects (E-01) to operations for resolution per intended scope.",
+      "work_class": "CORE_FEATURE",
+      "est_minutes": 5,
+      "scope_items": [],
+      "root_problem_aligned": true,
+      "release_blocking": false,
+      "data_ops": [],
+      "output_name": "",
+      "output_key_fields": [],
+      "output_join": false,
+      "output_constant_fields": []
+     }
+    ],
+    "protected_actions": [],
+    "rationale": "Release scope items are core features needed to meet success criteria SC-S1 and SC-S2; they are non‑mutating, so no protected actions are required."
+   }
+  },
+  "refs": [
+   "E-01",
+   "E-02",
+   "SC-S1",
+   "SC-S2"
+  ]
+ },
+ {
+  "seq": 66,
+  "type": "proposal_adjusted",
+  "importance": "NORMAL",
+  "payload": {
+   "skill": "plan_execution",
+   "reasoning_id": "R-10",
+   "detail": [
+    "added release-blocking verification work item",
+    "added packaging work item"
+   ]
+  },
+  "refs": []
+ },
+ {
+  "seq": 67,
+  "type": "proposal_accepted",
+  "importance": "NORMAL",
+  "payload": {
+   "skill": "plan_execution",
+   "reasoning_id": "R-10",
+   "detail": {
+    "plan": "PLAN-1",
+    "work_items": [
+     "W-NOTIFY-CARRIER-INTERFACE-SH",
+     "W-ESCALATE-ISSUE-TO-OPS-SH-REQ",
+     "W-VERIFY",
+     "W-PACK"
+    ],
+    "protected": []
+   }
+  },
+  "refs": []
+ },
+ {
+  "seq": 68,
+  "type": "safe_point_reached",
+  "importance": "NORMAL",
+  "payload": {
+   "kind": "BEFORE_TRANSITION"
+  },
+  "refs": []
+ },
+ {
+  "seq": 69,
+  "type": "phase_transition",
+  "importance": "NORMAL",
+  "payload": {
+   "kind": "ADVANCE",
+   "from": "EXECUTE",
+   "to": "VERIFY",
+   "rationale": "EXECUTE complete"
+  },
+  "refs": []
+ },
+ {
+  "seq": 70,
+  "type": "reasoning_completed",
+  "importance": "NORMAL",
+  "payload": {
+   "reasoning_id": "R-11",
+   "skill": "semantic_judge",
+   "status": "SUCCESS",
+   "provider": "nvidia-nim",
+   "model": "nvidia/nemotron-3-super-120b-a12b",
+   "input_state_version": 14,
+   "schema_version": "1.0",
+   "order": 11,
+   "attempts": 1,
+   "input_digest": "e73c2ce55f881897",
+   "evidence_refs": [
+    "E-01",
+    "U-U1",
+    "U-U2"
+   ],
+   "confidence": null,
+   "fallback_used": null,
+   "errors": [],
+   "proposal": {
+    "checks": [
+     {
+      "name": "root_problem_addressed",
+      "status": "WARN",
+      "detail": "Release scope includes only notification and escalation; does not directly implement remedies that address the root cause of non‑correctable LOC_UNKNOWN/EVENT_ORDER rejects.",
+      "refs": [
+       "E-01"
+      ]
+     },
+     {
+      "name": "evidence_consistency",
+      "status": "PASS",
+      "detail": "Release scope actions align with evidence that rejects are due to LOC_UNKNOWN and EVENT_ORDER and are not correctable data errors.",
+      "refs": [
+       "E-01"
+      ]
+     },
+     {
+      "name": "limitations_honest",
+      "status": "PASS",
+      "detail": "Known limitations U-U1 and U-U2 are explicitly listed in unfinished_scope and unknowns.",
+      "refs": [
+       "U-U1",
+       "U-U2"
+      ]
+     }
+    ]
+   }
+  },
+  "refs": [
+   "E-01",
+   "U-U1",
+   "U-U2"
+  ]
+ },
+ {
+  "seq": 71,
+  "type": "state_committed",
+  "importance": "NORMAL",
+  "payload": {
+   "reason": "VERIFY run",
+   "version": 15,
+   "diff": []
+  },
+  "refs": []
+ },
+ {
+  "seq": 72,
+  "type": "verify_completed",
+  "importance": "NORMAL",
+  "payload": {
+   "layer1_passed": true,
+   "failed": []
+  },
+  "refs": []
+ },
+ {
+  "seq": 73,
+  "type": "safe_point_reached",
+  "importance": "NORMAL",
+  "payload": {
+   "kind": "BEFORE_TRANSITION"
+  },
+  "refs": []
+ },
+ {
+  "seq": 74,
+  "type": "phase_transition",
+  "importance": "NORMAL",
+  "payload": {
+   "kind": "ADVANCE",
+   "from": "VERIFY",
+   "to": "RELEASE",
+   "rationale": "VERIFY complete"
+  },
+  "refs": []
+ },
+ {
+  "seq": 75,
+  "type": "state_committed",
+  "importance": "NORMAL",
+  "payload": {
+   "reason": "Release Gate RELEASE_WITH_KNOWN_LIMITATION",
+   "version": 16,
+   "diff": []
+  },
+  "refs": []
+ },
+ {
+  "seq": 76,
+  "type": "release_gate_result",
+  "importance": "CRITICAL",
+  "payload": {
+   "decision": "RELEASE_WITH_KNOWN_LIMITATION",
+   "hold": [],
+   "limitations": [
+    "DEFINE Gate CONDITIONAL_PASS (deferred items tracked as VOBs)",
+    "VOB-U-U1 open; blocking_scope outside release scope",
+    "unfinished: known limitation: U-U1 blocks analysis of DA-REJ",
+    "unfinished: known limitation: U-U2 open about EVENT_ORDER resubmission"
+   ],
+   "scope": [
+    "notify_carrier_interface:SH-INT",
+    "escalate_issue_to_ops:SH-REQ"
+   ]
+  },
+  "refs": []
+ },
+ {
+  "seq": 77,
+  "type": "reasoning_completed",
+  "importance": "NORMAL",
+  "payload": {
+   "reasoning_id": "R-12",
+   "skill": "release_summary",
+   "status": "SUCCESS",
+   "provider": "nvidia-nim",
+   "model": "nvidia/nemotron-3-super-120b-a12b",
+   "input_state_version": 16,
+   "schema_version": "1.0",
+   "order": 12,
+   "attempts": 1,
+   "input_digest": "a3941b8c612dbbc4",
+   "evidence_refs": [
+    "E-01",
+    "U-U1",
+    "U-U2",
+    "VOB-U-U1"
+   ],
+   "confidence": null,
+   "fallback_used": null,
+   "errors": [],
+   "proposal": {
+    "summary": "The release summary provides a concise explanation of the problem, how it was established, what was released, the rationale for the release decision, and the known limitations, with all factual statements backed by evidence ids from the input.",
+    "key_points": [
+     ": The problem is that rejected shipment notices stem from carrier validation flags LOC_UNKNOWN or EVENT_ORDER, which are not correctable data errors an AI agent can fix [E-01].",
+     ": Establishment is based on the reject log showing three rejected notices: N-1 and N-2 due to LOC_UNKNOWN, N-3 due to EVENT_ORDER [E-01].",
+     ": [Assumption] The release includes notifying the carrier interface and escalating the issue to operations, as defined in the release scope.",
+     ": [Assumption] The release decision is RELEASE_WITH_KNOWN_LIMITATION because the DEFINE gate resulted in CONDITIONAL_PASS (deferred items tracked as VOBs) and the known limitations (U-U1, U-U2, VOB-U-U1) were deemed acceptable for release [U-U1][U-U2][VOB-U-U1].",
+     ": Known limitations: [Assumption] DEFINE Gate CONDITIONAL_PASS (deferred items tracked as VOBs).; VOB-U-U1 open; blocking_scope outside release scope [VOB-U-U1]; U-U1 blocks analysis of DA-REJ [U-U1]; U-U2 open about EVENT_ORDER resubmission [U-U2]."
+    ],
+    "limitations_explained": [
+     "The release proceeds with the understanding that LOC_UNKNOWN rejects (U-U1) remain unresolved and block full analysis of the carrier reject log (DA-REJ).",
+     "The effectiveness of simple resubmission for EVENT_ORDER rejects (U-U2) is still open."
+    ]
+   }
+  },
+  "refs": [
+   "E-01",
+   "U-U1",
+   "U-U2",
+   "VOB-U-U1"
+  ]
+ },
+ {
+  "seq": 78,
+  "type": "safe_point_reached",
+  "importance": "NORMAL",
+  "payload": {
+   "kind": "BEFORE_TRANSITION"
+  },
+  "refs": []
+ },
+ {
+  "seq": 79,
+  "type": "phase_transition",
+  "importance": "HIGH",
+  "payload": {
+   "kind": "FINISH",
+   "from": "RELEASE",
+   "to": "RELEASE",
+   "rationale": "Release Gate RELEASE_WITH_KNOWN_LIMITATION"
+  },
+  "refs": []
+ }
+]
