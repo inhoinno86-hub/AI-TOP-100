@@ -14,7 +14,13 @@ from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any
 
-from ..interface import ReasoningProvider, ReasoningRequest, ReasoningResponse, ReasoningStatus
+from ..interface import (
+    ProviderTimeout,
+    ReasoningProvider,
+    ReasoningRequest,
+    ReasoningResponse,
+    ReasoningStatus,
+)
 
 
 def request_digest(request: ReasoningRequest) -> str:
@@ -36,7 +42,14 @@ class RecordingProvider:
         return self.inner.model
 
     def reason(self, request: ReasoningRequest) -> ReasoningResponse:
-        response = self.inner.reason(request)
+        raised: Exception | None = None
+        try:
+            response = self.inner.reason(request)
+        except ProviderTimeout as exc:  # recorded (provenance of provider failures), then re-raised
+            response, raised = ReasoningResponse(ReasoningStatus.TIMEOUT, error=str(exc)), exc
+        except Exception as exc:  # noqa: BLE001
+            response = ReasoningResponse(ReasoningStatus.PROVIDER_ERROR, error=f"{type(exc).__name__}: {exc}")
+            raised = exc
         ordinal = self._ordinals.get(request.skill, 0)
         if request.attempt == 1:
             self._ordinals[request.skill] = ordinal + 1
@@ -57,6 +70,8 @@ class RecordingProvider:
         self.path.parent.mkdir(parents=True, exist_ok=True)
         with self.path.open("a", encoding="utf-8") as fh:
             fh.write(json.dumps(entry, ensure_ascii=False) + "\n")
+        if raised is not None:
+            raise raised
         return response
 
 

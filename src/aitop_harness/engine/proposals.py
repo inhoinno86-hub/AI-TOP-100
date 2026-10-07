@@ -15,6 +15,7 @@ Rules applied everywhere:
 
 from __future__ import annotations
 
+import copy
 import re
 from dataclasses import dataclass, field
 from typing import Any
@@ -22,6 +23,9 @@ from typing import Any
 from ..core.enums import (
     AssumptionStatus,
     AuthorizationStatus,
+    ConflictStatus,
+    ConstraintStatus,
+    ConstraintType,
     Criticality,
     EvidenceSourceType,
     HypothesisStatus,
@@ -81,6 +85,7 @@ from ..phases.recovery import FailureContext, RecoveryDecision, apply_recovery_d
 from ..phases.redefine import infer_revision_kind, is_strong, validate_problem_invalidation
 from ..reasoning.models import (
     AgentDesignProposal,
+    BlockingScopeReviewProposal,
     DiscoveryPlanProposal,
     EvidenceInterpretationProposal,
     ExecutionPlanProposal,
@@ -97,6 +102,7 @@ from ..state.runtime import Plan, ProtectedActionProposal, TransitionCandidate
 from ..tools.base import ToolRegistry
 from .context import HarnessContext
 from .environment import Affordance
+from .scope_contract import accepted_targets, normalize_scope_target
 
 _HELD = (HypothesisStatus.SUPPORTED, HypothesisStatus.CONFIRMED)
 _MATERIAL = (Criticality.HIGH, Criticality.CRITICAL)
@@ -105,6 +111,17 @@ _KEY = re.compile(r"^[a-z0-9][a-z0-9_.]*$")
 
 class ProposalRejected(HarnessError):
     """The Core refused a Reasoner proposal (nothing was committed)."""
+
+
+class FramingRejected(ProposalRejected):
+    """Anti-anchoring refusal: the Problem rests on a hypothesis recorded as the requester's framing.
+
+    Carried as a typed DEFINE repair finding (IDR-RV5-02) instead of free text."""
+
+    def __init__(self, message: str, *, hypothesis: str, proposal_ref: str | None) -> None:
+        super().__init__(message)
+        self.hypothesis = hypothesis
+        self.proposal_ref = proposal_ref
 
 
 # --------------------------------------------------------------------------- bookkeeping
@@ -170,6 +187,7 @@ def _key(raw: str) -> str | None:
 
 
 _TOKEN = re.compile(r"^[a-z0-9][a-z0-9_.-]{0,47}$")
+_NUMBER = re.compile(r"^[+-]?(\d{1,3}(,\d{3})+|\d+)(\.\d+)?(e[+-]?\d+)?$")
 
 
 def _value(v: Any) -> Any:
@@ -183,6 +201,13 @@ def _value(v: Any) -> Any:
     if isinstance(v, (bool, int, float)):
         return v
     token = str(v).strip().lower()
+    # one canonical form per value: "1184" and 1184 (or "true" and True) are the same assertion value —
+    # comparing them as different tokens would turn agreeing evidence into a false contradiction
+    if token in ("true", "false"):
+        return token == "true"
+    if _NUMBER.match(token):
+        number = float(token.replace(",", ""))
+        return int(number) if number.is_integer() and "." not in token and "e" not in token else number
     return token if _TOKEN.match(token) else None
 
 
@@ -579,7 +604,93 @@ def reevaluate_predecessor_vobs(
         )
 
 
-def _authorization(ctx: HarnessContext, ac: Any, eid: str, notes: Notes) -> None:
+def commit_document_authorizations(
+    ctx: HarnessContext, prop: EvidenceInterpretationProposal, eid: str, rid: str | None
+) -> list[str]:
+    """Authorization candidates for an evidence item that is ALREADY committed (no new evidence, no other
+    semantics are taken from the proposal). Same Core rules as at integration time (``_authorization``)."""
+    ps = ctx.problem
+    before = set(ps.domain_authorizations)
+    notes = Notes()
+    for ac in prop.authorization_candidates:
+        _authorization(ctx, ac, eid, notes)
+    notes.flush(ctx, "interpret_evidence", rid)
+    added = sorted(set(ps.domain_authorizations) - before)
+    record(
+        ctx,
+        "ACCEPTED",
+        "interpret_evidence",
+        rid,
+        {"evidence": eid, "authorizations": added, "mode": "authority recheck"},
+    )
+    return added
+
+
+def commit_repair_authorizations(
+    ctx: HarnessContext, prop: ProblemDefinitionProposal, rid: str | None
+) -> tuple[list[str], list[str]]:
+    """DEFINE repair "identify the authorized actor" (IDR-RV4-03): each candidate must cite a committed
+    authoritative document that names the holder and must authorize what the Problem intends to do (its
+    scope_target is the action's resource, one of the Problem's intended targets for the action, or "*" —
+    RV-4b C-03: a grant scoped to the action name could never cover the protected action). Then the usual
+    Core authorization rules apply. Returns (added authorization ids, refusal reasons)."""
+    from .define_repair import grounded_in_document
+
+    ps = ctx.problem
+    pd = ps.problem_definition
+    before = set(ps.domain_authorizations)
+    notes = Notes()
+    refusals: list[str] = []
+    for ac in prop.authorization_candidates:
+        intended = [i.target for i in (pd.intended_scope if pd else []) if i.action == ac.action]
+        targets = set(accepted_targets(ac.resource, intended))
+        why = grounded_in_document(ctx, ac.evidence_ref, ac.authority_holder)
+        norm = normalize_scope_target(
+            ac.action, ac.resource, ac.scope_kind, ac.scope_target, known_ids=_known_ids(ctx, intended)
+        )
+        if not why and norm.refusal:
+            why = norm.refusal
+        elif not why and norm.target not in targets:
+            why = (
+                f"scope_target {ac.scope_target!r} is neither the resource, an intended target of "
+                f"{ac.action} nor '*'"
+            )
+        if why:
+            # the contract (accepted canonical forms) is fed back; which one applies is the Reasoner's call
+            refusals.append(
+                f"authorization candidate {ac.action} refused: {why} — accepted: scope_kind RESOURCE "
+                f"({ac.resource!r}), ANY_TARGET ('*') or INTENDED_TARGET with one of "
+                f"{accepted_targets(ac.resource, intended)[2:]}"
+            )
+            notes.add(refusals[-1])
+            continue
+        notes.items += norm.notes
+        _authorization(ctx, ac, ac.evidence_ref, notes, target=norm.target)
+    notes.flush(ctx, "define_problem", rid)
+    added = sorted(set(ps.domain_authorizations) - before)
+    if prop.authorization_candidates:
+        record(
+            ctx,
+            "ACCEPTED",
+            "define_problem",
+            rid,
+            {"mode": "repair authorization", "authorizations": added, "refused": refusals},
+        )
+    return added, refusals
+
+
+def _known_ids(ctx: HarnessContext, extra: list[str] | None = None) -> list[str]:
+    """Committed ids a scope target may spell (syntax normalization only, engine.scope_contract)."""
+    ps = ctx.problem
+    pd = ps.problem_definition
+    ids = [*ps.data_assets, *ps.process_handoffs, *ps.stakeholders, *(extra or [])]
+    ids += [i.target for i in (pd.intended_scope if pd else [])]
+    return ids
+
+
+def _authorization(
+    ctx: HarnessContext, ac: Any, eid: str, notes: Notes, *, target: str | None = None
+) -> None:
     ps = ctx.problem
     ev = ps.evidence[eid]
     if ev.source_type not in (EvidenceSourceType.DOCUMENT, EvidenceSourceType.POLICY) or (
@@ -602,7 +713,16 @@ def _authorization(ctx: HarnessContext, ac: Any, eid: str, notes: Notes) -> None
         return
     if any(a.action == ac.action and a.is_effective() for a in ps.domain_authorizations.values()):
         return
-    target = ac.scope_target.strip() or WILDCARD
+    if target is None:  # integration path: syntax normalization only (IDR-RV5-01), no new acceptance rule
+        norm = normalize_scope_target(
+            ac.action, ac.resource, getattr(ac, "scope_kind", ""), ac.scope_target, known_ids=_known_ids(ctx)
+        )
+        if norm.refusal and norm.kind:
+            notes.add(f"authorization candidate {ac.action} refused: {norm.refusal}")
+            return
+        notes.items += norm.notes
+        # untyped text that is not an id keeps its legacy reading (as written; never widened)
+        target = norm.target or ac.scope_target.strip() or WILDCARD
     org = ps.stakeholders[holder].organization_id
     with ctx.commit(f"domain authorization for {ac.action} from {eid}") as p:
         aid = make_id("DA", ac.action, p.domain_authorizations)
@@ -730,6 +850,111 @@ class DefineContext:
     framing_hypotheses: list[str] = field(default_factory=list)
     ignore_unknown_scope_versions: set[int] = field(default_factory=set)  # robustness variant knob
     known_limitations: list[str] = field(default_factory=list)
+    # problem ref → causal chain + premise hypotheses as proposed at DEFINE (Premise Check input, IDR-RV4-01)
+    premise_records: dict[str, dict[str, list[str]]] = field(default_factory=dict)
+
+
+def _norm_text(text: str) -> str:
+    return re.sub(r"\s+", " ", re.sub(r"[^a-z0-9 ]+", " ", text.lower())).strip()
+
+
+def independent_support(ctx: HarnessContext, hid: str) -> tuple[list[str], list[str]]:
+    """(strong non-stakeholder supporting evidence, contradicting evidence) of a hypothesis."""
+    ps = ctx.problem
+    h = ps.hypotheses[hid]
+    strong = [
+        e
+        for e in h.supporting_evidence
+        if e in ps.evidence
+        and ps.evidence[e].source_type is not EvidenceSourceType.STAKEHOLDER
+        and is_strong(ps.evidence[e])
+    ]
+    return strong, [e for e in h.contradicting_evidence if e in ps.evidence]
+
+
+def apply_framing_resolution(
+    ctx: HarnessContext, prop: ProblemDefinitionProposal, rid: str | None, *, dctx: DefineContext
+) -> list[str]:
+    """Typed framing repair (IDR-RV5-02). The Reasoner says how it resolves a FRAMING_CLASSIFICATION_CONFLICT;
+    the Core validates by evidence provenance and never writes the hypothesis itself:
+
+    * KEEP_AS_CLAIM — the requester framing stays a claim; the proposal must not rest on it (checked at
+      commit).
+    * RECLASSIFY_BY_PROVENANCE — the hypothesis was mislabelled as the requester's framing. Accepted only with
+      the Core's CONFIRMED-grade independence: strong non-stakeholder support and no contradicting evidence.
+    * SEPARATE_INDEPENDENT_HYPOTHESIS — a new hypothesis, distinct from the framing and from the request, that
+      cites strong non-stakeholder committed evidence; the premise reference moves to it.
+
+    Returns the accepted resolutions (as notes)."""
+    ps = ctx.problem
+    notes = Notes()
+    accepted: list[str] = []
+    request = _norm_text(ps.scenario.initial_request)
+    for r in prop.framing_resolution:
+        hid = r.hypothesis
+        if hid not in dctx.framing_hypotheses or hid not in ps.hypotheses:
+            notes.add(f"framing resolution for {hid!r} ignored: not a requester-framing hypothesis")
+            continue
+        if r.option == "KEEP_AS_CLAIM":
+            accepted.append(f"{hid}: kept as requester claim")
+            continue
+        if not r.rationale.strip():
+            notes.add(f"framing resolution {r.option} for {hid} refused: rationale required")
+            continue
+        if r.option == "RECLASSIFY_BY_PROVENANCE":
+            strong, contra = independent_support(ctx, hid)
+            h = ps.hypotheses[hid]
+            why = None
+            if h.status not in _HELD:
+                why = f"{hid} is {h.status.value}, not SUPPORTED/CONFIRMED"
+            elif not strong:
+                why = "no strong non-stakeholder supporting evidence"
+            elif contra:
+                why = f"contradicting evidence {contra}"
+            elif _norm_text(h.statement) == request:
+                why = "the hypothesis restates the initial request"
+            if why:
+                notes.add(f"reclassification of {hid} refused: {why}")
+                continue
+            dctx.framing_hypotheses = [x for x in dctx.framing_hypotheses if x != hid]
+            accepted.append(f"{hid}: reclassified by provenance (independent support {strong})")
+            continue
+        if r.option == "SEPARATE_INDEPENDENT_HYPOTHESIS":
+            cited = [e for e in r.evidence_refs if e in ps.evidence]
+            independent = [
+                e for e in cited if ps.evidence[e].source_type is not EvidenceSourceType.STAKEHOLDER
+            ]
+            stmt = _norm_text(r.statement)
+            why = None
+            if not stmt or stmt in (request, _norm_text(ps.hypotheses[hid].statement)):
+                why = "statement missing or identical to the requester framing / initial request"
+            elif not any(is_strong(ps.evidence[e]) for e in independent):
+                why = "no strong non-stakeholder evidence cited"
+            if why:
+                notes.add(f"separation from {hid} refused: {why}")
+                continue
+            with ctx.commit(f"independent hypothesis separated from {hid} ({rid})") as p:
+                nid = make_id("H", f"{hid}-INDEPENDENT", p.hypotheses)
+                p.hypotheses[nid] = Hypothesis(
+                    id=nid,
+                    statement=r.statement,
+                    supporting_evidence=independent,
+                    decision_impact=Criticality.HIGH,
+                )
+            update_hypothesis(
+                ctx,
+                nid,
+                HypothesisStatus.SUPPORTED,
+                f"separated from requester framing {hid} [{', '.join(independent)}] ({rid})",
+            )
+            prop.premise_hypotheses = [nid if x == hid else x for x in prop.premise_hypotheses]
+            accepted.append(f"{hid}: independent hypothesis {nid} separated (premise moved to {nid})")
+            continue
+        notes.add(f"framing resolution option {r.option!r} for {hid} unknown: ignored")
+    notes.flush(ctx, "define_problem", rid)
+    if prop.framing_resolution:
+        record(ctx, "ACCEPTED", "framing_repair", rid, {"accepted": accepted, "refused": list(notes.items)})
+    return accepted
 
 
 def commit_problem_definition(
@@ -753,7 +978,11 @@ def commit_problem_definition(
             notes.add(f"premise hypothesis {hid!r} dropped (unknown or not SUPPORTED/CONFIRMED)")
         elif hid in dctx.framing_hypotheses:
             record(ctx, "REJECTED", "define_problem", rid, f"rests on requester framing {hid}")
-            raise ProposalRejected(f"problem rests on the requester framing hypothesis {hid} (anchoring)")
+            raise FramingRejected(
+                f"problem rests on the requester framing hypothesis {hid} (anchoring)",
+                hypothesis=hid,
+                proposal_ref=rid,
+            )
         else:
             premise.append(hid)
     rejected_premise = [
@@ -895,6 +1124,10 @@ def commit_problem_definition(
         metric_ids=metric_ids,
     )
     define_problem(ctx, pd)
+    dctx.premise_records[pd.ref] = {
+        "causal_chain": list(prop.causal_chain),
+        "premise_hypotheses": list(premise),
+    }
     notes.flush(ctx, "define_problem", rid)
     record(
         ctx,
@@ -1052,6 +1285,188 @@ def preview_release_scope(
     if blocked:
         notes.add(f"release scope items blocked by open critical VOBs moved to unfinished scope: {blocked}")
     return release, blocked
+
+
+def _covers_all(scope: Scope, items: list[ScopeItem]) -> bool:
+    return bool(items) and (scope.entire_solution or all(scope.covers(i) for i in items))
+
+
+def blocking_review_candidates(
+    ctx: HarnessContext, *, removes: bool, feasible: bool, skip_versions: set[int] | None = None
+) -> tuple[list[VerificationObligation], list[str]]:
+    """IDR-RV5-04 eligibility (deterministic): an open critical VOB that defers a Reasoner-raised critical
+    unknown and blocks the whole intended scope of the ACTIVE Problem, while a root-cause structural remedy is
+    feasible and nothing in committed state backs the entire block — no safety / privacy constraint on a
+    blocked action and no open material conflict on the blocked scope. Core-made obligations (no linked
+    unknown) and BEFORE_PRODUCTION obligations are never reviewed."""
+    ps = ctx.problem
+    pd = ps.problem_definition
+    if pd is None or not pd.is_canonical():
+        return [], []
+    intended = list(pd.intended_scope)
+    whole = [
+        v
+        for v in ps.open_vobs()
+        if v.applies_to(pd.id, pd.version)
+        and v.is_critical()
+        and v.required_before is not RequiredBefore.BEFORE_PRODUCTION
+        and _covers_all(v.blocking_scope, intended)
+    ]
+    if not whole:  # nothing blocks the entire intended scope: no review, nothing recorded
+        return [], []
+    if pd.version in (skip_versions or set()):
+        return [], [f"v{pd.version}: unknown scopes are fixed by configuration (robustness variant)"]
+    if not (removes and feasible):
+        return [], ["no structural remedy that removes the root cause is feasible"]
+    actions = {i.action for i in intended}
+    out: list[VerificationObligation] = []
+    why_not: list[str] = []
+    for v in whole:
+        u = ps.unknowns.get(v.linked_unknown or "")
+        if u is None:
+            why_not.append(f"{v.id}: not a Reasoner-raised unknown (Core obligation)")
+            continue
+        safety = [
+            c.id
+            for c in ps.constraints.values()
+            if c.type in (ConstraintType.SAFETY, ConstraintType.PRIVACY)
+            and (c.protected_action in actions or not c.protected_action)
+        ]
+        conflicts = [
+            c.id
+            for c in ps.conflicts.values()
+            if c.status is ConflictStatus.OPEN
+            and (c.gate_blocking or c.decision_impact in _MATERIAL)
+            and (c.affects_scope.is_empty() or c.affects_scope.intersect(intended))
+        ]
+        if safety:
+            why_not.append(f"{v.id}: safety / privacy constraints {safety} on the blocked scope")
+        elif conflicts:
+            why_not.append(f"{v.id}: open material conflicts {conflicts} back the block")
+        else:
+            out.append(v)
+    return out, why_not
+
+
+def apply_blocking_review(
+    ctx: HarnessContext,
+    prop: BlockingScopeReviewProposal,
+    eligible: list[VerificationObligation],
+    rid: str | None,
+) -> list[str]:
+    """Core validation of a NARROW_BLOCKING_SCOPE claim: only an eligible VOB, only to a strict subset of the
+    items it blocks (empty = verification-only), only with a rationale and strong non-stakeholder committed
+    evidence (``HarnessContext.narrow_vob_scope`` guard). The VOB stays open; Human Gates are untouched.
+    Returns the narrowed VOB ids."""
+    ps = ctx.problem
+    pd = ps.problem_definition
+    assert pd is not None
+    by_id = {v.id: v for v in eligible}
+    intended = list(pd.intended_scope)
+    notes = Notes()
+    narrowed: list[str] = []
+    decisions: dict[str, str] = {}
+    for r in prop.reviews:
+        v = by_id.get(r.vob)
+        if v is None:
+            notes.add(f"review of {r.vob!r} ignored: not an eligible obligation")
+            continue
+        if r.vob in decisions:
+            continue
+        decisions[r.vob] = r.decision
+        if r.decision != "NARROW_BLOCKING_SCOPE":
+            continue
+        blocked = [i for i in intended if v.blocking_scope.covers(i)]
+        items = _scope_items(r.narrowed_scope)
+        cited = [e for e in r.evidence_refs if e in ps.evidence]
+        strong = [
+            e
+            for e in cited
+            if ps.evidence[e].source_type is not EvidenceSourceType.STAKEHOLDER and is_strong(ps.evidence[e])
+        ]
+        why = None
+        if any(i not in blocked for i in items):
+            why = "narrowed_scope must reuse intended items the obligation blocks"
+        elif len({str(i) for i in items}) >= len(blocked):
+            why = "narrowed_scope is not narrower than the current block"
+        elif not r.rationale.strip():
+            why = "rationale required"
+        elif not strong:
+            why = "no strong non-stakeholder committed evidence cited"
+        if why:
+            notes.add(f"narrowing of {v.id} refused: {why}")
+            decisions[r.vob] = f"NARROW_BLOCKING_SCOPE refused ({why})"
+            continue
+        unique = list(dict.fromkeys(items))
+        ctx.narrow_vob_scope(
+            v.id, Scope(items=unique), strong[0], f"blocking-scope review {rid}: {r.rationale}"
+        )
+        narrowed.append(v.id)
+    notes.flush(ctx, "review_blocking_scope", rid)
+    record(
+        ctx,
+        "ACCEPTED",
+        "review_blocking_scope",
+        rid,
+        {"eligible": sorted(by_id), "decisions": decisions, "narrowed": narrowed},
+    )
+    return narrowed
+
+
+@dataclass
+class ReconsiderationCandidate:
+    action: str
+    scope: list[ScopeItem]
+    constraints: list[str]
+    authorization: str
+    holder: str
+
+
+def reconsideration_candidates(
+    ctx: HarnessContext, prop: AgentDesignProposal, *, removes: bool, feasible: bool, registry: ToolRegistry
+) -> tuple[list[ReconsiderationCandidate], list[str]]:
+    """IDR-RV4-05 eligibility (deterministic): a feasible root-cause remedy exists, a protected action of the
+    canonical Problem's intended scope was left out of the proposed release scope, and nothing forces that
+    exclusion — authority is established, no safety / privacy constraint on it is unresolved, a mutating tool
+    exists to carry it, and no open critical VOB blocks it (``preview_release_scope``'s own rule)."""
+    ps = ctx.problem
+    pd = ps.problem_definition
+    assert pd is not None
+    if not (removes and feasible):
+        return [], ["no structural remedy that removes the root cause is feasible"]
+    release, _ = preview_release_scope(ctx, prop)
+    in_release = {i.action for i in release}
+    mutating = [t for t in _tool_ids(registry) if not registry.spec(t).read_only]
+    out: list[ReconsiderationCandidate] = []
+    why_not: list[str] = []
+    for action in pd.protected_actions:
+        items = [i for i in pd.intended_scope if i.action == action]
+        if not items or action in in_release:
+            continue
+        constraints = [c for c in ps.constraints.values() if c.protected_action == action]
+        auth = ps.authorization_for(action)
+        trial = copy.copy(prop)
+        trial.release_scope = list(prop.release_scope) + [ScopeRef(i.action, i.target) for i in items]
+        trial_release, trial_blocked = preview_release_scope(ctx, trial)
+        if auth is None or not auth.is_effective():
+            why_not.append(f"{action}: domain authorization missing")
+        elif any(
+            c.type in (ConstraintType.SAFETY, ConstraintType.PRIVACY)
+            and c.status is not ConstraintStatus.ACTIVE
+            for c in constraints
+        ):
+            why_not.append(f"{action}: unresolved safety / privacy constraint")
+        elif not mutating:
+            why_not.append(f"{action}: no registered mutating tool can carry it")
+        elif trial_blocked or not all(i in trial_release for i in items):
+            why_not.append(f"{action}: an open critical VOB blocks it ({trial_blocked})")
+        else:
+            out.append(
+                ReconsiderationCandidate(
+                    action, items, [c.id for c in constraints], auth.id, auth.authority_holder or ""
+                )
+            )
+    return out, why_not
 
 
 def finish_design(
@@ -1351,16 +1766,38 @@ def commit_revisions(
     *,
     challenge_evidence: str,
     allowed: list[str],
+    accepted: dict[str, Any] | None = None,
 ) -> list[str]:
-    """Prompt §17: Core validates observation validity, revision kind and dependency links."""
+    """Prompt §17: Core validates observation validity, revision kind and dependency links.
+
+    ``accepted`` (IDR-RV5-03): a premise invalidation the Core already accepted for this Problem version. The
+    revision of each accepted premise evidence keeps ``problem_invalidating=true`` (the revision step words
+    it, it cannot downgrade it); an accepted target the revision step left out is revised from the accepted
+    premise-check rationale. A context bound to another Problem version is not applied."""
     notes = Notes()
     ps = ctx.problem
     done: list[str] = []
+    locked: list[str] = []
+    if accepted:
+        pd = ps.problem_definition
+        if (
+            pd is not None
+            and pd.is_canonical()
+            and (pd.id, pd.version)
+            == (
+                accepted.get("accepted_problem_id"),
+                accepted.get("accepted_problem_version"),
+            )
+        ):
+            locked = [e for e in accepted.get("accepted_evidence_refs", []) if e in allowed]
+        else:
+            notes.add("accepted premise context bound to another Problem version: not applied")
+    revised: set[str] = set()
     for r in prop.revisions:
         if r.evidence not in allowed or r.evidence not in ps.evidence or r.evidence == challenge_evidence:
             notes.add(f"revision of {r.evidence!r} refused: not proposed for re-interpretation")
             continue
-        if r.evidence in done:
+        if r.evidence in revised:
             continue
         inferred = infer_revision_kind(ps.evidence[r.evidence], ps.evidence[challenge_evidence])
         kind = inferred
@@ -1374,15 +1811,43 @@ def commit_revisions(
                 notes.add(
                     f"{r.evidence}: suggested {r.revision_kind}, Core inferred {inferred.value} (Core wins)"
                 )
+        invalidating = r.problem_invalidating
+        if r.evidence in locked and not invalidating:
+            invalidating = True
+            notes.add(
+                f"{r.evidence}: problem_invalidating=false refused — the Core accepted the premise "
+                f"invalidation {accepted.get('accepted_premise_ids') if accepted else []} "
+                "(revision cannot downgrade it)"
+            )
         rev = revise_evidence(
             ctx,
             r.evidence,
             challenge_evidence,
             r.revised_interpretation,
-            invalidates_problem=r.problem_invalidating,
+            invalidates_problem=invalidating,
             revision_kind=kind,
         )
         done.append(rev.id)
+        revised.add(r.evidence)
+    for eid in locked:
+        if eid in revised:
+            continue
+        why = "; ".join(f"{k}: {v}" for k, v in ((accepted or {}).get("rationale") or {}).items())
+        text = (
+            f"re-read under {challenge_evidence} (accepted premise check) — {why or 'premise contradicted'}"
+        )
+        rev = revise_evidence(
+            ctx,
+            eid,
+            challenge_evidence,
+            text[:1200],
+            invalidates_problem=True,
+            revision_kind=infer_revision_kind(ps.evidence[eid], ps.evidence[challenge_evidence]),
+        )
+        done.append(rev.id)
+        notes.add(
+            f"{eid}: revision written from the accepted premise-check rationale (revision step omitted it)"
+        )
     notes.flush(ctx, "revise_evidence", rid)
     record(ctx, "ACCEPTED", "revise_evidence", rid, {"revisions": done}, refs=[challenge_evidence])
     return done

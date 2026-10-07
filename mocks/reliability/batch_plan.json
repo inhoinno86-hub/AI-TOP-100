@@ -1,0 +1,175 @@
+{
+ "_comment": "Reliability validation batch plan — declared and frozen BEFORE any batch run (hashed in freeze_manifest.json). Every run listed here is executed and reported; nothing is added, dropped or rerun based on outcomes. A patch to any frozen file invalidates the batch (new version, full restart). RV-4 = RV-3 plan unchanged (same primary model, provider settings, batch composition, fault schedule and fallback configuration) to isolate the effect of the RV-4 patches (IDR-RV4-08); only the implementation (P2-P4) and the evaluator (v2: evaluate_mock6_autonomous m6-auto-2.0, evaluate_human_gate hg-2.0, classify cls-2.0, aggregate agg-2.0) differ.",
+ "version": "RV-4c",
+ "provider_env": {
+  "AITOP_REASONER_PROVIDER": "nvidia-nim",
+  "AITOP_REASONER_API_KEY_ENV": "NVIDIA_API_KEY",
+  "AITOP_REASONER_STRUCTURED_MODE": "json_schema",
+  "AITOP_REASONER_TEMPERATURE": "0.2",
+  "AITOP_REASONER_TIMEOUT": "240",
+  "AITOP_REASONER_MAX_TOKENS": "8192"
+ },
+ "models": {
+  "primary": "nvidia/nemotron-3-super-120b-a12b"
+ },
+ "timeouts_minutes": {
+  "mock6": 75,
+  "general": 40,
+  "human_gate": 40
+ },
+ "batches": {
+  "A": {
+   "desc": "fresh continuous Mock #6 autonomous runs (primary model)",
+   "kind": "mock6",
+   "model": "primary",
+   "n": 10
+  },
+  "B": {
+   "desc": "fresh continuous golden scenarios A-D, live reasoning",
+   "kind": "general",
+   "model": "primary",
+   "scenarios": [
+    "A",
+    "B",
+    "C",
+    "D",
+    "A",
+    "B",
+    "C",
+    "D"
+   ]
+  },
+  "C": {
+   "desc": "autonomous Human Gate E2E (first run = primary verdict; all reported)",
+   "kind": "human_gate",
+   "model": "primary",
+   "n": 3
+  },
+  "D": {
+   "desc": "provider failure injection",
+   "kind": "faults",
+   "runs": [
+    {
+     "id": "D1",
+     "target": "mock6",
+     "model": "primary",
+     "expect": "COMPLETES",
+     "faults": [
+      {
+       "fault": "timeout",
+       "call": 2
+      },
+      {
+       "fault": "invalid_json",
+       "call": 6
+      },
+      {
+       "fault": "schema_mismatch",
+       "call": 11
+      },
+      {
+       "fault": "rate_limit",
+       "call": 16
+      },
+      {
+       "fault": "provider_error",
+       "call": 22
+      }
+     ]
+    },
+    {
+     "id": "D2",
+     "target": "human_gate",
+     "model": "primary",
+     "expect": "COMPLETES",
+     "faults": [
+      {
+       "fault": "rate_limit",
+       "call": 1
+      },
+      {
+       "fault": "invalid_json",
+       "call": 4
+      },
+      {
+       "fault": "timeout",
+       "call": 8
+      },
+      {
+       "fault": "schema_mismatch",
+       "call": 12
+      },
+      {
+       "fault": "provider_error",
+       "call": 15
+      }
+     ]
+    },
+    {
+     "id": "D3",
+     "target": "human_gate",
+     "model": "primary",
+     "expect": "COMPLETES",
+     "faults": [
+      {
+       "fault": "provider_error",
+       "skill": "semantic_judge",
+       "times": -1
+      },
+      {
+       "fault": "timeout",
+       "skill": "release_summary",
+       "times": -1
+      }
+     ]
+    },
+    {
+     "id": "D4",
+     "target": "human_gate",
+     "model": "primary",
+     "expect": "COMPLETES_VIA_FALLBACK",
+     "faults": [
+      {
+       "fault": "provider_error",
+       "times": -1
+      }
+     ],
+     "fallback": "claude-sonnet"
+    },
+    {
+     "id": "D5",
+     "target": "mock6",
+     "model": "primary",
+     "expect": "HOLD_ESCALATION",
+     "faults": [
+      {
+       "fault": "provider_error",
+       "times": -1
+      }
+     ]
+    },
+    {
+     "id": "D6",
+     "target": "human_gate",
+     "model": "primary",
+     "expect": "HOLD_ESCALATION",
+     "faults": [
+      {
+       "fault": "timeout",
+       "times": -1
+      }
+     ]
+    }
+   ]
+  }
+ },
+ "fallback_providers": {
+  "claude-sonnet": {
+   "kind": "claude",
+   "model": "sonnet"
+  }
+ },
+ "_pilots": "Pre-freeze pilots (not part of any batch): nemotron-3-super example scenario RWKL 12/12 calls OK; nemotron-3-super Mock #6 1 run EARLY_CORRECT RWKL; Human Gate scenario pilot 1 HOLD_VALID (Reasoner-raised critical VOB 'are timeout retries the sole source?' blocked the protected action; scenario then given discriminating PSP evidence and the CHG-71 red herring removed); pilot 2 PASS H1-H10. Secondary NIM models rejected for latency/availability: z-ai/glm-5.3-flash (no response on full-size prompts in 20 min), nvidia/nemotron-3-ultra-550b (27-127 s/call, INVALID_SCHEMA), openai/gpt-oss-20b (73-130 s/call).",
+ "_history": "RV-1 (digest 45e50777b323ae14) VALIDATION INVALIDATED: S-R6 tooling defect — run_general.py imported the golden fixtures before putting src/ on sys.path, so all 8 Batch B runs died at import. RV-1 was stopped after 7 completed Mock #6 runs (kept as preserved evidence, not aggregated into RV-2). Patch: import order + tests/test_reliability_tooling.py. RV-2 restarts every batch from scratch. | RV-2 (digest 6e1feadea4971d77) completed all 27 runs, then SUPERSEDED by patches: S-R3 A-10 false contradiction ('1184' string vs 1184 number) executed an invalid second REDEFINE (frozen safety #5 failed); S-R3 C-01/C-03/D3 DEFINE Gate blocked on unknown protected-action authority with no recovery path (the Reasoner missed the runbook grant once and only define_problem was re-asked). Patches IDR-REL-08 (canonical numeric/boolean values) and IDR-REL-09 (bounded authority recheck of committed authoritative documents) + tests/test_stabilization_patches.py. RV-3 restarts every batch from scratch. | RV-3 (digest 7ba4e949391da08e) reported STABILIZATION_PATCH_REQUIRED (Mock #6 4/10, qualified 0/3, Human Gate 1/3). RV-4 patches: P1 evaluator v2, P2 premise check, P3 typed DEFINE repair, P4 bounded protected-action reconsideration. RV-4 starts every batch from scratch. | RV-4 (digest d308c82ad6514b50) completed 27/27 (freeze OK) then VALIDATION INVALIDATED: R4-S3 defect (A-04: a metric/authority-only DEFINE repair rewrote a mechanism-naming root problem into a generic one) and R4-S2 (premise-check problem_id mislabel discarded as stale, outcome-neutral). Patched (repair framing lock; version-only staleness) with regression tests. RV-4b restarts every batch from scratch; evaluator/scenario/rubric unchanged. | RV-4b (digest 66cfca386f28c61b) completed 27/27 (freeze OK) then VALIDATION INVALIDATED: R4-S3 defect (C-03: repair-path authorization scoped to the action name → protected action BLOCKED, gate unreachable). Patched (scope_target validation + refusal feedback). RV-4c restarts every batch; evaluator/scenario/rubric unchanged. RV-4c is the last restart in this task.",
+ "_pilots_rv4": "Pre-freeze RV-4 pilots (scratch, not part of any batch; integration only, no prompt change from their outcome): Human Gate scenario 1 run → DESIGN HOLD 'no releasable scope' (Reasoner-raised HIGH unknown on the only intended item = Core-forced exclusion, reconsideration correctly not eligible); golden D 1 run → same DESIGN HOLD pattern (seen before in RV-2 B-01/B-05/B-06); Mock #6 1 run → typed DEFINE repair converging (attempt 1 resolved 1, attempt 2 resolved 2, 1 INVALID_METRIC left) when the bound of 2 ran out → max_define_repair_attempts set to 3 (prompt: 2 or 3) before the freeze."
+}

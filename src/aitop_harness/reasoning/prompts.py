@@ -79,7 +79,9 @@ the current state.
   to explain. Propose new_hypotheses only if the observation reveals a cause not yet listed.
 - fact_candidates: only for authoritative, complete tool/document observations, citing the observation id.
 - authorization_candidates: only if the observation is a document/policy that grants someone authority over
-  an action on a resource (action = the protected operation name, resource = the system).
+  an action on a resource (action = the protected operation name, resource = the system). scope_kind says what
+  the grant covers: RESOURCE (the action on that resource), INTENDED_TARGET (the action on the one id in
+  scope_target) or ANY_TARGET (the action on any target); scope_target is an id, never a description.
 - contradiction_assessment: if `problem_definition` is present, assess the observation against its premises
   (root problem, causal chain, cited evidence, premise hypotheses):
   PROBLEM_PREMISE = the causal premise of the problem is false (the problem itself is different);
@@ -92,7 +94,10 @@ the current state.
 - unknown_resolutions: an OPEN or DEFERRED unknown this observation answers (the Harness accepts it only
   for authoritative, complete evidence).
 - vob_proposals: only for an unresolved critical question that must be verified before a specific scope
-  (design finalization / protected action / release).""",
+  (design finalization / protected action / release).
+- If `define_gate_findings` is present, the observation is an already committed document re-read because
+  the DEFINE Gate could not find who authorizes a protected action: report in authorization_candidates
+  exactly what this document grants (or nothing if it grants nothing). Other fields are ignored.""",
     "assess_hypotheses": """\
 Discovery is ending. For each hypothesis decide its status from the LINKED evidence only:
 SUPPORTED (supporting evidence, no strong contradiction), REJECTED (contradicted by evidence),
@@ -127,7 +132,19 @@ Propose the canonical Problem Definition from the evidence (the DEFINE Gate deci
   KEEP if its question still matters for the successor problem, RETIRE if it only served the invalidated
   premise / investigation or is already answered by evidence (cite it). Give a rationale for every decision.
 - unknowns already answered by strong evidence belong in no list; do not re-raise them.
-If `gate_findings` are present, your previous proposal failed the DEFINE Gate: fix every BLOCKING finding.""",
+If `repair_request` is present, your previous proposal failed the DEFINE Gate. Each finding carries a type,
+the objects it refers to and `repair_options` (the kinds of fix the Harness accepts). Fix EVERY BLOCKING
+finding by applying one of its options, keep everything that was valid, and report each fix in
+repair_resolution (finding id, option, what changed). Grant an authority only through
+authorization_candidates citing a committed authoritative document (evidence_ref) whose text grants it
+(scope_kind RESOURCE / ANY_TARGET, or INTENDED_TARGET with one intended target id in scope_target);
+otherwise take the action out of the problem. Fields in `repair_request.locked_fields` are kept by the
+Harness as previously proposed. `repair_request.history` lists earlier attempts and the findings they left
+unresolved: do not repeat a fix that did not work. Without a repair_request leave repair_resolution and
+authorization_candidates empty.
+If `framing_repair` is present, your previous proposal rested on a hypothesis recorded as the requester's
+framing: resolve that finding with one of its repair_options in framing_resolution (hypothesis id, option,
+rationale; statement + evidence_refs for SEPARATE_INDEPENDENT_HYPOTHESIS). Otherwise leave it empty.""",
     "structural_remedy": """\
 DESIGN step 1. Before any agent is considered: propose structural remedies that remove the ROOT CAUSE of
 the active problem (process, contract, configuration, data, ownership changes). For each: does it remove
@@ -163,7 +180,9 @@ listed evidence for re-interpretation. For each proposed evidence id, write the 
 light of the new evidence: keep what the observation still shows (observations stay valid unless the new
 evidence contradicts the observation itself), state what it no longer means. revision_kind is your
 suggestion (the Harness infers the authoritative kind). problem_invalidating=true if, under the revision,
-this evidence no longer supports the problem's causal premise.""",
+this evidence no longer supports the problem's causal premise. If `accepted_premise_check` is present, the
+Harness already accepted that premise invalidation: its accepted_evidence_refs keep problem_invalidating=true
+and your revision explains what they still show and no longer mean.""",
     "propose_transition": """\
 Propose the next runtime transition given the new evidence, the challenge, revisions and pending action.
 REDEFINE = authoritative evidence shows the canonical problem's premise is false (the problem itself is
@@ -181,4 +200,49 @@ You cannot override deterministic checks.""",
 Write the final explanation for the Human: the problem (as defined), how it was established, what was
 released, why the release decision is what it is, and the known limitations in plain language. Cite
 evidence ids. Do not claim anything that is not in the input.""",
+    "premise_check": """\
+An ACTIVE canonical problem exists and one new authoritative observation (`new_evidence`) was committed.
+Check the problem's `premises` one by one against it. This is a separate question from what the observation
+means in general: does the problem definition still stand?
+For EVERY premise (use its premise_id exactly):
+- relation: SUPPORTS / CONTRADICTS / PARTIALLY_CONTRADICTS / NOT_ADDRESS. Use NOT_ADDRESS when the observation
+  does not speak to that premise; strong or authoritative evidence is not relevant just because it is strong.
+- For a causal premise ask: if the observation is true, can this premise still be the mechanism that produces
+  the symptom? An observation showing that the premise explains only part of the symptom, that the symptom
+  occurs where the premise's mechanism is absent, or that a step of the chain behaves differently than the
+  premise requires, contradicts (or partially contradicts) the premise even if it never uses its words.
+- materiality: how much of the problem's explanation rests on the contradicted part (LOW..CRITICAL).
+- affected_layer: PROBLEM_PREMISE (the root problem / its causal mechanism is wrong), HYPOTHESIS (a supporting
+  hypothesis changes but the problem's mechanism survives), CLAIM, ASSUMPTION, METRIC (how success is
+  measured), SOLUTION_PATH (the problem stands; the planned way of solving it no longer works).
+- problem_invalidating=true only if, given the observation, the canonical root problem / causal mechanism can
+  no longer be the right problem definition. A hypothesis contradiction or a solution-path change alone is not
+  problem invalidation.
+- evidence_refs: the new evidence id plus the committed evidence ids your judgement rests on.
+overall_assessment: STABLE (nothing material contradicted), CHALLENGED (material contradiction, the problem
+may survive in a narrower form), INVALIDATED (a premise the problem rests on is false), UNCERTAIN.
+Your output is advisory: the Harness validates it against committed state. Never invent premises or ids.""",
+    "reconsider_protected_action": """\
+DESIGN reconsideration, asked at most once. A structural remedy that removes the root cause is feasible, the
+problem's intended scope contains `candidate_action` (a protected action that only runs after a Human approves
+it at a Mandatory Human Gate), its authority is established and no Harness rule blocks it, but the proposed
+release scope left it out. Decide:
+- INCLUDE_WITH_HUMAN_GATE: the action directly addresses the root cause and its known risks can be put in
+  front of the Human approver (the approval packet shows evidence, side effect and reversibility; the Human
+  decides).
+- KEEP_EXCLUDED: a concrete, evidenced reason makes proposing it now wrong (cite it).
+- NEEDS_MORE_EVIDENCE: one specific missing fact must be established first (needed_evidence).
+Including it never executes it. Do not include it merely because it is available; do not exclude it merely
+because it needs approval.""",
+    "review_blocking_scope": """\
+DESIGN blocking-scope review, asked at most once. Each item in `blocking_review.obligations` is an open
+critical unknown whose verification obligation blocks the entire intended scope, while a structural remedy is
+feasible. For each, answer: does this unknown truly block the entire intended solution, or only a narrower
+action / data / verification scope?
+- KEEP_ENTIRE_BLOCK: the answer could change or invalidate every intended item (cite why).
+- NARROW_BLOCKING_SCOPE: only some intended items depend on the answer; narrowed_scope = exactly those items
+  (copied from `intended_scope`; empty = the question is verified after release and blocks no intended item).
+  Cite the committed evidence that shows the other items do not depend on it.
+- NEEDS_MORE_EVIDENCE: the evidence cannot tell yet (needed_evidence).
+The Harness validates any narrowing; Human Gates and safety requirements are never affected.""",
 }

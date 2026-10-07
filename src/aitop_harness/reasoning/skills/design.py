@@ -37,3 +37,28 @@ def plan_payload(
         "already_executed": sorted(executed),
         "mutating_tools": mutating_tools,
     }
+
+
+def reconsider_payload(view: dict[str, Any], request: dict[str, Any]) -> dict[str, Any]:
+    return {"state": view, "reconsideration": request}
+
+
+def reconsider_fallback() -> dict[str, Any]:
+    """No judgement available: the Reasoner's original exclusion stands."""
+    return {
+        "decision": "KEEP_EXCLUDED",
+        "rationale": "deterministic fallback: the original release scope stands",
+        "evidence_refs": [],
+        "risks": [],
+        "needed_evidence": "",
+        "confidence": 0.0,
+    }
+
+
+def blocking_review_payload(view: dict[str, Any], request: dict[str, Any]) -> dict[str, Any]:
+    return {"state": view, "blocking_review": request}
+
+
+def blocking_review_fallback() -> dict[str, Any]:
+    """No judgement available: every block stays as it is."""
+    return {"reviews": [], "confidence": 0.0}

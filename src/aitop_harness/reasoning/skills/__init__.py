@@ -16,9 +16,18 @@ ESSENTIAL: frozenset[str] = frozenset(
         "plan_execution",
         "revise_evidence",
         "propose_transition",
+        "premise_check",
     }
 )
 
 NON_ESSENTIAL: frozenset[str] = frozenset(
-    {"hypothesis_init", "discover_actions", "assess_hypotheses", "semantic_judge", "release_summary"}
+    {
+        "hypothesis_init",
+        "discover_actions",
+        "assess_hypotheses",
+        "semantic_judge",
+        "release_summary",
+        "reconsider_protected_action",
+        "review_blocking_scope",
+    }
 )

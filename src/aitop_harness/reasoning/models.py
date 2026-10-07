@@ -107,6 +107,7 @@ class AuthorizationCandidate:
     scope_target: str
     conditions: list[str]
     rationale: str
+    scope_kind: str = ""  # RESOURCE / INTENDED_TARGET / ANY_TARGET ("" = legacy free scope_target)
 
 
 @dataclass
@@ -235,6 +236,66 @@ class ProblemDefinitionProposal:
     rejected_framings: list[tuple[str, str]]
     confidence: float
     vob_reevaluation: list[tuple[str, str, str, list[str]]] = field(default_factory=list)
+    # DEFINE repair (IDR-RV4-03): which repair option the Reasoner applied per typed finding (advisory) and
+    # authorizations it identifies in committed authoritative documents (Core-validated before commit)
+    repair_resolution: list[RepairResolution] = field(default_factory=list)
+    authorization_candidates: list[DocumentAuthorizationCandidate] = field(default_factory=list)
+    # typed framing repair (IDR-RV5-02): how a FRAMING_CLASSIFICATION_CONFLICT is resolved (Core-validated)
+    framing_resolution: list[FramingResolution] = field(default_factory=list)
+
+
+@dataclass
+class FramingResolution:
+    hypothesis: str  # the requester-framing hypothesis id named by the finding
+    option: str  # KEEP_AS_CLAIM / RECLASSIFY_BY_PROVENANCE / SEPARATE_INDEPENDENT_HYPOTHESIS
+    statement: str  # SEPARATE: the independent causal hypothesis
+    evidence_refs: list[str]
+    rationale: str
+
+
+@dataclass
+class RepairResolution:
+    finding: str  # finding id from the repair request
+    option: str  # repair option the Reasoner applied
+    change: str
+
+
+@dataclass
+class DocumentAuthorizationCandidate:
+    action: str
+    resource: str
+    authority_holder: str
+    scope_target: str
+    conditions: list[str]
+    evidence_ref: str  # committed authoritative document that grants it
+    rationale: str
+    scope_kind: str = ""  # RESOURCE / INTENDED_TARGET / ANY_TARGET ("" = legacy free scope_target)
+
+
+# --------------------------------------------------------------------------- premise check (IDR-RV4-01/02)
+
+
+@dataclass
+class PremiseAssessment:
+    premise_id: str
+    relation: str  # SUPPORTS / CONTRADICTS / PARTIALLY_CONTRADICTS / NOT_ADDRESS
+    materiality: Criticality
+    affected_layer: str  # HYPOTHESIS / CLAIM / PROBLEM_PREMISE / SOLUTION_PATH / METRIC / ASSUMPTION
+    problem_invalidating: bool
+    evidence_refs: list[str]
+    rationale: str
+
+
+@dataclass
+class PremiseCheckProposal:
+    """Advisory: the Core canonical challenge validator stays authoritative (IDR-RV4-02)."""
+
+    problem_id: str
+    problem_version: int
+    premises: list[PremiseAssessment]
+    overall_assessment: str  # STABLE / CHALLENGED / INVALIDATED / UNCERTAIN
+    rationale: str
+    confidence: float
 
 
 # --------------------------------------------------------------------------- DESIGN
@@ -326,6 +387,36 @@ class ExecutionPlanProposal:
     work_items: list[WorkItemProposal]
     protected_actions: list[ProtectedActionProposalDraft]
     rationale: str
+
+
+@dataclass
+class ProtectedReconsiderationProposal:
+    """IDR-RV4-05: one bounded second look at a feasible protected structural remedy left out of release."""
+
+    decision: str  # KEEP_EXCLUDED / INCLUDE_WITH_HUMAN_GATE / NEEDS_MORE_EVIDENCE
+    rationale: str
+    evidence_refs: list[str]
+    risks: list[str]
+    needed_evidence: str
+    confidence: float
+
+
+@dataclass
+class BlockingScopeReview:
+    vob: str
+    decision: str  # KEEP_ENTIRE_BLOCK / NARROW_BLOCKING_SCOPE / NEEDS_MORE_EVIDENCE
+    narrowed_scope: list[ScopeRef]
+    evidence_refs: list[str]
+    rationale: str
+    needed_evidence: str
+
+
+@dataclass
+class BlockingScopeReviewProposal:
+    """IDR-RV5-04: one evidence-aware look at a critical unknown that blocks the entire intended scope."""
+
+    reviews: list[BlockingScopeReview]
+    confidence: float
 
 
 # --------------------------------------------------------------------------- recovery
@@ -492,6 +583,7 @@ def parse_interpret_evidence(o: dict[str, Any]) -> EvidenceInterpretationProposa
                 a["scope_target"],
                 list(a["conditions"]),
                 a["rationale"],
+                a.get("scope_kind", ""),
             )
             for a in o["authorization_candidates"]
         ],
@@ -586,6 +678,82 @@ def parse_define_problem(o: dict[str, Any]) -> ProblemDefinitionProposal:
             (v["vob"], v["decision"], v["rationale"], list(v["evidence_refs"]))
             for v in o.get("vob_reevaluation", [])
         ],
+        repair_resolution=[
+            RepairResolution(r["finding"], r["option"], r["change"]) for r in o.get("repair_resolution", [])
+        ],
+        authorization_candidates=[
+            DocumentAuthorizationCandidate(
+                a["action"],
+                a["resource"],
+                a["authority_holder"],
+                a["scope_target"],
+                list(a["conditions"]),
+                a["evidence_ref"],
+                a["rationale"],
+                a.get("scope_kind", ""),
+            )
+            for a in o.get("authorization_candidates", [])
+        ],
+        framing_resolution=[
+            FramingResolution(
+                r["hypothesis"],
+                r["option"],
+                r.get("statement", ""),
+                list(r.get("evidence_refs", [])),
+                r["rationale"],
+            )
+            for r in o.get("framing_resolution", [])
+        ],
+    )
+
+
+def parse_premise_check(o: dict[str, Any]) -> PremiseCheckProposal:
+    return PremiseCheckProposal(
+        problem_id=o["problem_id"],
+        problem_version=int(o["problem_version"]),
+        premises=[
+            PremiseAssessment(
+                premise_id=p["premise_id"],
+                relation=p["relation"],
+                materiality=_crit(p["materiality"]),
+                affected_layer=p["affected_layer"],
+                problem_invalidating=bool(p["problem_invalidating"]),
+                evidence_refs=list(p["evidence_refs"]),
+                rationale=p["rationale"],
+            )
+            for p in o["premises"]
+        ],
+        overall_assessment=o["overall_assessment"],
+        rationale=o["rationale"],
+        confidence=float(o["confidence"]),
+    )
+
+
+def parse_reconsider_protected_action(o: dict[str, Any]) -> ProtectedReconsiderationProposal:
+    return ProtectedReconsiderationProposal(
+        decision=o["decision"],
+        rationale=o["rationale"],
+        evidence_refs=list(o["evidence_refs"]),
+        risks=list(o["risks"]),
+        needed_evidence=o["needed_evidence"],
+        confidence=float(o["confidence"]),
+    )
+
+
+def parse_review_blocking_scope(o: dict[str, Any]) -> BlockingScopeReviewProposal:
+    return BlockingScopeReviewProposal(
+        reviews=[
+            BlockingScopeReview(
+                r["vob"],
+                r["decision"],
+                _scope(r["narrowed_scope"]),
+                list(r["evidence_refs"]),
+                r["rationale"],
+                r["needed_evidence"],
+            )
+            for r in o["reviews"]
+        ],
+        confidence=float(o["confidence"]),
     )
 
 
@@ -733,4 +901,7 @@ PARSERS: dict[str, Any] = {
     "propose_transition": parse_propose_transition,
     "semantic_judge": parse_semantic_judge,
     "release_summary": parse_release_summary,
+    "premise_check": parse_premise_check,
+    "reconsider_protected_action": parse_reconsider_protected_action,
+    "review_blocking_scope": parse_review_blocking_scope,
 }

@@ -16,6 +16,8 @@ SCHEMA_VERSION = "1.0"
 
 CRITICALITY = ["LOW", "MEDIUM", "HIGH", "CRITICAL"]
 SCALAR = ["string", "number", "boolean"]
+# typed authorization scope (IDR-RV5-01, engine.scope_contract)
+SCOPE_KINDS = ["RESOURCE", "INTENDED_TARGET", "ANY_TARGET"]
 
 
 # --------------------------------------------------------------------------- builders
@@ -174,6 +176,7 @@ _VOB_PROPOSAL = s_obj(
 )
 
 _TRANSITIONS = ["RETRY", "REPLAN", "REPROFILE", "REDEFINE", "CONTINUE"]
+_PREMISE_LAYERS = ["HYPOTHESIS", "CLAIM", "PROBLEM_PREMISE", "SOLUTION_PATH", "METRIC", "ASSUMPTION"]
 
 # --------------------------------------------------------------------------- skill schemas
 
@@ -258,10 +261,19 @@ SKILL_SCHEMAS: dict[str, dict[str, Any]] = {
                         "action": s_str(1, 120),
                         "resource": s_str(1, 120),
                         "authority_holder": s_str(1, 60),
-                        "scope_target": s_str(1, 120),
+                        "scope_kind": s_enum(SCOPE_KINDS),
+                        "scope_target": s_str(0, 120),
                         "conditions": s_arr(s_str(1, 400), 0, 6),
                         "rationale": s_str(1, 800),
-                    }
+                    },
+                    required=[
+                        "action",
+                        "resource",
+                        "authority_holder",
+                        "scope_target",
+                        "conditions",
+                        "rationale",
+                    ],
                 ),
                 0,
                 4,
@@ -417,6 +429,51 @@ SKILL_SCHEMAS: dict[str, dict[str, Any]] = {
                 12,
             ),
             "confidence": s_unit(),
+            # DEFINE repair (only meaningful when the request carried a `repair_request`)
+            "repair_resolution": s_arr(
+                s_obj({"finding": s_str(1, 60), "option": s_str(1, 200), "change": s_str(1, 600)}), 0, 12
+            ),
+            "authorization_candidates": s_arr(
+                s_obj(
+                    {
+                        "action": s_str(1, 120),
+                        "resource": s_str(1, 120),
+                        "authority_holder": s_str(1, 60),
+                        "scope_kind": s_enum(SCOPE_KINDS),
+                        "scope_target": s_str(0, 120),
+                        "conditions": s_arr(s_str(1, 300), 0, 6),
+                        "evidence_ref": s_str(1, 60),
+                        "rationale": s_str(1, 800),
+                    },
+                    required=[
+                        "action",
+                        "resource",
+                        "authority_holder",
+                        "scope_target",
+                        "conditions",
+                        "evidence_ref",
+                        "rationale",
+                    ],
+                ),
+                0,
+                4,
+            ),
+            # typed framing repair (IDR-RV5-02; only meaningful when the request carried a `framing_repair`)
+            "framing_resolution": s_arr(
+                s_obj(
+                    {
+                        "hypothesis": s_str(1, 60),
+                        "option": s_enum(
+                            ["KEEP_AS_CLAIM", "RECLASSIFY_BY_PROVENANCE", "SEPARATE_INDEPENDENT_HYPOTHESIS"]
+                        ),
+                        "statement": s_str(0, 600),
+                        "evidence_refs": s_ids(10),
+                        "rationale": s_str(1, 800),
+                    }
+                ),
+                0,
+                3,
+            ),
         },
         required=[
             "root_problem",
@@ -620,6 +677,66 @@ SKILL_SCHEMAS: dict[str, dict[str, Any]] = {
             "summary": s_str(1, 2000),
             "key_points": s_arr(s_str(1, 600), 0, 8),
             "limitations_explained": s_arr(s_str(1, 600), 0, 8),
+        }
+    ),
+    # Premise Check (IDR-RV4-01): canonical premises vs one new authoritative observation (advisory)
+    "premise_check": s_obj(
+        {
+            "problem_id": s_str(1, 60),
+            "problem_version": s_num(1),
+            "premises": s_arr(
+                s_obj(
+                    {
+                        "premise_id": s_str(1, 60),
+                        "relation": s_enum(
+                            ["SUPPORTS", "CONTRADICTS", "PARTIALLY_CONTRADICTS", "NOT_ADDRESS"]
+                        ),
+                        "materiality": s_enum(CRITICALITY),
+                        "affected_layer": s_enum(_PREMISE_LAYERS),
+                        "problem_invalidating": s_bool(),
+                        "evidence_refs": s_ids(10),
+                        "rationale": s_str(1, 800),
+                    }
+                ),
+                0,
+                20,
+            ),
+            "overall_assessment": s_enum(["STABLE", "CHALLENGED", "INVALIDATED", "UNCERTAIN"]),
+            "rationale": s_str(1, 1200),
+            "confidence": s_unit(),
+        }
+    ),
+    # Bounded protected-action reconsideration (IDR-RV4-05): the Core decides eligibility and scope
+    "reconsider_protected_action": s_obj(
+        {
+            "decision": s_enum(["KEEP_EXCLUDED", "INCLUDE_WITH_HUMAN_GATE", "NEEDS_MORE_EVIDENCE"]),
+            "rationale": s_str(1, 1200),
+            "evidence_refs": s_ids(10),
+            "risks": s_arr(s_str(1, 400), 0, 6),
+            "needed_evidence": s_str(0, 600),
+            "confidence": s_unit(),
+        }
+    ),
+    # Bounded blocking-scope review (IDR-RV5-04): the Core decides eligibility and validates any narrowing
+    "review_blocking_scope": s_obj(
+        {
+            "reviews": s_arr(
+                s_obj(
+                    {
+                        "vob": s_str(1, 60),
+                        "decision": s_enum(
+                            ["KEEP_ENTIRE_BLOCK", "NARROW_BLOCKING_SCOPE", "NEEDS_MORE_EVIDENCE"]
+                        ),
+                        "narrowed_scope": s_arr(SCOPE_ITEM, 0, 12),
+                        "evidence_refs": s_ids(10),
+                        "rationale": s_str(1, 1200),
+                        "needed_evidence": s_str(0, 600),
+                    }
+                ),
+                0,
+                6,
+            ),
+            "confidence": s_unit(),
         }
     ),
 }

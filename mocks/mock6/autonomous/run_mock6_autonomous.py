@@ -24,6 +24,8 @@ Usage:
   python3 mocks/mock6/autonomous/run_mock6_autonomous.py --variant scoped --provider claude [--model sonnet]
   python3 mocks/mock6/autonomous/run_mock6_autonomous.py --variant u1_default_scope   # replays scoped
   python3 mocks/mock6/autonomous/run_mock6_autonomous.py --variant scoped --provider replay
+  python3 mocks/mock6/autonomous/run_mock6_autonomous.py --variant scoped --provider api \
+      --outdir artifacts/reliability/runs/<run_id>     # independent API provider (AITOP_REASONER_* env)
 """
 
 from __future__ import annotations
@@ -87,6 +89,8 @@ from aitop_harness.phases.redefine import validate_problem_invalidation  # noqa:
 from aitop_harness.phases.release import evaluate_release_gate  # noqa: E402
 from aitop_harness.phases.verify import run_verify  # noqa: E402
 from aitop_harness.reasoning.providers.claude_cli import ClaudeCLIProvider  # noqa: E402
+from aitop_harness.reasoning.providers.config import config_from_env, describe, provider_from_config  # noqa: E402
+from aitop_harness.reasoning.providers.fault import FaultInjectingProvider  # noqa: E402
 from aitop_harness.reasoning.providers.replay import RecordingProvider, ReplayProvider  # noqa: E402
 from aitop_harness.reasoning.reasoner import Reasoner  # noqa: E402
 from aitop_harness.reasoning.skills.evidence import interpret_payload  # noqa: E402
@@ -202,9 +206,10 @@ def fork(*objs: Any) -> Any:
 
 
 class Runner:
-    def __init__(self, variant: str, reasoner: Reasoner, probe_reasoner: Reasoner) -> None:
+    def __init__(self, variant: str, reasoner: Reasoner, probe_reasoner: Reasoner,
+                 outdir: Path | None = None) -> None:
         self.variant = variant
-        self.outdir = MOCK / "results_autonomous" / variant
+        self.outdir = outdir or MOCK / "results_autonomous" / variant
         with base._real_open(MOCK / "scenario_pack" / "public_scenario.json", encoding="utf-8") as fh:
             self.public = json.load(fh)
         self.ctl = ScenarioController()
@@ -636,15 +641,31 @@ class Runner:
         return o
 
 
+def live_provider(args: argparse.Namespace) -> Any:
+    if args.provider == "api" or (args.provider not in ("claude", "api") and args.live == "api"):
+        cfg = (json.loads(Path(args.provider_config).read_text(encoding="utf-8")) if args.provider_config
+               else config_from_env(default=None))
+        if args.model:
+            cfg["model"] = args.model
+        live: Any = provider_from_config(cfg)
+    else:
+        live = ClaudeCLIProvider(model=args.model or "sonnet")
+    if args.faults:  # controlled provider-failure injection (main line only; probes stay clean)
+        live = FaultInjectingProvider(live, json.loads(Path(args.faults).read_text(encoding="utf-8")))
+    return live
+
+
 def build_reasoner(args: argparse.Namespace, outdir: Path) -> tuple[Reasoner, Reasoner]:
     transcript = outdir / "reasoning_transcript.jsonl"
     probe_transcript = outdir / "reasoning_transcript_probes.jsonl"
-    live = ClaudeCLIProvider(model=args.model)
-    if args.provider == "claude":
+    live = live_provider(args)
+    probe_live = live.inner if isinstance(live, FaultInjectingProvider) else live
+    if args.provider in ("claude", "api"):
         for p in (transcript, probe_transcript):
             if p.exists():
                 p.unlink()
-        return Reasoner(RecordingProvider(live, transcript)), Reasoner(RecordingProvider(live, probe_transcript))
+        return (Reasoner(RecordingProvider(live, transcript)),
+                Reasoner(RecordingProvider(probe_live, probe_transcript)))
     if args.provider == "resume":  # replay a recorded (interrupted) run, continue live where it stops
         src = Path(args.transcript)
         entries = [json.loads(x) for x in src.read_text(encoding="utf-8").splitlines() if x.strip()]
@@ -668,22 +689,40 @@ def build_reasoner(args: argparse.Namespace, outdir: Path) -> tuple[Reasoner, Re
 def main() -> None:
     p = argparse.ArgumentParser()
     p.add_argument("--variant", default="scoped", choices=["scoped", "u1_default_scope"])
-    p.add_argument("--provider", default=None, choices=["claude", "replay", "resume"])
-    p.add_argument("--model", default="sonnet")
+    p.add_argument("--provider", default=None, choices=["claude", "api", "replay", "resume"])
+    p.add_argument("--model", default=None, help="claude: sonnet (default); api: provider config default")
+    p.add_argument("--provider-config", default=None, help="api provider runtime config JSON (else AITOP_REASONER_*)")
+    p.add_argument("--live", default="claude", choices=["claude", "api"],
+                   help="live provider behind replay / resume / --live-fallback")
+    p.add_argument("--faults", default=None, help="fault-injection rules JSON (FaultInjectingProvider)")
+    p.add_argument("--outdir", default=None, help="results root (default mocks/mock6/results_autonomous)")
     p.add_argument("--transcript", default=None, help="replay transcript (default: this variant's own)")
     p.add_argument("--live-fallback", action="store_true", help="replay misses fall back to the live model")
     args = p.parse_args()
-    outdir = MOCK / "results_autonomous" / args.variant
+    root = Path(args.outdir) if args.outdir else MOCK / "results_autonomous"
+    outdir = root / args.variant
     outdir.mkdir(parents=True, exist_ok=True)
     if args.provider is None:  # variant B replays the scoped run's reasoning (isolates the Core variant)
         args.provider = "claude" if args.variant == "scoped" else "replay"
         if args.variant == "u1_default_scope" and not args.transcript:
-            args.transcript = str(MOCK / "results_autonomous" / "scoped" / "reasoning_transcript.jsonl")
+            args.transcript = str(root / "scoped" / "reasoning_transcript.jsonl")
             args.live_fallback = True
     reasoner, probe_reasoner = build_reasoner(args, outdir)
-    runner = Runner(args.variant, reasoner, probe_reasoner)
-    runner.obs["provider"] = {"mode": args.provider, "model": args.model, "transcript": args.transcript}
-    runner.run()
+    runner = Runner(args.variant, reasoner, probe_reasoner, outdir)
+    live = reasoner.provider
+    while hasattr(live, "inner") or hasattr(live, "fallback"):
+        live = getattr(live, "inner", None) or getattr(live, "fallback", None)
+    runner.obs["provider"] = {"mode": args.provider, "model": args.model, "transcript": args.transcript,
+                              "config": describe(live) if live is not None else None,
+                              "faults": args.faults}
+    try:
+        runner.run()
+    finally:
+        injector = reasoner.provider.inner if isinstance(reasoner.provider, RecordingProvider) else None
+        if isinstance(injector, FaultInjectingProvider):
+            save(outdir, "faults_injected.json", injector.injected)
+        save(outdir, "replay_misses.json", {"main": list(getattr(reasoner.provider, "misses", [])),
+                                            "probes": list(getattr(probe_reasoner.provider, "misses", []))})
     for r in (reasoner, probe_reasoner):
         misses = getattr(r.provider, "misses", None)
         if misses:

@@ -271,3 +271,221 @@ Supporting decisions:
   propose KEEP / RETIRE for VOBs bound to the invalidated version (RETIRE needs a rationale); an empty release scope
   after VOB blocking triggers one re-proposal, then HOLD; a join is driven only by operations carrying the key;
   relied data assets are inspected from collected results before VERIFY.
+
+## 6. Autonomous Stabilization & Reliability Validation — IDR-REL-01..07
+
+지시: `intent-docs/AI_TOP_100_Harness_Autonomous_Stabilization_Reliability_Validation_Claude_Code_Prompt.md`.
+결과: `AUTONOMOUS_RELIABILITY_VALIDATION_RESULT.md`. Core semantics / phases / state / domain 변경 없음.
+
+- **IDR-REL-01 — Independent API provider = one OpenAI-compatible HTTP adapter.**
+  `reasoning/providers/openai_compat.py` (`OpenAICompatibleProvider`) implements the unchanged
+  `ReasoningProvider` protocol over `/chat/completions` (stdlib `urllib`, no SDK). It covers OpenAI, NVIDIA NIM,
+  OpenRouter, vLLM / Ollama. Structured output: `response_format=json_schema` (native constrained decoding),
+  `json_object` or `prompt` mode; the Reasoner re-validates every output regardless. Transient HTTP (408/409/425/
+  429/5xx) gets a bounded provider-local backoff (`max_http_retries`, `Retry-After` honoured, capped); everything
+  else is returned as `PROVIDER_ERROR` / `INVALID_SCHEMA` / raised `ProviderTimeout` so the existing Reasoner chain
+  (bounded repair → fallback provider → deterministic fallback → HOLD) decides.
+- **IDR-REL-02 — Configuration, not hard-coding.** `reasoning/providers/config.py` builds a provider from a
+  runtime config dict / JSON or `AITOP_REASONER_*` environment (`.env.example`). Presets `nvidia-nim`, `openai`,
+  `claude-cli`. A config naming the key itself (`api_key`) is rejected: only the environment-variable *name*
+  (`api_key_env`) is configuration; the key is read at call time and never stored, logged or recorded (tested).
+  CLI: `aitop-harness autonomous <scenario> --provider api [--provider-config f.json]`.
+- **IDR-REL-03 — Provider failures are recorded.** `RecordingProvider` now writes TIMEOUT / PROVIDER_ERROR entries
+  for exceptions raised by the inner provider and re-raises them (before: timeouts left no transcript line).
+  Replay uses SUCCESS entries only, so replay semantics are unchanged.
+- **IDR-REL-04 — Controlled fault injection** (`reasoning/providers/fault.py`, `FaultInjectingProvider`):
+  timeout / invalid_json / schema_mismatch / rate_limit / provider_error by call ordinal, skill, attempt or count.
+  It changes only what the Reasoner receives; probes in the Mock #6 runner keep the clean provider.
+- **IDR-REL-05 — Freeze = hashes, verified per run.** `mocks/reliability/freeze.py` hashes scenario packs, hidden
+  ground truth, evaluators + classifier + aggregator, runners + batch plan, golden fixtures and every
+  `src/aitop_harness/**/*.py`, plus derived ids (rubric, C1–C8 source, safety-8 source, REQUEST_CONTEXT source).
+  `run_batch.py` re-verifies before every run and at the end; any drift = VALIDATION INVALIDATED.
+- **IDR-REL-06 — Frozen evaluators are not edited; their gaps are classified.** The autonomous Mock #6 evaluator
+  needs a redefine to evaluate (it reads `inventory_after_redefine`); on EARLY_CORRECT runs it raises and C1–C8 /
+  safety-8 are recorded NOT_EXERCISED. Those runs are judged by the frozen classifier (`classify.py`:
+  `names_mechanism`, generic Core safety S1–S5, hidden `ideal_release`) and never enter the qualified-redefine
+  denominator.
+- **IDR-REL-07 — Human Gate E2E scenario is a new public scenario, not a fixture gate.**
+  `mocks/reliability/human_gate/scenario.json`: the root-cause fix (re-enable capture idempotency on
+  `gateway-config`) is a protected mutation under constraint K-GW (actor SH-OPS) and an authoritative runbook; the
+  Reasoner must derive it. The Human answers only from the explicit operator script (`OperatorHuman`); duplicate
+  approval (H9) is probed on forks after the run. The scenario was calibrated on one pre-freeze pilot (see result
+  doc §4).
+- **IDR-REL-08 — One canonical form per assertion value (S-R3 patch, RV-2 A-10).** `engine/proposals._value`
+  maps numeric strings (`"1184"`, `"0.88"`, `"1,184"`) to numbers and `"true"`/`"false"` to booleans before the
+  equality comparison that detects conflicts / premise contradictions. Before: E-12 `'1184'` vs premise E-11
+  `1184` was a "contradiction" and the Controller executed a second, invalid REDEFINE (v2 → v3; frozen safety #5
+  failed). Free text stays non-comparable (unchanged trade-off).
+- **IDR-REL-09 — Bounded authority recheck at the DEFINE Gate (S-R3 patch, RV-2 C-01/C-03/D3).** When the DEFINE
+  Gate FAILs with a BLOCKING `authority` finding (protected action whose authority is unknown), the orchestrator
+  re-asks `interpret_evidence` about each already committed authoritative DOCUMENT/POLICY evidence item once
+  (`define_gate_findings` in the payload, `already_committed_as` id). Only `authorization_candidates` are taken,
+  through the unchanged `_authorization` rules (`commit_document_authorizations`); no new evidence, no other
+  semantics. If an authorization was added the same draft is re-evaluated; otherwise the Problem is re-proposed
+  as before. Before: the Reasoner missed the runbook grant once, the loop only re-asked `define_problem` (which
+  cannot create authority) and the run HOLD after three FAILs.
+- **Batch history:** RV-1 VALIDATION INVALIDATED (S-R6 import-order defect in `run_general.py`; Batch B never ran).
+  RV-2 completed, then superseded by IDR-REL-08/09. RV-3 = the reported batch (all batches restarted).
+
+## 7. RV-4 Reasoning Stabilization — IDR-RV4-01..08
+
+Source: `intent-docs/AI_TOP_100_Harness_RV4_Reasoning_Stabilization_Claude_Code_Prompt.md`. Scope = P1 evaluator v2,
+P2 premise check, P3 DEFINE repair, P4 bounded protected-action reconsideration. The frozen Core (phases/, domain/,
+state/, core/) is unchanged: every patch sits in the Reasoning Layer integration (`engine/`, `reasoning/`) and feeds
+the existing Core validators. Result: `docs/implementation/RV4_REASONING_STABILIZATION_RESULT.md`.
+
+- **IDR-RV4-01 — Authoritative evidence against an active canonical Problem triggers a dedicated premise-check
+  skill.** `engine/premise.py`, skill `premise_check` (`reasoning/skills/premise.py`). Trigger, all of: ACTIVE
+  canonical Problem without an open challenge; the evidence is new for that Problem version (not one of its
+  premise evidence, checked at most once per version); authority ≥ `AutonomousConfig.premise_check_authority`
+  (default `STRONG` = authoritative, complete, non-fallback, non-stakeholder — the Core's `is_strong`); the
+  observation is decision-relevant (asserts something, bears on a hypothesis or premise). The Core enumerates the
+  premises (root problem, causal chain and premise hypotheses as proposed at DEFINE — kept in
+  `DefineContext.premise_records`, premise evidence readings, assumptions resting on premise evidence); the
+  Reasoner returns `PremiseCheckProposal` (per premise: relation SUPPORTS / CONTRADICTS / PARTIALLY_CONTRADICTS /
+  NOT_ADDRESS, materiality, affected_layer, problem_invalidating, evidence_refs, rationale; overall_assessment).
+  It runs *after* `interpret_evidence` has committed the evidence semantics; `interpret_evidence` is unchanged.
+  The instruction is domain-neutral (guarded by `tests/test_rv4_reasoning_stabilization.py`).
+- **IDR-RV4-02 — Premise-check output is advisory; Core canonical challenge validation remains authoritative.**
+  `validate_premise_check` accepts an invalidation claim only if relation ∈ {CONTRADICTS, PARTIALLY_CONTRADICTS},
+  materiality ≥ HIGH, affected_layer = PROBLEM_PREMISE, the evidence is strong and the premise rests on committed
+  premise evidence; a stale Problem version is ignored. Accepted claims only *nominate* premise evidence for the
+  existing Evidence Revision path (`revise_evidence` skill → `commit_revisions` → `revise_evidence` →
+  `assess_canonical_challenge`); then the existing `propose_transition` → `evaluate_transition` →
+  `validate_problem_invalidation` → Controller chain decides. A REDEFINE still needs every existing key (invalidating
+  revision, Core challenge, Reasoner REDEFINE proposal, Core validation). Hypothesis-layer, solution-path and
+  non-material claims are recorded as rejected; nothing else is committed from the proposal. Every check is
+  recorded (`proposal_accepted`, skill `premise_check`: relations, claims, accepted / rejected with reason, targets,
+  challenge_raised). Provider failure → deterministic fallback (all NOT_ADDRESS, no claim).
+- **IDR-RV4-03 — DEFINE failures return typed repair findings rather than only free-text rejection.**
+  `engine/define_repair.py`. Each BLOCKING / CONDITIONAL Gate finding is typed deterministically from the Gate's own
+  check + message (UNAUTHORIZED_ACTION_IN_PROBLEM, UNKNOWN_ACTION, UNSUPPORTED_CAUSAL_CLAIM, MISSING_METRIC,
+  INVALID_METRIC, BLOCKING_UNKNOWN, MISSING_AUTHORITY, SCOPE_EXCEEDS_AUTHORIZATION, STALE_EVIDENCE,
+  INSUFFICIENT_EVIDENCE + UNAVAILABLE_TOOL, UNMODELED_DEPENDENCY, CRITICAL_CONFLICT, BUDGET_INFEASIBLE, OTHER) and
+  carries the repair *option types* the Core accepts (e.g. "remove the action from the canonical Problem", "complete
+  the metric's type semantics") — never the fix itself. The `DefineRepairRequest` (payload key `repair_request` of
+  `define_problem`) holds the findings, a summary of the previous proposal, `authority_context` (constraints,
+  authorization status and the committed authoritative documents for each action an authority finding names),
+  open unknowns / VOBs / constraints and the attempt history. `define_problem` may answer with `repair_resolution`
+  (advisory) and, for "identify the authorized actor", `authorization_candidates` with an `evidence_ref`: accepted
+  only during a repair, only if the cited committed authoritative document names the holder (id or role), and then
+  only through the unchanged `_authorization` rules (`commit_repair_authorizations`). Order (§7.2): Gate FAIL →
+  IDR-REL-09 authority recheck (kept) → re-run Gate → still FAIL → repair request.
+- **IDR-RV4-04 — DEFINE repair retries are bounded.** `AutonomousConfig.max_define_repair_attempts = 3` (prompt:
+  2 or 3; a pre-freeze pilot showed repairs still converging — 1 then 2 findings resolved — when a bound of 2 ran
+  out; the repetition rule below still stops any repair that makes no progress). Per attempt the Core records (`proposal_accepted`, skill `define_repair`)
+  the Core-computed diff (`what changed`), the findings resolved / remaining / new and the Gate result. A repair
+  that resolves none of its blocking findings is not retried blindly: one targeted reprofile per Problem draft if
+  the repeated findings are evidence-answerable (BLOCKING_UNKNOWN / INSUFFICIENT_EVIDENCE / CRITICAL_CONFLICT,
+  valid reprofile targets, unexecuted reprofile catalog actions), otherwise HOLD ("DEFINE Gate FAIL: repair
+  resolved none of the blocking findings (same findings repeated)").
+- **IDR-RV4-05 — Feasible protected structural remedies may receive one bounded reconsideration before exclusion
+  from release scope.** `proposals.reconsideration_candidates` + `AutonomousOrchestrator._reconsider`, skill
+  `reconsider_protected_action`. Eligible only if: a structural remedy removing the root cause is feasible; a
+  protected action of the canonical Problem's intended scope is missing from the proposed release scope; its domain
+  authorization is effective; no SAFETY / PRIVACY constraint on it is unresolved; a mutating tool exists; and no open
+  critical VOB blocks it (the `preview_release_scope` rule, tried with the action included). At most one call per
+  Problem version. KEEP_EXCLUDED leaves the design unchanged; NEEDS_MORE_EVIDENCE records a known limitation;
+  INCLUDE_WITH_HUMAN_GATE adds the intended-scope items to the release scope (re-validated by the Core). The protected
+  action then follows the unchanged path (plan → ApprovalPacket → WAITING_APPROVAL → Human). The Reasoner never
+  answers the gate. Ineligibility is recorded with its reason (bounded reconsideration ≠ force gate).
+- **IDR-RV4-06 — Human Gate reachability and Human Gate mechanics are measured separately.** Evaluator
+  `evaluate_human_gate.py` hg-2.0: `reachability` (H1, H2, H4: the autonomous path reached the gate) and `mechanics`
+  (H3, H5-H10 when reached; NOT_REACHED otherwise). The combined H1-H10 verdict is kept for continuity.
+- **IDR-RV4-07 — EARLY_CORRECT is a valid autonomous success path and redefine-specific metrics are
+  NOT_APPLICABLE.** Evaluator `evaluate_mock6_autonomous.py` m6-auto-2.0: a run without a REDEFINE is evaluated
+  (no KeyError); C2, C3, C5-C8 and the redefine-specific safety items are NOT_APPLICABLE, C1 / C4 stay applicable.
+  Safety #5 distinguishes `no_release_because` (PROVIDER_FAILURE / DEFINE_HOLD / HUMAN_PENDING / STALE_VOB /
+  VALID_RELEASE_GATE_HOLD / NOT_REACHED) and fails only for STALE_VOB (the RV-3 D1 S-R6 report). Classifier cls-2.0
+  (same mechanism rule) treats NOT_APPLICABLE safety items as not-failed and adds "v2 names the mechanism" to the
+  qualified-success rule; aggregator agg-2.0 adds the RV-4 verdicts. All are frozen in the RV-4 manifest.
+- **IDR-RV4-08 — RV-4 uses the same primary model as RV-3 to isolate implementation effects.** `batch_plan.json`
+  RV-4 = the RV-3 plan unchanged: `nvidia-nim` `nvidia/nemotron-3-super-120b-a12b`, json_schema, temperature 0.2,
+  max_tokens 8192, timeout 240 s, the same batch composition (A 10, B 8, C 3, D 6) and fault schedule, fallback
+  provider (claude-cli sonnet) only in D4. A stronger-model A/B comparison is a separate later step.
+- **RV-4 defect patches (R4-S3 / R4-S2, before RV-4b).** (a) *Repair framing lock* — RV-4 A-04: a repair whose
+  findings were only INVALID_METRIC / UNAUTHORIZED_ACTION let the Reasoner rewrite a mechanism-naming root problem
+  into a generic one. Now, unless a blocking finding concerns the framing (UNSUPPORTED_CAUSAL_CLAIM /
+  INSUFFICIENT_EVIDENCE / STALE_EVIDENCE), `repair_request.locked_fields` = root_problem, causal_chain,
+  premise_hypotheses and the Core keeps the previous proposal's values (`define_repair.keep_locked`; the Reasoner's
+  own earlier text, recorded as an adjustment). (b) *Premise-check staleness by version* — RV-4 A-02 / A-04: a
+  `problem_id` mislabelled with a premise id (`PR-ROOT`) but the right version was discarded as stale
+  (outcome-neutral there); now only a version mismatch is stale, an id mismatch is noted. RV-4 was invalidated and
+  every batch restarted as RV-4b (prompt §17).
+- **RV-4b defect patch (R4-S3, before RV-4c).** RV-4b C-03: the repair-path authorization accepted
+  `scope_target` = the action name, producing a grant that could never cover the protected action (the Human Gate
+  pre-check correctly BLOCKED it: "SCOPE: requested ⊄ authorized"). `commit_repair_authorizations` now requires
+  the scope_target to be the action's resource, one of the Problem's intended targets for the action, or `*`;
+  refusals are returned in the next `repair_request.refused_authorization_candidates`, and a repair attempt that
+  produced such Core feedback is not counted as a blind repetition (still bounded by
+  `max_define_repair_attempts`). RV-4b was invalidated and every batch restarted as RV-4c.
+
+## 8. RV-5 Deterministic Stabilization + Evaluator v3 + Model A/B — IDR-RV5-01..08
+
+Instruction: `intent-docs/AI_TOP_100_Harness_RV5_Deterministic_Patch_EvaluatorV3_Model_AB_Claude_Code_Prompt.md`.
+Result: `RV5_MODEL_AB_RESULT.md`. Frozen Core (`phases/`, `domain/`, `state/`, `core/`) unchanged.
+
+- **IDR-RV5-01 — Authorization scope syntax is normalized separately from authorization semantics.** Authorization
+  candidates (interpret_evidence and DEFINE repair) carry a typed `scope_kind` (RESOURCE / INTENDED_TARGET /
+  ANY_TARGET) next to `scope_target` (`engine/scope_contract.py`). `normalize_scope_target` only rewrites spellings:
+  the ScopeItem form `action:target` (prefix = the candidate's own action), `resource/action` mixtures, quotes and
+  case variants of a committed id. Free text, two ids, or an unknown kind is never read as a target; nothing is
+  widened or redirected (`action:holder` stays the holder and is then refused by the unchanged Core rules). Repair-path
+  refusals feed back the accepted canonical forms (the contract), never which one to use. RV-4c A-03/A-07/A-08
+  (`action:target`, descriptions) motivated it.
+- **IDR-RV5-02 — Requester-framing rejection is a typed repair finding.** The anti-anchoring refusal of
+  `commit_problem_definition` raises `FramingRejected`; the next `define_problem` request carries
+  `framing_repair` = FRAMING_CLASSIFICATION_CONFLICT (proposal_ref, hypothesis_ref, reason, evidence_refs with
+  provenance, expected_repair_type, repair options, requester claim, independent hypotheses) instead of free text.
+  The Reasoner answers in `framing_resolution`; the Core validates (`apply_framing_resolution`): KEEP_AS_CLAIM (the
+  proposal must not rest on it — checked at commit), RECLASSIFY_BY_PROVENANCE (only with the Core's CONFIRMED-grade
+  independence: strong non-stakeholder support, no contradicting evidence, not the initial request) or
+  SEPARATE_INDEPENDENT_HYPOTHESIS (a new hypothesis distinct from framing and request, citing strong non-stakeholder
+  evidence; the premise reference moves to it). The requester's claim is always kept; the total attempt bound (2)
+  is unchanged. RV-4c A-05 / C-01 / C-02 motivated it.
+- **IDR-RV5-03 — Core-accepted premise invalidation cannot be semantically downgraded by a later revision step.**
+  When `validate_premise_check` accepts an invalidation claim, `revise_evidence` receives `accepted_premise_check`
+  (problem id / version, premise ids, relation, materiality, problem_invalidating = true, evidence refs, accepted
+  rationales only). `commit_revisions` keeps `problem_invalidating = true` for those evidence ids (a downgrade is
+  refused and recorded) and writes an omitted accepted target from the accepted premise-check rationale (also when
+  the revision call fails). A context bound to another Problem version is not applied; rejected claims never reach
+  the revision step. This supersedes the RV-4 behaviour tested in `test_premise_check_is_advisory_…` (RV-4b A-04).
+  The REDEFINE still needs the Reasoner's transition proposal and Core validation (two keys).
+- **IDR-RV5-04 — Entire-scope critical unknown blocking receives at most one evidence-aware scope review.** At
+  DESIGN, after structural remedies: an open critical VOB (not BEFORE_PRODUCTION) deferring a Reasoner-raised
+  unknown, covering every intended item of the ACTIVE Problem, with a feasible root-cause remedy, no SAFETY /
+  PRIVACY constraint on the blocked actions and no open material conflict on the scope, gets one
+  `review_blocking_scope` call per Problem version (KEEP_ENTIRE_BLOCK / NARROW_BLOCKING_SCOPE / NEEDS_MORE_EVIDENCE).
+  A narrowing is accepted only to a strict subset of the blocked intended items (empty = verification-only), with a
+  rationale and strong non-stakeholder committed evidence, through `HarnessContext.narrow_vob_scope`; the VOB stays
+  open, the approval packet still lists it and the unknown, protected actions still stop at the Mandatory Human
+  Gate. Core-made obligations and the robustness-variant versions (`ignore_unknown_scope_versions`) are never
+  reviewed. RV-4c A-02 / C-03 / B-04-D / B-06-B motivated it.
+- **IDR-RV5-05 — Evaluator recognizes both structured-interpretation and premise-check redefine paths.** Evaluator
+  v3 (`m6-auto-3.0`): C2's P4 differential check passes on the probe differential (path A) or on a Core-accepted
+  premise check of the late evidence that raised the canonical challenge (path B); C5 counts a revision as
+  Harness-proposed when the Core nominated it (challenge proposed revision or accepted premise-check target) and
+  accepts premise-check rationale wording; runs record `redefine_path`. Mechanism keyword matching normalizes
+  notation only (`classify.canon_text`: Unicode hyphens / dashes / whitespace / case; `-` / `_` / space as one
+  separator) with the keyword list unchanged (`cls-3.0`).
+- **IDR-RV5-06 — Evaluator uses NOT_APPLICABLE for legitimately absent downstream roles.** C6 role checks (dependent
+  hypothesis / assumption, v1-only VOB, still-valid VOB) and C8 "final AgentSpec has no v1-only VOB" are
+  NOT_APPLICABLE when the role has no instance in the run and are excluded from the verdict; a missing object that
+  must exist (late evidence, v2 design / AgentSpec, revisions) stays None / False. Validated on scratch copies of
+  RV-3 / RV-4 / RV-4b / RV-4c before any A/B run (`artifacts/reliability/RV-5/evaluator_v3_dry_run.json`).
+- **IDR-RV5-07 — A/B model comparison freezes skill, prompt, evaluator, scenario and rubric.** One freeze manifest
+  for both arms (`artifacts/model_ab/freeze_manifest.json`, copied into each arm), verified before every run. Plans
+  `mocks/model_ab/plan_model_{a,b}.json` are generated from one template and differ only in the provider block
+  (tested). Model A = nvidia-nim nemotron-3-super (RV-3/4 settings); Model B = Claude Sonnet via `claude -p`
+  (user-selected; no API keys present). The CLI has no temperature / max-token setting — recorded caveat; both arms
+  share the JSON schemas that bound output size, the Harness budget / release reserve and the wall-clock timeouts.
+  *Outcome (2026-10-08):* the Model B arm (r1) was invalidated by the Claude subscription session limit after ~80
+  calls; the user deferred Model B (a full arm does not fit the Pro plan). Model A was reported under the same freeze
+  (`cb353e9bdec99268`) and stays reusable as the comparison arm while that freeze is kept. A define-isolation Sonnet
+  proxy was recorded as a non-binding signal (`report_single_arm.py`: Model B NOT_MEASURED → NO_CLEAR_WINNER).
+- **IDR-RV5-08 — Model selection uses reasoning quality + safety + Human Gate reachability + latency, not overall
+  accuracy alone.** `mocks/model_ab/compare.py` (ab-1.0, frozen): a model wins only if overall correct is ≥ 0.15
+  higher, qualified redefine higher (or not needed because v1 was already right), golden not worse, Core safety
+  100 % and OPERATOR_REASONER 0, Human Gate reachability not worse, latency acceptable (no TIMEOUT, per-call p95 ≤
+  240 s, mean Mock #6 run ≤ 75 min) and provider failures acceptable (≤ 5 % errors, ≤ 10 % PROVIDER_FAILURE runs).
+  The Final Reliability Batch runs only for a winner whose A/B reliability meets every §29 threshold.

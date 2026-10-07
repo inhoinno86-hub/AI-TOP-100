@@ -28,8 +28,13 @@ def main(argv: list[str] | None = None) -> int:
         "autonomous", help="autonomous E2E from the public scenario (Skill / Reasoning Layer)"
     )
     auto.add_argument("scenario", type=Path)
-    auto.add_argument("--provider", choices=["claude", "fake", "replay"], default="claude")
-    auto.add_argument("--model", default="sonnet", help="model for the claude provider")
+    auto.add_argument("--provider", choices=["claude", "api", "fake", "replay"], default="claude")
+    auto.add_argument("--model", default=None, help="model (claude: sonnet; api: preset default)")
+    auto.add_argument(
+        "--provider-config",
+        type=Path,
+        help="api provider runtime config JSON (default: AITOP_REASONER_* environment, see .env.example)",
+    )
     auto.add_argument("--transcript", type=Path, help="record (claude) / replay (replay) JSONL transcript")
     auto.add_argument(
         "--human",
@@ -82,7 +87,20 @@ def _provider(args: argparse.Namespace, data: dict[str, Any]) -> Any:
         if args.transcript is None:
             raise SystemExit("--provider replay needs --transcript")
         return ReplayProvider.from_file(args.transcript)
-    live = ClaudeCLIProvider(model=args.model)
+    live: Any
+    if args.provider == "api":
+        from .reasoning.providers.config import config_from_env, provider_from_config
+
+        cfg = (
+            json.loads(args.provider_config.read_text(encoding="utf-8"))
+            if args.provider_config
+            else config_from_env(default=None)
+        )
+        if args.model:
+            cfg["model"] = args.model
+        live = provider_from_config(cfg)
+    else:
+        live = ClaudeCLIProvider(model=args.model or "sonnet")
     return RecordingProvider(live, args.transcript) if args.transcript else live
 
 
