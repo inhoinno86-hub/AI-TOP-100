@@ -489,3 +489,54 @@ Result: `RV5_MODEL_AB_RESULT.md`. Frozen Core (`phases/`, `domain/`, `state/`, `
   100 % and OPERATOR_REASONER 0, Human Gate reachability not worse, latency acceptable (no TIMEOUT, per-call p95 ≤
   240 s, mean Mock #6 run ≤ 75 min) and provider failures acceptable (≤ 5 % errors, ≤ 10 % PROVIDER_FAILURE runs).
   The Final Reliability Batch runs only for a winner whose A/B reliability meets every §29 threshold.
+
+## 9. RV-6 Human Gate Reachability Patch — IDR-RV6-01
+
+Instruction: user request following RV-5 Model B measurement (both models showed Human Gate reachability
+0/3; organizational policy restricts the model to Claude Sonnet 5, so the fix had to be structural, not a
+model swap). Result: `RV6_HUMAN_GATE_REACHABILITY_RESULT.md`. Frozen Core semantics unchanged (§36.1: VOB
+blocking_scope, Mandatory Human Gate, ApprovalPacket); justified under §37 condition B (a repeatable
+structural failure observed in RV-5, reproduced in both Model A and Model B arms).
+
+- **IDR-RV6-01 — A4 blocking-scope review eligibility extends to VOBs that block only a protected action,
+  not only VOBs that block the entire intended scope.** `engine/proposals.py:blocking_review_candidates`
+  gained a second trigger alongside IDR-RV5-04's `_covers_all` (entire scope): `_covers_any_protected_action`
+  — an open critical, non-BEFORE_PRODUCTION VOB that blocks at least one protected action of the ACTIVE
+  Problem's intended scope. Root cause: `commit_plan` silently drops a protected action whose scope an open
+  VOB still blocks (`pa.action not in release_actions`), so `propose_protected_action` is never called and
+  the Mandatory Human Gate never opens — and `reconsideration_candidates` (IDR-RV4-05) only admits actions a
+  VOB does *not* block, so it cannot rescue this case either. All existing safety gates are unchanged: Core
+  obligations (no `linked_unknown`) and safety/privacy-constrained or conflict-backed blocks are still never
+  reviewed; narrowing still requires `HarnessContext.narrow_vob_scope`'s strong non-stakeholder evidence; a
+  narrowed VOB stays OPEN and is still shown in the ApprovalPacket; `propose_protected_action`'s own
+  `_precheck` (`blocking_vobs_for`) remains a second, independent gate the action must still clear. A rejected
+  alternative — loosening `reconsideration_candidates` itself to admit VOB-blocked protected actions — was
+  investigated and dropped: it would bypass that second gate and contradict §29's intent that a
+  BEFORE_PROTECTED_ACTION VOB must be resolved (or narrowed on evidence) before the action it blocks can even
+  be proposed.
+- **Prompt guidance (not a frozen-semantics change):** `define_problem` now tells the Reasoner not to raise
+  an unknown whose only content is "will the Human who must approve this protected action approve it, and
+  when" — that confirmation is the Mandatory Human Gate itself, raised as a separate unknown it can never be
+  reached (observed in live replay: an unknown named `ops_confirmation_timing` blocked the very action whose
+  Human Gate would answer it). `review_blocking_scope` was revised twice after live Claude Sonnet 5
+  verification: the first revision (narrow when reversibility/rollback evidence exists) was wrong and
+  reverted — the Core's own `semantic_judge` VERIFY check caught it inventing a narrowing rationale that
+  evidence didn't support (reversibility answers "what if we're wrong", not "are we wrong") and HELD the
+  release. The second, kept revision requires narrowing evidence to directly answer or moot the
+  `unresolved_question` itself; reversibility/rollback evidence alone is explicitly insufficient.
+- **Verification:** 3 new unit tests on the deterministic `FakeProvider` fixture (`scenario_d` variant with a
+  protected-action-only block) — review called once, Core-validated narrowing opens the gate end to end
+  (proposed → approved → executed), `KEEP_ENTIRE_BLOCK` leaves the gate unreached, and disabling the review
+  config leaves the gate unreached without any review call (regression guard). 319/319 tests pass (316 + 3),
+  ruff / ruff format / mypy clean. Live re-verification replayed the recorded RV-5 Model B Human Gate E2E
+  transcripts (C-01/C-02/C-03) through `ReplayProvider` with a live Claude Sonnet 5 fallback for the newly
+  reachable `review_blocking_scope` call and every digest-mismatched step after it (`mocks/reliability/
+  human_gate/run_human_gate.py` needed a fix first: `--provider replay` silently ignored `--fallback` —
+  recorded as a reliability-tooling defect, not a Core change). Result: in all 3 runs the review is now
+  called (0/3 → 3/3) and the model correctly answers `KEEP_ENTIRE_BLOCK` with a specific evidentiary reason
+  each time (e.g. "gateway-config tool_health is UNKNOWN", "no evidence addresses present latency
+  conditions") — Human Gate reachability stays 0/3 for these three scenarios, but the cause changed from "no
+  review opportunity existed" (a structural defect) to "the scenario has no committed evidence that resolves
+  the unknown" (the Harness correctly staying conservative). No session-limit recurrence across the live
+  calls. Final Reliability Batch not rerun (this patch changes the frozen implementation group, invalidating
+  freeze `cb353e9bdec99268`; rerunning both A/B arms needs separate user approval).

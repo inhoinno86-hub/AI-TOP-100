@@ -210,8 +210,13 @@ def main() -> None:
     outdir.mkdir(parents=True, exist_ok=True)
     fallback: Any = None
     if args.provider == "replay":
-        provider: Any = ReplayProvider.from_file(args.transcript, strict=True)
+        replay_fallback: Any = None
         config = {"name": "replay", "transcript": args.transcript}
+        if args.fallback:
+            fb = live_provider(args.fallback, args.fallback_model, None)
+            replay_fallback = RecordingProvider(fb, outdir / "reasoning_transcript_fallback.jsonl")
+            config = {"name": "replay", "transcript": args.transcript, "fallback": describe(fb)}
+        provider = ReplayProvider.from_file(args.transcript, strict=True, fallback=replay_fallback)
     else:
         live = live_provider(args.provider, args.model, args.provider_config)
         config = describe(live) | {"faults": args.faults}

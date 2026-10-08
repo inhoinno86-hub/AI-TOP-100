@@ -1291,28 +1291,45 @@ def _covers_all(scope: Scope, items: list[ScopeItem]) -> bool:
     return bool(items) and (scope.entire_solution or all(scope.covers(i) for i in items))
 
 
+def _covers_any_protected_action(
+    scope: Scope, intended: list[ScopeItem], protected_actions: set[str]
+) -> bool:
+    """True if the scope blocks at least one intended item whose action is protected (RV-6 trigger)."""
+    return any(i.action in protected_actions for i in scope.intersect(intended))
+
+
 def blocking_review_candidates(
     ctx: HarnessContext, *, removes: bool, feasible: bool, skip_versions: set[int] | None = None
 ) -> tuple[list[VerificationObligation], list[str]]:
-    """IDR-RV5-04 eligibility (deterministic): an open critical VOB that defers a Reasoner-raised critical
-    unknown and blocks the whole intended scope of the ACTIVE Problem, while a root-cause structural remedy is
-    feasible and nothing in committed state backs the entire block — no safety / privacy constraint on a
-    blocked action and no open material conflict on the blocked scope. Core-made obligations (no linked
-    unknown) and BEFORE_PRODUCTION obligations are never reviewed."""
+    """IDR-RV5-04 / IDR-RV6-01 eligibility (deterministic): an open critical VOB that defers a Reasoner-raised
+    critical unknown and either (a) blocks the whole intended scope of the ACTIVE Problem (IDR-RV5-04), or
+    (b) blocks at least one protected action of the intended scope without blocking the entire scope
+    (IDR-RV6-01: a protected-fix-only block starves the Mandatory Human Gate of a candidate to approve, since
+    ``preview_release_scope`` drops that action from the release scope and ``commit_plan`` then never builds a
+    proposal for it — ``propose_protected_action`` is never called and the gate never opens) — while a
+    root-cause structural remedy is feasible and nothing in committed state backs the entire block — no
+    safety / privacy constraint on a blocked action and no open material conflict on the blocked scope.
+    Core-made obligations (no linked unknown) and BEFORE_PRODUCTION obligations are never reviewed. The VOB
+    stays open and the Mandatory Human Gate is unaffected either way — this only decides whether
+    `apply_blocking_review` gets a chance to narrow scope on evidence; it never bypasses the gate itself."""
     ps = ctx.problem
     pd = ps.problem_definition
     if pd is None or not pd.is_canonical():
         return [], []
     intended = list(pd.intended_scope)
-    whole = [
+    protected = set(pd.protected_actions)
+    candidates = [
         v
         for v in ps.open_vobs()
         if v.applies_to(pd.id, pd.version)
         and v.is_critical()
         and v.required_before is not RequiredBefore.BEFORE_PRODUCTION
-        and _covers_all(v.blocking_scope, intended)
+        and (
+            _covers_all(v.blocking_scope, intended)
+            or _covers_any_protected_action(v.blocking_scope, intended, protected)
+        )
     ]
-    if not whole:  # nothing blocks the entire intended scope: no review, nothing recorded
+    if not candidates:  # nothing blocks the entire scope or a protected action: no review, nothing recorded
         return [], []
     if pd.version in (skip_versions or set()):
         return [], [f"v{pd.version}: unknown scopes are fixed by configuration (robustness variant)"]
@@ -1321,7 +1338,7 @@ def blocking_review_candidates(
     actions = {i.action for i in intended}
     out: list[VerificationObligation] = []
     why_not: list[str] = []
-    for v in whole:
+    for v in candidates:
         u = ps.unknowns.get(v.linked_unknown or "")
         if u is None:
             why_not.append(f"{v.id}: not a Reasoner-raised unknown (Core obligation)")

@@ -119,6 +119,11 @@ Propose the canonical Problem Definition from the evidence (the DEFINE Gate deci
 - unknowns: open questions that could change the solution. For each give criticality, the scope it
   affects (affects_scope items using actions from intended_scope), a resolution_path and a safe_placeholder
   (what can safely ship while it is open). Consider the validity of the success measurement itself.
+  Do not raise an unknown whose only content is "will the human who must approve this protected action
+  approve it, and when" — that confirmation IS the Mandatory Human Gate the protected action already goes
+  through; raising it as a separate unknown blocks the gate from ever being reached. Raise an unknown about
+  a protected action only for a question the Human approving it could not itself resolve (e.g. whether a
+  side effect is reversible, what the data shows) — not for the approval event itself.
 - metrics: typed (RATE needs numerator+denominator, DURATION needs start/end events, etc.). Give
   current_value only with current_value_evidence_refs; otherwise omit it.
 - success_criteria: measurable, each with a validation_method; kind MUST / TARGET / KNOWN_LIMITATION.
@@ -236,13 +241,23 @@ Including it never executes it. Do not include it merely because it is available
 because it needs approval.""",
     "review_blocking_scope": """\
 DESIGN blocking-scope review, asked at most once. Each item in `blocking_review.obligations` is an open
-critical unknown whose verification obligation blocks the entire intended scope, while a structural remedy is
-feasible. For each, answer: does this unknown truly block the entire intended solution, or only a narrower
-action / data / verification scope?
-- KEEP_ENTIRE_BLOCK: the answer could change or invalidate every intended item (cite why).
-- NARROW_BLOCKING_SCOPE: only some intended items depend on the answer; narrowed_scope = exactly those items
-  (copied from `intended_scope`; empty = the question is verified after release and blocks no intended item).
-  Cite the committed evidence that shows the other items do not depend on it.
+critical unknown whose verification obligation blocks either the entire intended scope or at least one
+protected action in it, while a structural remedy is feasible. For each, answer: does this unknown truly
+block everything its obligation currently covers, or only a narrower action / data / verification scope?
+- KEEP_ENTIRE_BLOCK: the answer could change or invalidate every item the obligation currently blocks (cite
+  why) — including the case where it blocks only one protected action and that single block is still correct.
+- NARROW_BLOCKING_SCOPE: only some of the items the obligation currently blocks depend on the unresolved
+  question; narrowed_scope = exactly those items (copied from `intended_scope`; empty = the question is
+  verified after release and blocks no intended item). Cite committed evidence that directly answers, or
+  makes irrelevant, the unresolved_question for the other items — including the protected action itself, if
+  the obligation blocks it. Evidence that the action is reversible, or that a rollback procedure exists, is
+  evidence about what happens AFTER a wrong answer, not evidence that answers the question itself — it does
+  not justify narrowing by itself. It can support NARROW_BLOCKING_SCOPE only together with evidence that
+  actually bears on the question (directly answers it, or shows it inapplicable to this item); never narrow
+  on reversibility/rollback alone, and never claim evidence answers the question when it only describes a
+  recovery mechanism. Narrowing never removes the Mandatory Human Gate a protected action still needs; it
+  only decides what the obligation keeps blocking — and the obligation stays OPEN either way, so a narrowing
+  does not need to resolve it, only to show these particular items do not depend on it.
 - NEEDS_MORE_EVIDENCE: the evidence cannot tell yet (needed_evidence).
 The Harness validates any narrowing; Human Gates and safety requirements are never affected.""",
 }

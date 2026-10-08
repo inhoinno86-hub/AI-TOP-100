@@ -425,6 +425,22 @@ def _entire_block(handlers: dict[str, Any], *, feasible: bool = True) -> None:
     handlers["define_problem"] = define
 
 
+def _protected_action_only_block(handlers: dict[str, Any], *, feasible: bool = True) -> None:
+    """RV-6: Human Gate 0/3 pattern — a Reasoner-raised HIGH unknown blocks only the protected action,
+    not the entire intended scope (BEFORE_PROTECTED_ACTION VOB narrower than the whole solution)."""
+    base = handlers["define_problem"]
+    handlers["structural_remedy"] = lambda req, data: _remedy(feasible=feasible)
+
+    def define(req: Any, data: dict[str, Any]) -> dict[str, Any]:
+        out = copy.deepcopy(base(req, data))
+        if out.get("protected_actions"):
+            for u in out["unknowns"]:
+                u["affects_scope"] = [scope(a, RESOURCE) for a in out["protected_actions"]]
+        return out
+
+    handlers["define_problem"] = define
+
+
 def _review(decision: str, *, narrowed: Any = None, refs: Any = None) -> Any:
     def handler(req: Any, data: dict[str, Any]) -> dict[str, Any]:
         st = data["state"]
@@ -467,6 +483,53 @@ def test_entire_scope_block_gets_one_bounded_review_and_narrows_with_evidence() 
     packets = ev.of_type(EventType.APPROVAL_PACKET_EMITTED)
     assert packets and any(vob.linked_unknown in json.dumps(p.payload) for p in packets)
     assert len(ev.of_type(EventType.PROTECTED_ACTION_EXECUTED)) == 1
+
+
+def test_protected_action_only_block_gets_a_bounded_review_and_opens_the_human_gate() -> None:
+    """RV-6: a VOB that blocks only the protected action — not the entire intended scope — is now eligible
+    for the same bounded, evidence-aware review (previously only Human Gate reachability was 0 because
+    ``preview_release_scope`` dropped the protected action and the Harness never built a proposal for it)."""
+    public, world, handlers, _ = scenario_d()
+    world["inbox"] = world["inbox"][:1]
+    _protected_action_only_block(handlers)
+    handlers["review_blocking_scope"] = _review("NARROW_BLOCKING_SCOPE", narrowed=[])
+    orch, _, provider, _ = run(public, world, handlers, human=["왜 지금 승인해야 해?", "승인합니다"])
+    assert len(_calls(provider, "review_blocking_scope")) == 1
+    ev = orch.ctx.events
+    narrowed = ev.of_type(EventType.VOB_SCOPE_NARROWED)
+    assert len(narrowed) == 1
+    vob = orch.ctx.problem.verification_obligations[narrowed[0].payload["vob"]]
+    assert vob.status.value in ("OPEN", "DEFERRED")  # still an obligation, only its scope is narrower
+    assert vob.blocking_scope.items == []  # narrowed to verification-only: no intended item still blocked
+    # the Mandatory Human Gate is reached and the action still goes through it (not bypassed)
+    assert len(ev.of_type(EventType.PROTECTED_ACTION_PROPOSED)) == 1
+    packets = ev.of_type(EventType.APPROVAL_PACKET_EMITTED)
+    assert packets and any(vob.linked_unknown in json.dumps(p.payload) for p in packets)
+    assert len(ev.of_type(EventType.PROTECTED_ACTION_EXECUTED)) == 1
+
+
+def test_protected_action_only_block_keep_entire_block_is_respected() -> None:
+    public, world, handlers, _ = scenario_d()
+    world["inbox"] = world["inbox"][:1]
+    _protected_action_only_block(handlers)
+    handlers["review_blocking_scope"] = _review("KEEP_ENTIRE_BLOCK")
+    orch, _, provider, _ = run(public, world, handlers, human=["승인합니다"] * 3)
+    assert len(_calls(provider, "review_blocking_scope")) == 1
+    assert not orch.ctx.events.of_type(EventType.VOB_SCOPE_NARROWED)
+    assert not orch.ctx.events.of_type(EventType.PROTECTED_ACTION_PROPOSED)
+    assert not orch.ctx.events.of_type(EventType.PROTECTED_ACTION_EXECUTED)
+
+
+def test_protected_action_only_block_without_review_still_leaves_the_gate_unreached() -> None:
+    """Regression guard: without the RV-6 patch (no review call at all) the protected action is still
+    dropped before any gate — proves the review, not some other path, is what opens the gate above."""
+    public, world, handlers, _ = scenario_d()
+    world["inbox"] = world["inbox"][:1]
+    _protected_action_only_block(handlers)
+    config = AutonomousConfig(blocking_scope_review=False)
+    orch, _, provider, _ = run(public, world, handlers, human=["승인합니다"] * 3, config=config)
+    assert not _calls(provider, "review_blocking_scope")
+    assert not orch.ctx.events.of_type(EventType.PROTECTED_ACTION_PROPOSED)
 
 
 def test_keep_entire_block_is_respected() -> None:

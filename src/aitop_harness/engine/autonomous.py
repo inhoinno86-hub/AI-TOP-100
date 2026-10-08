@@ -1169,10 +1169,10 @@ class AutonomousOrchestrator:
         self.ctl.advance()
 
     def _review_blocking_scope(self, feasibility: dict[str, Any], *, removes: bool, feasible: bool) -> None:
-        """IDR-RV5-04: at most one evidence-aware review per Problem version of Reasoner-raised critical
-        unknowns whose obligation blocks the whole intended scope. Narrowing is Core-validated
-        (``apply_blocking_review``); a true block (safety / privacy / conflict-backed / Core obligation) is
-        never reviewed."""
+        """IDR-RV5-04 / IDR-RV6-01: at most one evidence-aware review per Problem version of Reasoner-raised
+        critical unknowns whose obligation blocks either the whole intended scope (IDR-RV5-04) or at least one
+        protected action's scope (IDR-RV6-01). Narrowing is Core-validated (``apply_blocking_review``); a true
+        block (safety / privacy / conflict-backed / Core obligation) is never reviewed."""
         pd = self.ctx.problem.problem_definition
         if not self.cfg.blocking_scope_review or pd is None or pd.ref in self.blocking_reviewed:
             return
