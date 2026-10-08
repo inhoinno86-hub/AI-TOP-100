@@ -1,0 +1,1323 @@
+{
+ "scenario": "B",
+ "result": {
+  "release_decision": "RELEASE_WITH_KNOWN_LIMITATION",
+  "halt_reason": null,
+  "phase": "RELEASE",
+  "execution_status": "RELEASED",
+  "problem_ref": "PD-1@v1",
+  "operator_reasoner_calls": 0,
+  "trace_actors": [
+   "ENVIRONMENT",
+   "HARNESS",
+   "REASONER"
+  ],
+  "wall_seconds": 673.0
+ },
+ "human": [],
+ "problem": {
+  "id": "PD-1",
+  "version": 1,
+  "requested_solution": "Build a chatbot so customers get instant answers about refund status instead of waiting.",
+  "symptoms": [
+   "Support lead reports customers wait a long time for answers about refunds and asks for a chatbot (CL-01/CL-02).",
+   "Stakeholder interview reinforces that customers wait and attributes it to lack of an instant-answer channel (E-03).",
+   "payment-db shows every sampled refund_failures record (5/5) in status FAILED_IBAN_FORMAT (E-01)."
+  ],
+  "root_problem": "Customers waiting for refund resolution are stuck not because support answers are slow or absent, but because the underlying refund transactions fail backend IBAN-format validation in payment-db and remain unresolved: every one of the 5 observed refund_failures records shows status FAILED_IBAN_FORMAT (E-01), while ticket answering itself is fast (median 2.0h vs 24h SLA, E-02), so the wait originates at the payment-processing validation step, not at the information-delivery step.",
+  "evidence_refs": [
+   "E-01",
+   "E-02",
+   "E-03"
+  ],
+  "intended_scope": [
+   {
+    "action": "quantify_total_refund_wait_population",
+    "target": "DA-PAY"
+   },
+   {
+    "action": "investigate_iban_failure_root_cause",
+    "target": "DA-PAY"
+   },
+   {
+    "action": "correct_or_retry_failed_iban_refunds",
+    "target": "DA-PAY"
+   },
+   {
+    "action": "review_refund_process_failure_handling",
+    "target": "P-REF"
+   }
+  ],
+  "protected_actions": [],
+  "depends_on_mappings": [],
+  "depends_on_handoffs": [],
+  "depends_on_exports": [],
+  "required_tools": [
+   "payment-db",
+   "ticket-db"
+  ],
+  "success_criteria": [
+   "SC-IBAN-FAILURES-RESOLVED",
+   "SC-BACKLOG-QUANTIFIED"
+  ],
+  "metric_ids": [
+   "M-IBAN-FAILURE-COUNT",
+   "M-TICKET-RESPONSE-MEDIAN-HOURS",
+   "M-IBAN-FAILURE-RATE"
+  ],
+  "status": "ACTIVE",
+  "gate_result": "CONDITIONAL_PASS",
+  "invalidated_by": [],
+  "supersedes": null,
+  "superseded_by": null,
+  "challenges": []
+ },
+ "framing_hypotheses": [
+  "H-NO-SELF-SERVICE-CHANNEL"
+ ],
+ "final_premise_hypotheses": [
+  "H-IBAN-FORMAT-FAILURE"
+ ],
+ "release": {
+  "decision": "RELEASE_WITH_KNOWN_LIMITATION",
+  "hold": [],
+  "limitations": [
+   "DEFINE Gate CONDITIONAL_PASS (deferred items tracked as VOBs)",
+   "VOB-U-TOTAL-WAIT-POPULATION open; blocking_scope outside release scope",
+   "VOB-U-IBAN-CORRECTION-PROCESS open; blocking_scope outside release scope",
+   "unfinished: Establish and assign ownership of a formal correction/retry SOP for FAILED_IBAN_FORMAT refunds within ORG-1 payment operations, directly answering VOB-U-IBAN-CORRECTION-PROCESS.",
+   "unfinished: Correct the IBAN values and retry/resubmit the 5 identified refunds (R-0..R-4) in payment-db to a terminal state, satisfying SC-IBAN-FAILURES-RESOLVED.",
+   "unfinished: Add stronger IBAN-format validation at the point of refund/account-detail capture to prevent future FAILED_IBAN_FORMAT cases.",
+   "unfinished: known limitation: Ticket response speed remains within SLA and is confirmed not to be the driver of customer wait complaints.",
+   "unfinished: known limitation: payment-db and ticket-db are read-only, so corrective actions (correct/retry) cannot be executed by this agent",
+   "unfinished: known limitation: DA-PAY completeness is UNKNOWN, so the 5-record sample may not represent the full backlog (A-SAMPLE-REPRESENTATIVENESS)",
+   "unfinished: known limitation: No domain_authorizations exist to confirm or assign SOP ownership"
+  ]
+ },
+ "reasoning": [
+  {
+   "reasoning_id": "R-1",
+   "skill": "hypothesis_init",
+   "status": "SUCCESS",
+   "provider": "claude-cli",
+   "model": "sonnet",
+   "input_state_version": 0,
+   "schema_version": "1.0",
+   "order": 1,
+   "attempts": 1,
+   "input_digest": "8ec63560912ca0d1",
+   "evidence_refs": [],
+   "confidence": 0.45,
+   "errors": [],
+   "output": null,
+   "fallback_used": null
+  },
+  {
+   "reasoning_id": "R-2",
+   "skill": "discover_actions",
+   "status": "SUCCESS",
+   "provider": "claude-cli",
+   "model": "sonnet",
+   "input_state_version": 2,
+   "schema_version": "1.0",
+   "order": 2,
+   "attempts": 1,
+   "input_digest": "1e6974ce97c0fd24",
+   "evidence_refs": [
+    "CL-01",
+    "H-AGENT-DATA-FRAGMENTATION",
+    "H-NO-SELF-SERVICE-CHANNEL",
+    "H-REFUND-PROCESSING-DELAY",
+    "H-SUPPORT-CAPACITY-SHORTFALL"
+   ],
+   "confidence": null,
+   "errors": [],
+   "output": null,
+   "fallback_used": null
+  },
+  {
+   "reasoning_id": "R-3",
+   "skill": "interpret_evidence",
+   "status": "SUCCESS",
+   "provider": "claude-cli",
+   "model": "sonnet",
+   "input_state_version": 2,
+   "schema_version": "1.0",
+   "order": 3,
+   "attempts": 1,
+   "input_digest": "2861ea230d42cc69",
+   "evidence_refs": [
+    "E-01",
+    "H-AGENT-DATA-FRAGMENTATION",
+    "H-IBAN-FORMAT-FAILURE",
+    "H-NO-SELF-SERVICE-CHANNEL",
+    "H-REFUND-PROCESSING-DELAY",
+    "H-SUPPORT-CAPACITY-SHORTFALL"
+   ],
+   "confidence": 0.72,
+   "errors": [],
+   "output": null,
+   "fallback_used": null
+  },
+  {
+   "reasoning_id": "R-4",
+   "skill": "interpret_evidence",
+   "status": "SUCCESS",
+   "provider": "claude-cli",
+   "model": "sonnet",
+   "input_state_version": 5,
+   "schema_version": "1.0",
+   "order": 4,
+   "attempts": 1,
+   "input_digest": "a4240bde48738909",
+   "evidence_refs": [
+    "E-01.",
+    "E-02",
+    "H-AGENT-DATA-FRAGMENTATION",
+    "H-IBAN-FORMAT-FAILURE",
+    "H-NO-SELF-SERVICE-CHANNEL",
+    "H-REFUND-PROCESSING-DELAY",
+    "H-SUPPORT-CAPACITY-SHORTFALL"
+   ],
+   "confidence": 0.75,
+   "errors": [],
+   "output": null,
+   "fallback_used": null
+  },
+  {
+   "reasoning_id": "R-5",
+   "skill": "interpret_evidence",
+   "status": "SUCCESS",
+   "provider": "claude-cli",
+   "model": "sonnet",
+   "input_state_version": 7,
+   "schema_version": "1.0",
+   "order": 5,
+   "attempts": 1,
+   "input_digest": "10ad62bbbd0eb699",
+   "evidence_refs": [
+    "CL-01",
+    "CL-01.",
+    "E-01",
+    "E-02",
+    "H-IBAN-FORMAT-FAILURE",
+    "H-NO-SELF-SERVICE-CHANNEL",
+    "H-REFUND-PROCESSING-DELAY"
+   ],
+   "confidence": 0.5,
+   "errors": [],
+   "output": null,
+   "fallback_used": null
+  },
+  {
+   "reasoning_id": "R-6",
+   "skill": "discover_actions",
+   "status": "SUCCESS",
+   "provider": "claude-cli",
+   "model": "sonnet",
+   "input_state_version": 9,
+   "schema_version": "1.0",
+   "order": 6,
+   "attempts": 1,
+   "input_digest": "b9139652d5c6f2d9",
+   "evidence_refs": [],
+   "confidence": null,
+   "errors": [],
+   "output": null,
+   "fallback_used": null
+  },
+  {
+   "reasoning_id": "R-7",
+   "skill": "assess_hypotheses",
+   "status": "SUCCESS",
+   "provider": "claude-cli",
+   "model": "sonnet",
+   "input_state_version": 9,
+   "schema_version": "1.0",
+   "order": 7,
+   "attempts": 1,
+   "input_digest": "11ce65701f50eb1c",
+   "evidence_refs": [
+    "E-01",
+    "E-02",
+    "E-03",
+    "H-AGENT-DATA-FRAGMENTATION",
+    "H-IBAN-FORMAT-FAILURE",
+    "H-NO-SELF-SERVICE-CHANNEL",
+    "H-REFUND-PROCESSING-DELAY",
+    "H-SUPPORT-CAPACITY-SHORTFALL"
+   ],
+   "confidence": null,
+   "errors": [],
+   "output": null,
+   "fallback_used": null
+  },
+  {
+   "reasoning_id": "R-8",
+   "skill": "define_problem",
+   "status": "SUCCESS",
+   "provider": "claude-cli",
+   "model": "sonnet",
+   "input_state_version": 14,
+   "schema_version": "1.0",
+   "order": 8,
+   "attempts": 1,
+   "input_digest": "85c2b700b20e2a21",
+   "evidence_refs": [
+    "CL-01",
+    "CL-02",
+    "E-01",
+    "E-02",
+    "E-03",
+    "H-AGENT-DATA-FRAGMENTATION",
+    "H-IBAN-FORMAT-FAILURE",
+    "H-NO-SELF-SERVICE-CHANNEL",
+    "H-REFUND-PROCESSING-DELAY",
+    "H-SUPPORT-CAPACITY-SHORTFALL"
+   ],
+   "confidence": 0.74,
+   "errors": [],
+   "output": null,
+   "fallback_used": null
+  },
+  {
+   "reasoning_id": "R-9",
+   "skill": "structural_remedy",
+   "status": "SUCCESS",
+   "provider": "claude-cli",
+   "model": "sonnet",
+   "input_state_version": 17,
+   "schema_version": "1.0",
+   "order": 9,
+   "attempts": 1,
+   "input_digest": "5667946097b51394",
+   "evidence_refs": [
+    "E-01",
+    "E-02",
+    "H-IBAN-FORMAT-FAILURE",
+    "H-NO-SELF-SERVICE-CHANNEL",
+    "M-IBAN-FAILURE-RATE",
+    "SC-BACKLOG-QUANTIFIED",
+    "SC-IBAN-FAILURES-RESOLVED",
+    "SC-IBAN-FAILURES-RESOLVED.",
+    "U-IBAN-CORRECTION-PROCESS",
+    "U-TOTAL-WAIT-POPULATION.",
+    "VOB-U-IBAN-CORRECTION-PROCESS",
+    "VOB-U-IBAN-CORRECTION-PROCESS."
+   ],
+   "confidence": 0.78,
+   "errors": [],
+   "output": null,
+   "fallback_used": null
+  },
+  {
+   "reasoning_id": "R-10",
+   "skill": "agent_design",
+   "status": "SUCCESS",
+   "provider": "claude-cli",
+   "model": "sonnet",
+   "input_state_version": 17,
+   "schema_version": "1.0",
+   "order": 10,
+   "attempts": 1,
+   "input_digest": "ca3be9036bc6eb9a",
+   "evidence_refs": [
+    "A-SAMPLE-REPRESENTATIVENESS",
+    "E-01",
+    "E-02",
+    "M-IBAN-FAILURE-COUNT",
+    "M-IBAN-FAILURE-RATE",
+    "M-TICKET-RESPONSE-MEDIAN-HOURS",
+    "U-IBAN-CORRECTION-PROCESS",
+    "VOB-U-IBAN-CORRECTION-PROCESS",
+    "VOB-U-IBAN-CORRECTION-PROCESS.",
+    "VOB-U-TOTAL-WAIT-POPULATION"
+   ],
+   "confidence": 0.62,
+   "errors": [],
+   "output": null,
+   "fallback_used": null
+  },
+  {
+   "reasoning_id": "R-11",
+   "skill": "plan_execution",
+   "status": "SUCCESS",
+   "provider": "claude-cli",
+   "model": "sonnet",
+   "input_state_version": 19,
+   "schema_version": "1.0",
+   "order": 11,
+   "attempts": 1,
+   "input_digest": "655776ed89cffdc5",
+   "evidence_refs": [
+    "E-01",
+    "E-03"
+   ],
+   "confidence": null,
+   "errors": [],
+   "output": null,
+   "fallback_used": null
+  },
+  {
+   "reasoning_id": "R-12",
+   "skill": "semantic_judge",
+   "status": "SUCCESS",
+   "provider": "claude-cli",
+   "model": "sonnet",
+   "input_state_version": 21,
+   "schema_version": "1.0",
+   "order": 12,
+   "attempts": 1,
+   "input_digest": "e3007d804b0d834b",
+   "evidence_refs": [
+    "A-SAMPLE-REPRESENTATIVENESS",
+    "CL-01",
+    "E-01",
+    "E-02",
+    "H-IBAN-FORMAT-FAILURE",
+    "H-NO-SELF-SERVICE-CHANNEL",
+    "SC-BACKLOG-QUANTIFIED",
+    "SC-IBAN-FAILURES-RESOLVED",
+    "VOB-U-IBAN-CORRECTION-PROCESS",
+    "VOB-U-TOTAL-WAIT-POPULATION"
+   ],
+   "confidence": null,
+   "errors": [],
+   "output": null,
+   "fallback_used": null
+  },
+  {
+   "reasoning_id": "R-13",
+   "skill": "release_summary",
+   "status": "SUCCESS",
+   "provider": "claude-cli",
+   "model": "sonnet",
+   "input_state_version": 23,
+   "schema_version": "1.0",
+   "order": 13,
+   "attempts": 2,
+   "input_digest": "067c36517edee069",
+   "evidence_refs": [
+    "A-SAMPLE-REPRESENTATIVENESS",
+    "CL-01",
+    "CL-02",
+    "E-01",
+    "E-02",
+    "E-02.",
+    "E-03",
+    "H-IBAN-FORMAT-FAILURE",
+    "H-NO-SELF-SERVICE-CHANNEL",
+    "SC-BACKLOG-QUANTIFIED",
+    "SC-IBAN-FAILURES-RESOLVED",
+    "U-IBAN-CORRECTION-PROCESS",
+    "U-TOTAL-WAIT-POPULATION",
+    "U-TOTAL-WAIT-POPULATION.",
+    "VOB-U-IBAN-CORRECTION-PROCESS",
+    "VOB-U-TOTAL-WAIT-POPULATION"
+   ],
+   "confidence": null,
+   "errors": [
+    "error_max_structured_output_retries"
+   ],
+   "output": null,
+   "fallback_used": null
+  }
+ ],
+ "proposals": {
+  "R-1": {
+   "skill": "hypothesis_init",
+   "status": "SUCCESS",
+   "output": {
+    "framing_assertion": {
+     "key": "refund_wait.cause",
+     "value": "lack_of_self_service_answer_channel",
+     "rationale": "SH-SUP's request ('Build a chatbot so customers stop waiting for answers about refunds') asserts the backlog's root cause is the absence of an automated answer channel, which SH-SUP's noted bias toward framing issues as response speed makes a claim to verify, not a fact (SH-SUP potential_bias: 'frames everything as response speed')."
+    },
+    "hypotheses": [
+     {
+      "key": "NO_SELF_SERVICE_CHANNEL",
+      "statement": "Customers wait because there is no automated channel to get refund status answers; deploying a chatbot would resolve the backlog.",
+      "origin": "REQUESTER_FRAMING",
+      "decision_impact": "HIGH",
+      "rationale": "This is SH-SUP's own framing of the request and carries the stakeholder's acknowledged bias toward treating problems as response-speed issues; it must be tested against actual ticket content and timing data before being adopted.",
+      "discriminating_evidence": [
+       "ticket-db: proportion of tickets that are simple repetitive status queries vs. complex cases",
+       "ticket-db: response time distribution relative to ticket type"
+      ]
+     },
+     {
+      "key": "REFUND_PROCESSING_DELAY",
+      "statement": "Customers wait because underlying refund payments take a long time to actually process in payment-db, so no answer (chatbot or human) can be given faster without fixing the backend process.",
+      "origin": "ALTERNATIVE",
+      "decision_impact": "CRITICAL",
+      "rationale": "If the true bottleneck is payment processing time rather than communication, a chatbot would only relay the same 'still pending' message faster, not shorten customer wait or reduce ticket volume.",
+      "discriminating_evidence": [
+       "payment-db: time from refund request to completion",
+       "ticket-db: correlation between ticket open duration and payment-db processing status",
+       "ticket-db: whether tickets stay open until payment actually completes"
+      ]
+     },
+     {
+      "key": "SUPPORT_CAPACITY_SHORTFALL",
+      "statement": "The backlog stems from ticket volume exceeding support team capacity (staffing/throughput), independent of what information is being asked for.",
+      "origin": "ALTERNATIVE",
+      "decision_impact": "HIGH",
+      "rationale": "A capacity shortfall would mean the fix is staffing or triage, not an answer-automation tool; a chatbot could still help but the sizing/priority of the solution would differ.",
+      "discriminating_evidence": [
+       "ticket-db: ticket volume trend vs. response/resolution time trend",
+       "ticket-db: queue backlog size over time"
+      ]
+     },
+     {
+      "key": "AGENT_DATA_FRAGMENTATION",
+      "statement": "Agents answer slowly because they must manually cross-reference ticket-db and payment-db (fragmented systems) rather than having unified refund status visibility.",
+      "origin": "ALTERNATIVE",
+      "decision_impact": "MEDIUM",
+      "rationale": "If the delay is in agent lookup time across two separate authoritative sources rather than lack of a customer-facing channel, the fix would be internal tooling/integration rather than a customer chatbot.",
+      "discriminating_evidence": [
+       "ticket-db: time-to-first-response segmented by whether a payment-db lookup was needed",
+       "payment-db and ticket-db: presence/absence of linked identifiers enabling quick cross-reference"
+      ]
+     }
+    ],
+    "confidence": 0.45
+   }
+  },
+  "R-2": {
+   "skill": "discover_actions",
+   "status": "SUCCESS",
+   "output": {
+    "actions": [
+     {
+      "catalog_ref": "payment-db:refund_failures",
+      "question": "What is the rate and duration of refund processing failures/delays in payment-db, independent of ticket channel?",
+      "decision_impact": 0.9,
+      "uncertainty": 0.85,
+      "discriminative_power": 0.9,
+      "answerability": 0.9,
+      "process_data_handoff_impact": 0.5,
+      "action_proximity": 0.7,
+      "constraint_risk": 0.1,
+      "estimated_cost_minutes": 15,
+      "expected_information_gain": "Reveals whether refunds themselves are slow to process, which would mean a chatbot cannot fix the wait regardless of channel.",
+      "decision_impact_rationale": "H-REFUND-PROCESSING-DELAY is rated CRITICAL impact; if confirmed, building a chatbot (CL-01's implied fix) would be the wrong next action.",
+      "discriminates_hypotheses": [
+       "H-REFUND-PROCESSING-DELAY",
+       "H-NO-SELF-SERVICE-CHANNEL"
+      ],
+      "resolves_unknowns": [],
+      "addresses": [],
+      "why_now": "This is the only catalog action that directly tests the highest-impact competing hypothesis before any build decision is made."
+     },
+     {
+      "catalog_ref": "ticket-db:response_times",
+      "question": "What do ticket response-time patterns and volumes (DA-TCK) show about where delay accumulates: queue wait, agent handling, or cross-system lookup?",
+      "decision_impact": 0.75,
+      "uncertainty": 0.8,
+      "discriminative_power": 0.75,
+      "answerability": 0.9,
+      "process_data_handoff_impact": 0.5,
+      "action_proximity": 0.6,
+      "constraint_risk": 0.1,
+      "estimated_cost_minutes": 15,
+      "expected_information_gain": "Distinguishes whether delay is driven by ticket volume exceeding staffing (capacity), agents cross-referencing systems (fragmentation), or genuine lack of a self-service channel.",
+      "decision_impact_rationale": "Separates three HIGH/MEDIUM hypotheses that each imply a different fix (staffing, internal tooling, or chatbot), directly shaping the next step.",
+      "discriminates_hypotheses": [
+       "H-SUPPORT-CAPACITY-SHORTFALL",
+       "H-AGENT-DATA-FRAGMENTATION",
+       "H-NO-SELF-SERVICE-CHANNEL"
+      ],
+      "resolves_unknowns": [],
+      "addresses": [],
+      "why_now": "Cheap, read-only, authoritative data source (DA-TCK) that can immediately narrow the three remaining process-side hypotheses."
+     },
+     {
+      "catalog_ref": "interview:SH-SUP",
+      "question": "What specific refund-status questions do customers ask, and does SH-SUP have evidence (not just impression) of ticket volume vs. staffing or system fragmentation causing delay?",
+      "decision_impact": 0.4,
+      "uncertainty": 0.5,
+      "discriminative_power": 0.35,
+      "answerability": 0.7,
+      "process_data_handoff_impact": 0.3,
+      "action_proximity": 0.4,
+      "constraint_risk": 0.15,
+      "estimated_cost_minutes": 20,
+      "expected_information_gain": "May surface context on ticket content/categories, but value is limited since SH-SUP already framed CL-01 and has a noted bias toward response-speed framing.",
+      "decision_impact_rationale": "Could still refine understanding of what 'waiting for answers' means operationally, but lower weight given the requester's known bias and that CL-01 is already captured as unverified.",
+      "discriminates_hypotheses": [
+       "H-NO-SELF-SERVICE-CHANNEL",
+       "H-SUPPORT-CAPACITY-SHORTFALL"
+      ],
+      "resolves_unknowns": [],
+      "addresses": [],
+      "why_now": "Low-cost way to add qualitative context alongside the data queries, but should not be prioritized over direct system data given stated stakeholder bias."
+     }
+    ],
+    "stop": false,
+    "stop_reason": "Two unexecuted TOOL_QUERY actions can directly test the CRITICAL and HIGH/MEDIUM hypotheses and have not yet been run, so the problem definition could still change."
+   }
+  },
+  "R-3": {
+   "skill": "interpret_evidence",
+   "status": "SUCCESS",
+   "output": {
+    "assertion_key": "refund_wait.cause",
+    "assertion_value": "iban_format_failures",
+    "interpretation": "All 5 refund_failures records returned by payment-db show status FAILED_IBAN_FORMAT, indicating the refunds that stall do so because of an IBAN validation rejection at the payment backend, not because of slow processing or absence of an answer channel.",
+    "claim_assertion_key": "",
+    "claim_assertion_value": "",
+    "confidence": 0.72,
+    "hypothesis_effects": [
+     {
+      "hypothesis": "H-REFUND-PROCESSING-DELAY",
+      "effect": "CONTRADICTS",
+      "rationale": "All 5 observed failures are IBAN format rejections, a hard validation failure, not an instance of refunds simply taking a long time to process."
+     },
+     {
+      "hypothesis": "H-NO-SELF-SERVICE-CHANNEL",
+      "effect": "CONTRADICTS",
+      "rationale": "A chatbot that merely reports status cannot fix refunds stuck on IBAN-format errors, so lack of an answer channel is not the driver of these waits."
+     },
+     {
+      "hypothesis": "H-AGENT-DATA-FRAGMENTATION",
+      "effect": "NEUTRAL",
+      "rationale": "The record shows a failure cause in payment-db but says nothing about agents needing to cross-reference ticket-db and payment-db."
+     },
+     {
+      "hypothesis": "H-SUPPORT-CAPACITY-SHORTFALL",
+      "effect": "NEUTRAL",
+      "rationale": "The observation concerns refund failure mode, not ticket volume versus support staffing."
+     }
+    ],
+    "new_hypotheses": [
+     {
+      "key": "H-IBAN-FORMAT-FAILURE",
+      "statement": "Customer refund waits stem from refunds failing backend processing due to invalid IBAN format, requiring data correction/retry rather than faster information delivery or more support capacity.",
+      "decision_impact": "CRITICAL",
+      "rationale": "5 of 5 queried refund_failures records cite FAILED_IBAN_FORMAT, a cause not represented by any existing hypothesis."
+     }
+    ],
+    "fact_candidates": [
+     {
+      "statement": "payment-db refund_failures query returned 5 records, all with status FAILED_IBAN_FORMAT (R-0 through R-4).",
+      "assertion_key": "refund_failures.all_iban_format",
+      "value": true,
+      "evidence_refs": [
+       "E-01"
+      ]
+     }
+    ],
+    "unknown_resolutions": [],
+    "authorization_candidates": [],
+    "contradiction_assessment": {
+     "relation": "UNRELATED",
+     "target_type": "NONE",
+     "target_refs": [],
+     "materiality": "LOW",
+     "problem_invalidating": false,
+     "rationale": "No problem_definition is present in state to assess this observation against."
+    },
+    "vob_proposals": [
+     {
+      "unresolved_question": "Can a self-service chatbot actually resolve refunds that are stuck in FAILED_IBAN_FORMAT, or does resolution require a backend data-correction/retry mechanism the chatbot design does not cover?",
+      "decision_impact": "HIGH",
+      "required_before": "BEFORE_DESIGN_FINALIZATION",
+      "blocking_scope": [
+       {
+        "action": "finalize_chatbot_scope",
+        "target": "P-REF"
+       }
+      ],
+      "entire_solution": false,
+      "validation_method": "Trace a sample of FAILED_IBAN_FORMAT refunds through resolution to determine whether correction requires customer re-entry, agent intervention, or automated retry, and whether a chatbot could perform that step.",
+      "required_evidence": [
+       "Refund correction/retry workflow records for sample failed refunds",
+       "Confirmation of what action (if any) resolves a FAILED_IBAN_FORMAT refund"
+      ],
+      "linked_unknown": "",
+      "rationale": "H-NO-SELF-SERVICE-CHANNEL (HIGH impact) assumes a chatbot resolves the backlog, but the observed failure mode may require a correction capability no chatbot design currently includes."
+     }
+    ],
+    "follow_up_actions": [
+     "ticket-db:response_times",
+     "interview:SH-SUP"
+    ]
+   }
+  },
+  "R-4": {
+   "skill": "interpret_evidence",
+   "status": "SUCCESS",
+   "output": {
+    "assertion_key": "ticket_response_time.median_hours",
+    "assertion_value": 2,
+    "authorization_candidates": [],
+    "claim_assertion_key": "",
+    "claim_assertion_value": "",
+    "confidence": 0.75,
+    "contradiction_assessment": {
+     "relation": "UNRELATED",
+     "target_type": "NONE",
+     "target_refs": [],
+     "materiality": "LOW",
+     "problem_invalidating": false,
+     "rationale": "No problem_definition is present in the current state, so no premise comparison applies."
+    },
+    "fact_candidates": [
+     {
+      "statement": "ticket-db response_times query over 900 tickets shows a median response time of 2.0 hours against a 24-hour SLA.",
+      "assertion_key": "ticket_response_time.median_hours",
+      "value": 2,
+      "evidence_refs": [
+       "E-02"
+      ]
+     }
+    ],
+    "follow_up_actions": [
+     "interview:SH-SUP"
+    ],
+    "hypothesis_effects": [
+     {
+      "hypothesis": "H-SUPPORT-CAPACITY-SHORTFALL",
+      "effect": "CONTRADICTS",
+      "rationale": "With 900 tickets and a 2.0h median response time well inside the 24h SLA, there is no sign that ticket volume is overwhelming support capacity."
+     },
+     {
+      "hypothesis": "H-NO-SELF-SERVICE-CHANNEL",
+      "effect": "CONTRADICTS",
+      "rationale": "A 2.0h median response time against a 24h SLA shows most tickets are already answered quickly, undermining the claim that absence of a self-service channel is causing the wait."
+     },
+     {
+      "hypothesis": "H-AGENT-DATA-FRAGMENTATION",
+      "effect": "CONTRADICTS",
+      "rationale": "A fast 2.0h median response time does not support a claim that cross-referencing fragmented systems is materially slowing agents down."
+     },
+     {
+      "hypothesis": "H-IBAN-FORMAT-FAILURE",
+      "effect": "SUPPORTS",
+      "rationale": "Showing ticket-answering itself is fast reinforces that the customer-visible delay lies elsewhere, consistent with the backend IBAN rejection cause already evidenced by E-01."
+     },
+     {
+      "hypothesis": "H-REFUND-PROCESSING-DELAY",
+      "effect": "NEUTRAL",
+      "rationale": "This metric describes ticket response speed, not refund processing duration in payment-db, so it neither confirms nor refutes a backend processing-delay cause."
+     }
+    ],
+    "interpretation": "ticket-db.response_times reports 900 tickets with a median response time of 2.0 hours against a 24-hour SLA, indicating that ticket answering itself is fast and well within SLA, so slow ticket handling is not the bottleneck behind the reported refund-wait backlog.",
+    "new_hypotheses": [],
+    "unknown_resolutions": [],
+    "vob_proposals": []
+   }
+  },
+  "R-5": {
+   "skill": "interpret_evidence",
+   "status": "SUCCESS",
+   "output": {
+    "assertion_key": "refund_wait.cause",
+    "assertion_value": "lack_of_self_service_answer_channel",
+    "claim_assertion_key": "refund_wait.cause",
+    "claim_assertion_value": "lack_of_self_service_answer_channel",
+    "interpretation": "SH-SUP (the original requester) repeats the same self-service-channel framing already recorded as CL-01: that customers wait because there is no instant-answer channel and a chatbot would fix it. This adds no new evidence; it reinforces the stakeholder's known response-speed bias, a claim already contradicted by E-01 (IBAN rejection) and E-02 (fast 2h median response).",
+    "hypothesis_effects": [
+     {
+      "hypothesis": "H-NO-SELF-SERVICE-CHANNEL",
+      "effect": "SUPPORTS",
+      "rationale": "Stakeholder reasserts that absence of an automated answer channel causes the wait and a chatbot would resolve it, matching this hypothesis' claim verbatim."
+     },
+     {
+      "hypothesis": "H-IBAN-FORMAT-FAILURE",
+      "effect": "CONTRADICTS",
+      "rationale": "Claiming an instant-answer chatbot would fix the wait is inconsistent with the cause being a backend IBAN validation failure requiring data correction/retry, not faster information delivery."
+     },
+     {
+      "hypothesis": "H-REFUND-PROCESSING-DELAY",
+      "effect": "CONTRADICTS",
+      "rationale": "Stakeholder's belief that answering faster (via chatbot) solves the wait is inconsistent with the premise that actual backend processing time, not information delivery, is the bottleneck."
+     }
+    ],
+    "new_hypotheses": [],
+    "fact_candidates": [],
+    "unknown_resolutions": [],
+    "authorization_candidates": [],
+    "contradiction_assessment": {
+     "relation": "UNRELATED",
+     "target_type": "NONE",
+     "target_refs": [],
+     "materiality": "LOW",
+     "problem_invalidating": false,
+     "rationale": "No problem_definition is present in state, so no premise-level assessment applies; this is a repeated, non-authoritative stakeholder opinion already reflected in CL-01."
+    },
+    "vob_proposals": [],
+    "follow_up_actions": [],
+    "confidence": 0.5
+   }
+  },
+  "R-6": {
+   "skill": "discover_actions",
+   "status": "SUCCESS",
+   "output": {
+    "actions": [],
+    "stop": true,
+    "stop_reason": "The provided catalog is empty, so no further information-gathering action can be selected or proposed; nothing remains to resolve the open conflicts (C-1, C-2, C-3) or discriminate between the hypotheses given the current tool surface."
+   }
+  },
+  "R-7": {
+   "skill": "assess_hypotheses",
+   "status": "SUCCESS",
+   "output": {
+    "updates": [
+     {
+      "hypothesis": "H-IBAN-FORMAT-FAILURE",
+      "status": "SUPPORTED",
+      "rationale": "E-01 is authoritative, complete, direct evidence that all 5 observed refund failures are IBAN format rejections at the payment backend; E-02 shows ticket answering is fast, ruling out response-speed as the cause. Sole contradictor E-03 is a non-authoritative stakeholder restatement already discredited by E-01/E-02, so not a strong contradiction.",
+      "evidence_refs": [
+       "E-01",
+       "E-02",
+       "E-03"
+      ]
+     },
+     {
+      "hypothesis": "H-NO-SELF-SERVICE-CHANNEL",
+      "status": "REJECTED",
+      "rationale": "Its only support (E-03) is a non-authoritative stakeholder claim, while authoritative/complete E-01 shows the real blocker is IBAN format rejection and E-02 shows response time is already fast, directly contradicting the claim that lack of an instant-answer channel is the cause.",
+      "evidence_refs": [
+       "E-01",
+       "E-02",
+       "E-03"
+      ]
+     },
+     {
+      "hypothesis": "H-REFUND-PROCESSING-DELAY",
+      "status": "REJECTED",
+      "rationale": "E-01 (authoritative, complete) shows refunds stall due to IBAN format validation rejection, not slow backend processing time, directly contradicting this hypothesis; no supporting evidence is linked.",
+      "evidence_refs": [
+       "E-01"
+      ]
+     },
+     {
+      "hypothesis": "H-SUPPORT-CAPACITY-SHORTFALL",
+      "status": "REJECTED",
+      "rationale": "E-02 (authoritative, complete) shows a 2.0h median response over 900 tickets against a 24h SLA, indicating no capacity/throughput problem; no supporting evidence is linked for this hypothesis.",
+      "evidence_refs": [
+       "E-02"
+      ]
+     },
+     {
+      "hypothesis": "H-AGENT-DATA-FRAGMENTATION",
+      "status": "REJECTED",
+      "rationale": "E-02 (authoritative, complete) shows tickets are answered quickly and well within SLA, contradicting the premise that agents answer slowly due to fragmented systems; no supporting evidence is linked.",
+      "evidence_refs": [
+       "E-02"
+      ]
+     }
+    ],
+    "ready_to_define": true,
+    "rationale": "Authoritative, complete tool evidence (E-01 refund failures all IBAN-format errors; E-02 fast 2h median ticket response) consistently supports the IBAN-failure cause and contradicts the self-service-channel, processing-delay, capacity-shortfall, and data-fragmentation hypotheses, whose only competing support is a non-authoritative stakeholder claim (E-03) already discredited by the tool evidence."
+   }
+  },
+  "R-8": {
+   "skill": "define_problem",
+   "status": "SUCCESS",
+   "output": {
+    "root_problem": "Customers waiting for refund resolution are stuck not because support answers are slow or absent, but because the underlying refund transactions fail backend IBAN-format validation in payment-db and remain unresolved: every one of the 5 observed refund_failures records shows status FAILED_IBAN_FORMAT (E-01), while ticket answering itself is fast (median 2.0h vs 24h SLA, E-02), so the wait originates at the payment-processing validation step, not at the information-delivery step.",
+    "requested_solution": "Build a chatbot so customers get instant answers about refund status instead of waiting.",
+    "symptoms": [
+     "Support lead reports customers wait a long time for answers about refunds and asks for a chatbot (CL-01/CL-02).",
+     "Stakeholder interview reinforces that customers wait and attributes it to lack of an instant-answer channel (E-03).",
+     "payment-db shows every sampled refund_failures record (5/5) in status FAILED_IBAN_FORMAT (E-01)."
+    ],
+    "affected_process": "P-REF",
+    "causal_chain": [
+     "Customer submits a refund request; payment-db attempts to process it against the supplied bank details.",
+     "The refund backend validates IBAN format as part of processing.",
+     "IBAN format validation fails, halting the refund with status FAILED_IBAN_FORMAT (E-01: 5/5 observed records).",
+     "The refund stays unresolved; no funds are returned and no completion signal is generated.",
+     "The customer, seeing no resolution, perceives this as 'waiting' and may open or follow up on a support ticket.",
+     "Ticket responses are issued quickly (median 2.0h vs 24h SLA, E-02), so the support/answer channel is not the bottleneck; the IBAN failure persists after the ticket is answered, reproducing the wait."
+    ],
+    "premise_hypotheses": [
+     "H-IBAN-FORMAT-FAILURE"
+    ],
+    "evidence_refs": [
+     "E-01",
+     "E-02",
+     "E-03"
+    ],
+    "assumptions": [
+     {
+      "key": "sample_representativeness",
+      "statement": "The 5 refund_failures records returned by payment-db are assumed to be representative of the broader customer-wait backlog that triggered the initial request, not an exhaustive or unusually small slice.",
+      "evidence_refs": [
+       "E-01"
+      ],
+      "risk_if_wrong": "HIGH"
+     },
+     {
+      "key": "correction_mechanism_exists",
+      "statement": "It is assumed a data-correction or retry mechanism for IBAN format failures is feasible, even though its existence/process is not yet confirmed by evidence.",
+      "evidence_refs": [
+       "E-01"
+      ],
+      "risk_if_wrong": "MEDIUM"
+     }
+    ],
+    "unknowns": [
+     {
+      "key": "total_wait_population",
+      "question": "What is the total number/share of refund requests and waiting customers, and what fraction of that total is attributable to IBAN format failures versus other causes, given DA-PAY completeness is UNKNOWN?",
+      "criticality": "HIGH",
+      "decision_impact": "Determines whether fixing IBAN failures resolves most of the reported backlog or only a subset, which changes the scope and priority of any remediation.",
+      "affects_scope": [
+       {
+        "action": "quantify_total_refund_wait_population",
+        "target": "DA-PAY"
+       },
+       {
+        "action": "correct_or_retry_failed_iban_refunds",
+        "target": "DA-PAY"
+       }
+      ],
+      "resolution_path": "Query payment-db for total refund volume and failure-status breakdown over a defined window, and check/establish DA-PAY completeness.",
+      "safe_placeholder": "Treat the 5 confirmed FAILED_IBAN_FORMAT records as the current known scope; do not claim the backlog is fully explained until total population is quantified."
+     },
+     {
+      "key": "iban_correction_process",
+      "question": "Does a defined process exist for correcting or retrying IBAN-format-failed refunds, and who owns executing it?",
+      "criticality": "HIGH",
+      "decision_impact": "Determines whether the solution is a data-correction workflow, a customer-facing re-entry prompt, or a backend validation fix, and whether it requires a protected/mutating action.",
+      "affects_scope": [
+       {
+        "action": "correct_or_retry_failed_iban_refunds",
+        "target": "DA-PAY"
+       }
+      ],
+      "resolution_path": "Review refund process (P-REF) handling of failed payments and interview the payments/ops team owning payment-db.",
+      "safe_placeholder": "Flag FAILED_IBAN_FORMAT refunds for manual review by the payments team rather than auto-retrying until a correction process is confirmed."
+     }
+    ],
+    "metrics": [
+     {
+      "key": "iban_failure_count",
+      "name": "Count of refunds with FAILED_IBAN_FORMAT status",
+      "metric_type": "COUNT",
+      "population": "payment-db refund_failures records",
+      "current_value": 5,
+      "current_value_evidence_refs": [
+       "E-01"
+      ]
+     },
+     {
+      "key": "ticket_response_median_hours",
+      "name": "Median ticket response time vs SLA",
+      "metric_type": "DURATION",
+      "start_event": "ticket opened",
+      "end_event": "first support response",
+      "measurement_window": "900-ticket sample",
+      "current_value": 2,
+      "current_value_evidence_refs": [
+       "E-02"
+      ]
+     },
+     {
+      "key": "iban_failure_rate",
+      "name": "Share of refund attempts failing IBAN format validation",
+      "metric_type": "RATE",
+      "numerator": "refunds with status FAILED_IBAN_FORMAT",
+      "denominator": "all refund attempts in payment-db over the measurement window",
+      "population": "payment-db refund records"
+     }
+    ],
+    "success_criteria": [
+     {
+      "key": "iban_failures_resolved",
+      "statement": "All currently identified FAILED_IBAN_FORMAT refunds are corrected or retried to a terminal successful/failed state, closing the specific unresolved-wait cases found.",
+      "kind": "MUST",
+      "metric": "iban_failure_count",
+      "threshold": "0 refunds remaining in FAILED_IBAN_FORMAT after remediation window",
+      "validation_method": "Re-query payment-db refund_failures after remediation and confirm no record remains in FAILED_IBAN_FORMAT."
+     },
+     {
+      "key": "backlog_quantified",
+      "statement": "The total refund-wait population and the share explained by IBAN failures is quantified before scoping further remediation.",
+      "kind": "MUST",
+      "metric": "iban_failure_rate",
+      "threshold": "rate computed with denominator from full payment-db window",
+      "validation_method": "Run payment-db query across full refund population and recompute iban_failure_rate with numerator/denominator populated."
+     },
+     {
+      "key": "ticket_speed_not_bottleneck",
+      "statement": "Ticket response speed remains within SLA and is confirmed not to be the driver of customer wait complaints.",
+      "kind": "KNOWN_LIMITATION",
+      "metric": "ticket_response_median_hours",
+      "threshold": "<=24h SLA (currently 2.0h)",
+      "validation_method": "Already established via ticket-db response_times query (E-02); no further chatbot/response-speed action required to satisfy this."
+     }
+    ],
+    "intended_scope": [
+     {
+      "action": "quantify_total_refund_wait_population",
+      "target": "DA-PAY"
+     },
+     {
+      "action": "investigate_iban_failure_root_cause",
+      "target": "DA-PAY"
+     },
+     {
+      "action": "correct_or_retry_failed_iban_refunds",
+      "target": "DA-PAY"
+     },
+     {
+      "action": "review_refund_process_failure_handling",
+      "target": "P-REF"
+     }
+    ],
+    "protected_actions": [
+     "correct_or_retry_failed_iban_refunds"
+    ],
+    "required_tools": [
+     "payment-db",
+     "ticket-db"
+    ],
+    "depends_on_handoffs": [],
+    "constraint_refs": [],
+    "rejected_framings": [
+     {
+      "hypothesis": "H-NO-SELF-SERVICE-CHANNEL",
+      "why": "Contradicted by E-01 (actual cause is backend IBAN validation failure) and E-02 (support response is already fast at 2.0h median vs 24h SLA); this framing only has stakeholder-claim support (E-03), which repeats the requester's known response-speed bias."
+     },
+     {
+      "hypothesis": "H-REFUND-PROCESSING-DELAY",
+      "why": "Contradicted by E-01, which shows the stall is a specific IBAN-format validation rejection, not generic slow processing, and by E-03's lack of corroborating process-timing data."
+     },
+     {
+      "hypothesis": "H-SUPPORT-CAPACITY-SHORTFALL",
+      "why": "Contradicted by E-02: ticket volume (900) is being answered well within SLA (2.0h median vs 24h), indicating no capacity shortfall in handling tickets."
+     },
+     {
+      "hypothesis": "H-AGENT-DATA-FRAGMENTATION",
+      "why": "Contradicted by E-02 showing fast response times, which is inconsistent with agents being slowed by cross-referencing fragmented systems; marked REJECTED with no supporting evidence."
+     }
+    ],
+    "confidence": 0.74
+   }
+  },
+  "R-9": {
+   "skill": "structural_remedy",
+   "status": "SUCCESS",
+   "output": {
+    "confidence": 0.78,
+    "root_cause": "All 5 sampled refund_failures records show status FAILED_IBAN_FORMAT (F-01/E-01), while ticket response is fast (median 2.0h vs 24h SLA, E-02); H-IBAN-FORMAT-FAILURE is SUPPORTED and H-NO-SELF-SERVICE-CHANNEL is REJECTED, so refunds stall at backend IBAN validation in payment-db, not at information delivery.",
+    "why_agent_needed": "Confirming whether a defined IBAN correction/retry process and owner exists (U-IBAN-CORRECTION-PROCESS, VOB-U-IBAN-CORRECTION-PROCESS) is an unstructured organizational fact not resolvable by the two read-only query tools, so an agent-assisted investigation (e.g. stakeholder/process inquiry) is still needed before that gap can close.",
+    "remedies": [
+     {
+      "key": "RUN_FULL_PAYMENT_QUERY",
+      "description": "Re-run the payment-db refund_failures query across the full refund population (not the 5-record sample) to compute M-IBAN-FAILURE-RATE and the total wait population, closing U-TOTAL-WAIT-POPULATION.",
+      "removes_root_cause": false,
+      "feasible_in_contest_time": true,
+      "constraint_feasible": true,
+      "feasibility_rationale": "payment-db is HEALTHY and listed read-only in tool_surface, so a broader read-only query is within scope and achievable with 225 minutes remaining.",
+      "residual_gap": "Quantifies scope but does not fix or resolve any FAILED_IBAN_FORMAT refund; SC-BACKLOG-QUANTIFIED would close but SC-IBAN-FAILURES-RESOLVED would not."
+     },
+     {
+      "key": "DEFINE_IBAN_CORRECTION_SOP",
+      "description": "Establish and assign ownership of a formal correction/retry SOP for FAILED_IBAN_FORMAT refunds within ORG-1 payment operations, directly answering VOB-U-IBAN-CORRECTION-PROCESS.",
+      "removes_root_cause": true,
+      "feasible_in_contest_time": false,
+      "constraint_feasible": false,
+      "feasibility_rationale": "tool_surface exposes only two read-only tools (ticket-db, payment-db) and domain_authorizations is empty, so there is no mechanism here to create or confirm process ownership.",
+      "residual_gap": "The 5 identified FAILED_IBAN_FORMAT refunds (F-01) stay unresolved and VOB-U-IBAN-CORRECTION-PROCESS remains OPEN, blocking release."
+     },
+     {
+      "key": "RETRY_CORRECT_IDENTIFIED_REFUNDS",
+      "description": "Correct the IBAN values and retry/resubmit the 5 identified refunds (R-0..R-4) in payment-db to a terminal state, satisfying SC-IBAN-FAILURES-RESOLVED.",
+      "removes_root_cause": true,
+      "feasible_in_contest_time": false,
+      "constraint_feasible": false,
+      "feasibility_rationale": "payment-db's tool_surface entry is explicitly read_only: true; no write/retry capability is available in this engagement to execute the correction.",
+      "residual_gap": "Correction must be handed off to a system/team with write access to payment-db; until then the 5 FAILED_IBAN_FORMAT records in F-01 remain unresolved."
+     },
+     {
+      "key": "UPSTREAM_IBAN_VALIDATION",
+      "description": "Add stronger IBAN-format validation at the point of refund/account-detail capture to prevent future FAILED_IBAN_FORMAT cases.",
+      "removes_root_cause": true,
+      "feasible_in_contest_time": false,
+      "constraint_feasible": true,
+      "feasibility_rationale": "Proposing this is not blocked by any recorded constraint, but no intake/front-end system is exposed in tool_surface (only ticket-db and payment-db read-only query tools) to implement it here.",
+      "residual_gap": "Does not address the 5 already-failed refunds (F-01); only prevents recurrence, and implementation ownership/timeline is unconfirmed."
+     }
+    ]
+   }
+  },
+  "R-10": {
+   "skill": "agent_design",
+   "status": "SUCCESS",
+   "output": {
+    "deterministic_rules_cover_cases": false,
+    "llm_reasoning_adds_value": true,
+    "autonomous_iteration_adds_value": true,
+    "residual_exceptions": true,
+    "detection_needed": true,
+    "why_agent": "Confirming whether a correction/retry SOP and owner exists (U-IBAN-CORRECTION-PROCESS) is an unstructured organizational fact that the two read-only query tools cannot resolve, so agent-assisted stakeholder/process investigation is required, as the harness's own why_agent_needed states.",
+    "bridge_sunset_condition": "Sunset the bridge once VOB-U-IBAN-CORRECTION-PROCESS and VOB-U-TOTAL-WAIT-POPULATION are CLOSED and payment-db write/retry access is granted so SR-RETRY-CORRECT-IDENTIFIED-REF and SR-DEFINE-IBAN-CORRECTION-SOP become executable.",
+    "deterministic_components": [
+     "Re-run payment-db refund_failures query and compute M-IBAN-FAILURE-COUNT",
+     "Compute M-IBAN-FAILURE-RATE once full-population denominator is available",
+     "Flag/classify records with status FAILED_IBAN_FORMAT",
+     "Compute M-TICKET-RESPONSE-MEDIAN-HOURS from ticket-db response_times"
+    ],
+    "release_scope": [
+     {
+      "action": "investigate_iban_failure_root_cause",
+      "target": "DA-PAY"
+     },
+     {
+      "action": "review_refund_process_failure_handling",
+      "target": "P-REF"
+     }
+    ],
+    "minimum_useful_scope": [
+     {
+      "action": "investigate_iban_failure_root_cause",
+      "target": "DA-PAY"
+     },
+     {
+      "action": "review_refund_process_failure_handling",
+      "target": "P-REF"
+     }
+    ],
+    "scope_dependencies": [
+     {
+      "action": "investigate_iban_failure_root_cause:DA-PAY",
+      "depends_on": [
+       "DA-PAY"
+      ]
+     },
+     {
+      "action": "review_refund_process_failure_handling:P-REF",
+      "depends_on": []
+     }
+    ],
+    "role_suggestion": [
+     "BRIDGE",
+     "CONTROL_DETECTION",
+     "EXCEPTION_HANDLER"
+    ],
+    "capabilities": [
+     "Query payment-db refund_failures (read-only) and classify failure cause",
+     "Query ticket-db response_times (read-only) for context metrics",
+     "Compile investigation findings into a review report for SOP-ownership gap",
+     "Flag residual unresolved FAILED_IBAN_FORMAT refunds for handoff"
+    ],
+    "llm_required_for": [
+     "Interpreting stakeholder claims about SOP existence/ownership (unstructured)",
+     "Synthesizing read-only query findings into a coherent root-cause/review narrative",
+     "Distinguishing SH-SUP's response-speed framing bias from evidence-backed cause"
+    ],
+    "tools": [
+     "payment-db (read-only)",
+     "ticket-db (read-only)"
+    ],
+    "authority_boundary": [
+     "Cannot write, correct, or retry refunds in payment-db (read_only: true)",
+     "Cannot establish or assign SOP ownership (domain_authorizations empty)",
+     "Cannot close VOBs or decide gate/release outcomes"
+    ],
+    "human_gate": [
+     "Review and approve escalation of the 5 confirmed FAILED_IBAN_FORMAT refunds to a payment-ops team with write access"
+    ],
+    "termination": "Agent completes when the full-population query is run (or confirmed infeasible), root-cause findings and the SOP-ownership gap are documented and handed off, or budget_remaining_minutes is exhausted, whichever comes first.",
+    "validation": [
+     "Confirm review report cites only E-01/F-01/E-02/F-02 and does not assert unverified process facts",
+     "Cross-check M-IBAN-FAILURE-COUNT output against the 5 records in F-01",
+     "Verify no write/retry call is attempted against payment-db given its read_only:true status"
+    ],
+    "known_limitations": [
+     "payment-db and ticket-db are read-only, so corrective actions (correct/retry) cannot be executed by this agent",
+     "DA-PAY completeness is UNKNOWN, so the 5-record sample may not represent the full backlog (A-SAMPLE-REPRESENTATIVENESS)",
+     "No domain_authorizations exist to confirm or assign SOP ownership"
+    ],
+    "vob_proposals": [
+     {
+      "unresolved_question": "Can write/retry access to payment-db (or a team holding such access) be provisioned to execute IBAN correction and retry for the identified refunds?",
+      "decision_impact": "HIGH",
+      "required_before": "BEFORE_RELEASE",
+      "blocking_scope": [
+       {
+        "action": "correct_or_retry_failed_iban_refunds",
+        "target": "DA-PAY"
+       }
+      ],
+      "entire_solution": false,
+      "validation_method": "Confirm with the payment-ops/system owner whether write/retry capability exists or can be provisioned, and record the outcome against VOB-U-IBAN-CORRECTION-PROCESS.",
+      "required_evidence": [
+       "Confirmation from payment-ops team on write-access availability",
+       "Updated tool_surface entry for payment-db (read_only:false) or a dedicated write tool"
+      ],
+      "linked_unknown": "U-IBAN-CORRECTION-PROCESS",
+      "rationale": "SR-RETRY-CORRECT-IDENTIFIED-REF and SR-DEFINE-IBAN-CORRECTION-SOP are both infeasible solely because payment-db is read-only and no write mechanism or process ownership is confirmed, so the root cause cannot be structurally fixed until this is resolved."
+     }
+    ],
+    "confidence": 0.62
+   }
+  },
+  "R-11": {
+   "skill": "plan_execution",
+   "status": "SUCCESS",
+   "output": {
+    "work_items": [
+     {
+      "key": "WI-IBAN-ROOT-CAUSE",
+      "description": "Document IBAN-format-failure root cause for DA-PAY by compiling payment-db refund_failures records already queried, confirming all 5 sampled refunds fail at backend IBAN validation.",
+      "work_class": "CORE_FEATURE",
+      "est_minutes": 20,
+      "scope_items": [
+       {
+        "action": "investigate_iban_failure_root_cause",
+        "target": "DA-PAY"
+       }
+      ],
+      "root_problem_aligned": true,
+      "release_blocking": true,
+      "data_ops": [
+       "payment-db:refund_failures"
+      ],
+      "output_name": "iban_failure_root_cause_findings",
+      "output_key_fields": [
+       "refund"
+      ],
+      "output_join": false,
+      "output_constant_fields": [
+       {
+        "field": "root_cause",
+        "value": "FAILED_IBAN_FORMAT"
+       }
+      ]
+     },
+     {
+      "key": "WI-PROCESS-REVIEW",
+      "description": "Review refund process failure handling for P-REF using payment-db refund_failures and the SH-SUP interview to document that no correction/retry step currently resolves IBAN-format failures.",
+      "work_class": "CORE_FEATURE",
+      "est_minutes": 25,
+      "scope_items": [
+       {
+        "action": "review_refund_process_failure_handling",
+        "target": "P-REF"
+       }
+      ],
+      "root_problem_aligned": true,
+      "release_blocking": true,
+      "data_ops": [
+       "payment-db:refund_failures",
+       "interview:SH-SUP"
+      ],
+      "output_name": "",
+      "output_key_fields": [],
+      "output_join": false,
+      "output_constant_fields": []
+     }
+    ],
+    "protected_actions": [],
+    "rationale": "release_scope (SD-1) contains exactly two items — investigate_iban_failure_root_cause:DA-PAY and review_refund_process_failure_handling:P-REF — both mapped to CORE_FEATURE work items using only already-cataloged, already-executed data_ops (payment-db:refund_failures per E-01/F-01, interview:SH-SUP per E-03) since no new catalog refs exist to gather further data; the first item produces a keyed deliverable on refund IDs, the second is a qualitative process review with no joinable key fields across its inputs so no output dataset is proposed. mutating_tools is empty, so no protected action has a valid resource and none is proposed; corrective/mutating remedies (SR-RETRY-CORRECT-IDENTIFIED-REF, SR-DEFINE-IBAN-CORRECTION-SOP, SR-UPSTREAM-IBAN-VALIDATION) and the quantify/correct scope items remain correctly listed as unfinished_scope, outside this release_scope and outside available tool_surface (payment-db/ticket-db are read_only per scenario.tool_surface)."
+   }
+  },
+  "R-12": {
+   "skill": "semantic_judge",
+   "status": "SUCCESS",
+   "output": {
+    "checks": [
+     {
+      "name": "root_problem_alignment",
+      "status": "PASS",
+      "detail": "Release scope (investigate_iban_failure_root_cause, review_refund_process_failure_handling) targets the evidenced root cause (IBAN validation failures, E-01) rather than the originally requested chatbot (CL-01), which E-01/E-02 contradict.",
+      "refs": [
+       "E-01",
+       "E-02",
+       "CL-01",
+       "PD-1",
+       "SD-1"
+      ]
+     },
+     {
+      "name": "evidence_consistency",
+      "status": "PASS",
+      "detail": "Root_problem narrative and findings reproduce E-01's 5/5 FAILED_IBAN_FORMAT observation and E-02's 2.0h/24h figures without alteration or fabrication.",
+      "refs": [
+       "E-01",
+       "E-02",
+       "F-01",
+       "F-02"
+      ]
+     },
+     {
+      "name": "limitations_honesty",
+      "status": "PASS",
+      "detail": "unfinished_scope explicitly discloses infeasible remedies (SOP, retry/correct, upstream validation), read-only tool constraints, UNKNOWN DA-PAY completeness, and lack of domain_authorizations for SOP ownership.",
+      "refs": [
+       "SR-DEFINE-IBAN-CORRECTION-SOP",
+       "SR-RETRY-CORRECT-IDENTIFIED-REF",
+       "SR-UPSTREAM-IBAN-VALIDATION",
+       "A-SAMPLE-REPRESENTATIVENESS",
+       "DA-PAY"
+      ]
+     },
+     {
+      "name": "remediation_completeness",
+      "status": "WARN",
+      "detail": "Release only documents/confirms the IBAN root cause; actual correction, SOP ownership, and upstream validation remedies all remain infeasible/unexecuted, so customer-facing refund waits are not actually resolved at release.",
+      "refs": [
+       "SR-RETRY-CORRECT-IDENTIFIED-REF",
+       "SR-DEFINE-IBAN-CORRECTION-SOP",
+       "VOB-U-IBAN-CORRECTION-PROCESS",
+       "SC-IBAN-FAILURES-RESOLVED"
+      ]
+     },
+     {
+      "name": "conflict_status_consistency",
+      "status": "WARN",
+      "detail": "Conflicts C-1, C-2, C-3 on assertion refund_wait.cause remain OPEN even though hypothesis resolution (H-IBAN-FORMAT-FAILURE SUPPORTED, H-NO-SELF-SERVICE-CHANNEL REJECTED) effectively settles the same assertion in the approval rationale.",
+      "refs": [
+       "C-1",
+       "C-2",
+       "C-3",
+       "H-IBAN-FORMAT-FAILURE",
+       "H-NO-SELF-SERVICE-CHANNEL"
+      ]
+     },
+     {
+      "name": "sample_size_caveat",
+      "status": "WARN",
+      "detail": "Conclusions rest on a 5-record payment-db sample with DA-PAY completeness UNKNOWN; full-population quantification (SC-BACKLOG-QUANTIFIED) is still unmet and deferred to an open VOB rather than resolved.",
+      "refs": [
+       "A-SAMPLE-REPRESENTATIVENESS",
+       "DA-PAY",
+       "SC-BACKLOG-QUANTIFIED",
+       "VOB-U-TOTAL-WAIT-POPULATION"
+      ]
+     }
+    ]
+   }
+  },
+  "R-13": {
+   "skill": "release_summary",
+   "status": "SUCCESS",
+   "output": {
+    "summary": "The support lead (SH-SUP) initially asked for a chatbot to stop customers waiting on refund answers (initial_request, CL-01). Investigation (PD-1) found the real root cause is not information delivery: payment-db shows all 5 sampled refund_failures records stuck in status FAILED_IBAN_FORMAT (E-01), while ticket response time is fast (median 2.0h vs 24h SLA, E-02). This contradicts the chatbot framing (CL-01, CL-02, E-03), so the DEFINE Gate concluded refunds stall at backend IBAN validation, not at answer-speed. The gate result was CONDITIONAL_PASS, deferring two HIGH-criticality unknowns (U-TOTAL-WAIT-POPULATION, U-IBAN-CORRECTION-PROCESS) as open verification obligations (VOB-U-TOTAL-WAIT-POPULATION, VOB-U-IBAN-CORRECTION-PROCESS) whose blocking scope (quantifying the full backlog, correcting/retrying failed refunds) falls outside this release's scope. What was actually released (SD-1 release_scope) is the root-cause investigation and process review work: documenting the IBAN-format failure root cause for DA-PAY and reviewing refund process failure handling for P-REF (work items W-WI-IBAN-ROOT-CAUSE and W-WI-PROCESS-REVIEW, both DONE). The release decision is RELEASE_WITH_KNOWN_LIMITATION with no holds: the diagnostic work is complete and reliable enough to ship, but corrective actions (fixing IBANs, defining a correction SOP, adding upstream validation) remain unfinished because they require write access and ownership assignment that this read-only agent does not have.",
+    "key_points": [
+     "Root cause established: all 5 sampled refunds (R-0..R-4) fail with FAILED_IBAN_FORMAT in payment-db (E-01, F-01), while ticket response is fast and SLA-compliant (median 2.0h vs 24h, E-02, F-02).",
+     "The chatbot/self-service framing requested by SH-SUP (CL-01, CL-02) and reinforced in interview (E-03) is contradicted by E-01 and E-02 and the corresponding hypothesis H-NO-SELF-SERVICE-CHANNEL is REJECTED.",
+     "Hypothesis H-IBAN-FORMAT-FAILURE is SUPPORTED by E-01 and E-02; alternative hypotheses (processing delay, agent data fragmentation, support capacity shortfall) are all REJECTED by E-01/E-02.",
+     "DEFINE Gate result was CONDITIONAL_PASS, deferring two HIGH-criticality unknowns as verification obligations required before release: VOB-U-TOTAL-WAIT-POPULATION and VOB-U-IBAN-CORRECTION-PROCESS, both with blocking_scope outside the current release scope.",
+     "Released scope (SD-1): investigate_iban_failure_root_cause and review_refund_process_failure_handling for DA-PAY/P-REF, matching the DONE work items W-WI-IBAN-ROOT-CAUSE and W-WI-PROCESS-REVIEW.",
+     "Release decision is RELEASE_WITH_KNOWN_LIMITATION with no holds; unfinished scope items (SOP ownership, correcting/retrying the 5 refunds, upstream IBAN validation) are explicitly carried forward as known limitations, not resolved."
+    ],
+    "limitations_explained": [
+     "payment-db and ticket-db are read-only tool surfaces, so the agent could not execute corrective actions such as correcting IBANs or retrying refunds even though the root cause is identified.",
+     "DA-PAY completeness is UNKNOWN, so the 5-record sample (R-0..R-4) may not represent the full refund-wait backlog; this is tracked as assumption A-SAMPLE-REPRESENTATIVENESS and unknown U-TOTAL-WAIT-POPULATION.",
+     "No defined correction/retry process or ownership for FAILED_IBAN_FORMAT refunds was confirmed to exist (unknown U-IBAN-CORRECTION-PROCESS, deferred to VOB-U-IBAN-CORRECTION-PROCESS); no domain_authorizations exist to confirm or assign such SOP ownership.",
+     "Three unfinished remedies remain outside release scope: establishing an IBAN-correction SOP (SR-DEFINE-IBAN-CORRECTION-SOP), correcting/retrying the 5 identified refunds to satisfy SC-IBAN-FAILURES-RESOLVED (SR-RETRY-CORRECT-IDENTIFIED-REF), and adding stronger upstream IBAN-format validation (SR-UPSTREAM-IBAN-VALIDATION) - none feasible in contest time per solution_design.",
+     "Success criterion SC-BACKLOG-QUANTIFIED (quantifying the total wait population and the share attributable to IBAN failures) was not met because it depends on the full payment-db population, not just the 5-record sample.",
+     "It is confirmed (not a limitation but a resolved point) that ticket response speed is within SLA and is not the driver of customer wait complaints, closing off that line of inquiry."
+    ]
+   }
+  }
+ }
+}
