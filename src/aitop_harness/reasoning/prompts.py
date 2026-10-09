@@ -59,8 +59,14 @@ separate competing hypotheses?), answerability, process_data_handoff_impact, act
 constraint_risk (authority / safety relevance), plus estimated_cost_minutes. Link the hypotheses it
 discriminates (ids) and unknowns it resolves. If a reprofile is active (`reprofile_targets` non-empty),
 put the targets an action serves in `addresses` and propose only actions that serve them. Omit actions
-whose answer would not change any decision. Set stop=true only if no remaining catalog action could change
-the problem definition.""",
+whose answer would not change any decision.
+Before setting stop=true, check every still-live hypothesis (not yet REJECTED or SUPPORTED) by name against
+every remaining catalog item's description, not only against actions you have already been running: a
+catalog item whose description most directly names the exact mechanism a live hypothesis claims (e.g. a
+hypothesis about a changed rule/config and a catalog item literally describing that rule/config's change
+log) is the one query answerability and discriminative_power are highest for, even if a different item on a
+related topic was already queried. Stop=true only once every still-live hypothesis has either been checked
+against its most directly-matching catalog item, or no catalog item remains that could.""",
     "interpret_evidence": """\
 Interpret the single new `observation` (tool records, stakeholder answer, or document) in the context of
 the current state.

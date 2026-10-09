@@ -640,3 +640,36 @@ Result: `RV8_RELEASE_SCOPE_RECOVERY_RESULT.md`.
   the in-progress Model B re-measurement (freeze `5bcc9611ebf1c962`, RV-7-only) was stopped before IDR-RV8-01
   landed, specifically so the next full re-measurement reflects RV-6 + RV-7 + RV-8-01 together rather than
   needing a second rerun.
+
+## 12. RV-9 Reliability Re-measurement + discover_actions guidance — IDR-RV9-01
+
+Instruction: continuing the "no approval pauses until Model B reliability" directive. Result:
+`RV9_RELIABILITY_REMEASURE_RESULT.md`.
+
+Full 35-run Model B re-measurement under freeze `904fb0c238d46dd0` (RV-6+RV-7+RV-8 applied): Release Gate
+HOLD dropped from 6/35 to **0/35**; Golden A–D reached **100%** (first §29 PASS, up from 75%); Mock #6
+overall rose 50%→60% and qualified redefine 10%→18.2% (both still below the 80%/90% §29 thresholds); Human
+Gate reachability stayed 0/3 as predicted in RV-6 (scenario evidence gap, not a defect). Core safety and
+OPERATOR_REASONER unchanged (PASS / 0). No session-limit recurrence.
+
+- **IDR-RV9-01 — `discover_actions` guidance against stopping before checking every live hypothesis
+  against its most directly-matching catalog item.** Root cause of all 7 Mock #6 `REASONING_FAILURE` runs
+  (A-03/05/06/09/17/19/20): each run's `hypothesis_init` correctly raised a hypothesis naming the right
+  mechanism family (a changed import/validation rule), but `discover_actions` never proposed the one catalog
+  item whose description directly names that mechanism (`billing-config:validation_rule_changes` — "billing
+  validation rule change log") — it queried a differently-named, topically-adjacent item instead
+  (`billing-db:tariff_change_log` — tariff, not rule, changes) and then set `stop=true`, treating the
+  hypothesis as checked. The two runs that did query the matching item (A-13, A-15) both had
+  `qualified_redefine_success=True`, one (A-15) landing within one sentence of the hidden ground truth. This
+  is not a Core defect — the catalog item was present and visibly described the whole time — it is a
+  domain-agnostic gap in the stop-condition the Reasoner applies.
+  `reasoning/prompts.py`'s `discover_actions` instruction now requires checking every still-live hypothesis
+  by name against every remaining catalog item's description before `stop=true`, and treats the item whose
+  description most directly names a hypothesis's claimed mechanism as the one with the highest
+  answerability / discriminative_power for it — even when a topically-adjacent item was already queried.
+  No hypothesis names, tool names, or domain terms are referenced; the instruction is phrased purely in
+  terms of "a hypothesis about a changed rule/config" vs. "a catalog item describing that rule/config's
+  change log" as an illustrative pattern, not a rule tied to this scenario.
+- **Verification:** ruff / ruff format / mypy clean, 330/330 existing tests pass (no regression). Live
+  re-verification (fresh Mock #6 "scoped" run under the new prompt) was in progress when this entry was
+  written; see `RV9_RELIABILITY_REMEASURE_RESULT.md` §4 and any later RV-10 entry for the outcome.
