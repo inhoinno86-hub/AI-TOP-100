@@ -128,6 +128,34 @@ def test_without_premise_check_the_same_miss_never_redefines() -> None:
     assert not orch.ctx.events.of_type(EventType.CANONICAL_PROBLEM_CHALLENGED)
 
 
+def test_reprofile_proposal_under_challenge_with_a_pending_approval_still_escalates_safely() -> None:
+    """IDR-RV10-01's bounded REPROFILE allowance never preempts a protected action that is already
+    WAITING_APPROVAL: unlike redefine() (which atomically cancels the pending approval as part of
+    invalidating the Problem), reprofile() leaves the Problem untouched and has no standing to cancel
+    anything, so a Reasoner that proposes REPROFILE while a gate is pending still goes to Human — exactly
+    as it did before IDR-RV10-01, just with an accurate reason instead of a Core crash."""
+    public, world, handlers, human = scenario_d()
+    missed_contradiction(handlers)
+    handlers["premise_check"] = premise_judge("failed_runs")
+    base_transition = handlers["propose_transition"]
+
+    def always_reprofile(req: Any, data: dict[str, Any]) -> dict[str, Any]:
+        out = base_transition(req, data)
+        out["transition_candidate"] = "REPROFILE"
+        out["rationale"] = "still not confident enough to redefine"
+        return out
+
+    handlers["propose_transition"] = always_reprofile
+    orch, result, _, _ = run(public, world, handlers, human=human)
+    ev = orch.ctx.events
+    assert not [e for e in ev.of_type(EventType.PHASE_TRANSITION) if e.payload.get("kind") == "REPROFILE"]
+    assert not [e for e in ev.of_type(EventType.PHASE_TRANSITION) if e.payload.get("kind") == "REDEFINE"]
+    assert result.halt_reason is not None
+    assert "Human decides" in result.halt_reason
+    assert "awaiting Human approval" in result.halt_reason
+    assert orch.challenge_reprofile_attempts == {}  # never consumed: WAITING_APPROVAL short-circuits first
+
+
 def test_hypothesis_layer_invalidation_claim_is_rejected_by_the_core() -> None:
     public, world, handlers, human = scenario_d()
     missed_contradiction(handlers)

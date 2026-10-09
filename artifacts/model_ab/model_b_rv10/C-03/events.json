@@ -1,0 +1,3985 @@
+[
+ {
+  "seq": 1,
+  "type": "reasoning_completed",
+  "importance": "NORMAL",
+  "payload": {
+   "reasoning_id": "R-1",
+   "skill": "hypothesis_init",
+   "status": "SUCCESS",
+   "provider": "claude-cli",
+   "model": "sonnet",
+   "input_state_version": 0,
+   "schema_version": "1.0",
+   "order": 1,
+   "attempts": 1,
+   "input_digest": "2db175009fe76679",
+   "evidence_refs": [
+    "H-CAPTURE"
+   ],
+   "confidence": 0.55,
+   "fallback_used": null,
+   "errors": [],
+   "proposal": {
+    "framing_assertion": {
+     "key": "double_charge_complaints.appropriate_fix",
+     "value": "apology_communication_tooling",
+     "rationale": "The initial request (requested by SH-CS) asks only for an AI assistant to draft apology replies, asserting the needed fix is customer-communication tooling rather than a payment-system defect investigation."
+    },
+    "hypotheses": [
+     {
+      "key": "REQUESTER_APOLOGY_FIX",
+      "statement": "The problem is a customer-communication gap: double-charge complaints just need faster/better apology replies, not a technical fix to the payment pipeline.",
+      "origin": "REQUESTER_FRAMING",
+      "decision_impact": "CRITICAL",
+      "rationale": "SH-CS (customer service lead) only sees the complaint queue (potential_bias noted) and frames the ask purely as drafting apologies, which would leave any real duplicate-capture defect unaddressed.",
+      "discriminating_evidence": [
+       "DA-TKT",
+       "DA-CHG",
+       "DA-PSP"
+      ]
+     },
+     {
+      "key": "IDEMPOTENCY_MISCONFIG",
+      "statement": "A payment gateway configuration change disabled or weakened idempotency-key enforcement on capture retries, causing retried checkouts to be captured twice.",
+      "origin": "ALTERNATIVE",
+      "decision_impact": "CRITICAL",
+      "rationale": "The protected action set_capture_idempotency explicitly 're-enables idempotency-key enforcement on capture retries', implying it is currently disabled or misconfigured and is a direct, repairable root cause.",
+      "discriminating_evidence": [
+       "DA-CFG",
+       "K-GW",
+       "DA-PSP",
+       "gateway-config"
+      ]
+     },
+     {
+      "key": "CLIENT_RETRY_DUPLICATE",
+      "statement": "Checkout-side retry logic sends multiple distinct capture requests (not reusing an idempotency key) for the same order, causing duplicate PSP captures independent of gateway config.",
+      "origin": "ALTERNATIVE",
+      "decision_impact": "HIGH",
+      "rationale": "The H-CAPTURE handoff has UNKNOWN semantic_validity and payload is 'payment capture requests', leaving open whether the shop's checkout flow itself generates duplicate requests.",
+      "discriminating_evidence": [
+       "H-CAPTURE",
+       "DA-PSP",
+       "DA-CHG"
+      ]
+     },
+     {
+      "key": "HANDOFF_DUPLICATION",
+      "statement": "Payment capture requests are being duplicated in transit between ORG-SHOP and ORG-PSP (e.g. retried on timeout) independent of idempotency settings or client logic.",
+      "origin": "ALTERNATIVE",
+      "decision_impact": "HIGH",
+      "rationale": "H-CAPTURE's delivery_status is UNKNOWN, so transport-level duplication is an open alternative distinct from a config or client-code defect.",
+      "discriminating_evidence": [
+       "H-CAPTURE",
+       "DA-PSP",
+       "DA-CFG"
+      ]
+     },
+     {
+      "key": "TICKET_MISCLASSIFICATION",
+      "statement": "Most 'charged twice' tickets are not actual duplicate captures but customer misreading of statements (e.g. hold vs capture); no systemic payment defect exists.",
+      "origin": "ALTERNATIVE",
+      "decision_impact": "HIGH",
+      "rationale": "DA-TKT reflects customer-reported complaints while DA-CHG reflects actual ledger captures; a mismatch between the two would show the issue is perception/communication rather than a payment bug, which would still differ from the requester's blanket 'apology bot' framing in that it requires ticket-content clarification, not generic apologies.",
+      "discriminating_evidence": [
+       "DA-TKT",
+       "DA-CHG",
+       "crm-tickets",
+       "payments-db"
+      ]
+     }
+    ],
+    "confidence": 0.55
+   }
+  },
+  "refs": [
+   "H-CAPTURE"
+  ]
+ },
+ {
+  "seq": 2,
+  "type": "state_committed",
+  "importance": "NORMAL",
+  "payload": {
+   "reason": "initial hypotheses (R-1)",
+   "version": 1,
+   "diff": [
+    {
+     "kind": "NEW",
+     "collection": "hypotheses",
+     "id": "H-REQUESTER-APOLOGY-FIX",
+     "importance": "CRITICAL"
+    },
+    {
+     "kind": "NEW",
+     "collection": "hypotheses",
+     "id": "H-IDEMPOTENCY-MISCONFIG",
+     "importance": "CRITICAL"
+    },
+    {
+     "kind": "NEW",
+     "collection": "hypotheses",
+     "id": "H-CLIENT-RETRY-DUPLICATE",
+     "importance": "NORMAL"
+    },
+    {
+     "kind": "NEW",
+     "collection": "hypotheses",
+     "id": "H-HANDOFF-DUPLICATION",
+     "importance": "NORMAL"
+    },
+    {
+     "kind": "NEW",
+     "collection": "hypotheses",
+     "id": "H-TICKET-MISCLASSIFICATION",
+     "importance": "NORMAL"
+    }
+   ]
+  },
+  "refs": []
+ },
+ {
+  "seq": 3,
+  "type": "state_committed",
+  "importance": "NORMAL",
+  "payload": {
+   "reason": "claim CL-01",
+   "version": 2,
+   "diff": [
+    {
+     "kind": "NEW",
+     "collection": "claims",
+     "id": "CL-01",
+     "importance": "LOW"
+    }
+   ]
+  },
+  "refs": []
+ },
+ {
+  "seq": 4,
+  "type": "claim_recorded",
+  "importance": "NORMAL",
+  "payload": {
+   "claim": "CL-01",
+   "stakeholder": "SH-CS"
+  },
+  "refs": []
+ },
+ {
+  "seq": 5,
+  "type": "proposal_accepted",
+  "importance": "NORMAL",
+  "payload": {
+   "skill": "hypothesis_init",
+   "reasoning_id": "R-1",
+   "detail": {
+    "hypotheses": [
+     "H-REQUESTER-APOLOGY-FIX",
+     "H-IDEMPOTENCY-MISCONFIG",
+     "H-CLIENT-RETRY-DUPLICATE",
+     "H-HANDOFF-DUPLICATION",
+     "H-TICKET-MISCLASSIFICATION"
+    ],
+    "framing": [
+     "H-REQUESTER-APOLOGY-FIX"
+    ]
+   }
+  },
+  "refs": []
+ },
+ {
+  "seq": 6,
+  "type": "reasoning_completed",
+  "importance": "NORMAL",
+  "payload": {
+   "reasoning_id": "R-2",
+   "skill": "discover_actions",
+   "status": "SUCCESS",
+   "provider": "claude-cli",
+   "model": "sonnet",
+   "input_state_version": 2,
+   "schema_version": "1.0",
+   "order": 2,
+   "attempts": 1,
+   "input_digest": "4fa129c060132e09",
+   "evidence_refs": [
+    "H-CLIENT-RETRY-DUPLICATE",
+    "H-HANDOFF-DUPLICATION",
+    "H-IDEMPOTENCY-MISCONFIG",
+    "H-REQUESTER-APOLOGY-FIX",
+    "H-TICKET-MISCLASSIFICATION"
+   ],
+   "confidence": null,
+   "fallback_used": null,
+   "errors": [],
+   "proposal": {
+    "actions": [
+     {
+      "catalog_ref": "config-audit:gateway_config_changes",
+      "question": "Did the payment gateway's idempotency-key enforcement configuration change recently, and when?",
+      "decision_impact": 0.9,
+      "uncertainty": 0.85,
+      "discriminative_power": 0.9,
+      "answerability": 0.9,
+      "process_data_handoff_impact": 0.3,
+      "action_proximity": 0.7,
+      "constraint_risk": 0.6,
+      "estimated_cost_minutes": 15,
+      "expected_information_gain": "Confirms or rules out whether a config change disabled/weakened idempotency enforcement, the exact mechanism H-IDEMPOTENCY-MISCONFIG claims.",
+      "decision_impact_rationale": "If a weakening change is found, it directly points to the protected action set_capture_idempotency as the fix, which requires SH-OPS approval under K-GW; if not found, this CRITICAL hypothesis is eliminated and attention shifts elsewhere.",
+      "discriminates_hypotheses": [
+       "H-IDEMPOTENCY-MISCONFIG",
+       "H-CLIENT-RETRY-DUPLICATE",
+       "H-HANDOFF-DUPLICATION"
+      ],
+      "resolves_unknowns": [],
+      "addresses": [],
+      "why_now": "This is the single catalog item that literally describes the config/rule change the CRITICAL hypothesis H-IDEMPOTENCY-MISCONFIG asserts, and it has not yet been checked."
+     },
+     {
+      "catalog_ref": "payments-db:duplicate_captures_by_day",
+      "question": "Does the charge ledger show actual duplicate captures per order, and at what rate/time pattern?",
+      "decision_impact": 0.85,
+      "uncertainty": 0.8,
+      "discriminative_power": 0.8,
+      "answerability": 0.9,
+      "process_data_handoff_impact": 0.4,
+      "action_proximity": 0.5,
+      "constraint_risk": 0.1,
+      "estimated_cost_minutes": 15,
+      "expected_information_gain": "Establishes ground truth on whether real duplicate charges exist in the authoritative ledger, separating technical-defect hypotheses from pure misclassification/communication framing.",
+      "decision_impact_rationale": "If no real duplicate captures appear, H-TICKET-MISCLASSIFICATION and H-REQUESTER-APOLOGY-FIX gain support and no technical fix is warranted; if duplicates are confirmed, it justifies continuing the technical investigation instead of building apology tooling.",
+      "discriminates_hypotheses": [
+       "H-TICKET-MISCLASSIFICATION",
+       "H-REQUESTER-APOLOGY-FIX",
+       "H-CLIENT-RETRY-DUPLICATE",
+       "H-HANDOFF-DUPLICATION",
+       "H-IDEMPOTENCY-MISCONFIG"
+      ],
+      "resolves_unknowns": [],
+      "addresses": [],
+      "why_now": "Foundational check: before trusting any technical mechanism hypothesis or the requester's apology-fix framing, the authoritative charge ledger must confirm duplicates actually occur."
+     },
+     {
+      "catalog_ref": "psp-logs:capture_attempts_for_duplicate_orders",
+      "question": "For orders with duplicate captures, do the PSP capture attempts reuse the same idempotency key (handoff/config issue) or use distinct keys (client-side retry issue)?",
+      "decision_impact": 0.85,
+      "uncertainty": 0.75,
+      "discriminative_power": 0.85,
+      "answerability": 0.85,
+      "process_data_handoff_impact": 0.5,
+      "action_proximity": 0.6,
+      "constraint_risk": 0.2,
+      "estimated_cost_minutes": 20,
+      "expected_information_gain": "Idempotency-key patterns in PSP logs distinguish whether duplicates originate from client-side retry logic generating new keys, in-transit handoff retries, or gateway-side key enforcement failure.",
+      "decision_impact_rationale": "The answer determines which of three competing technical hypotheses to pursue for remediation, each implying a different fix location (client code, handoff/transport, or gateway config).",
+      "discriminates_hypotheses": [
+       "H-CLIENT-RETRY-DUPLICATE",
+       "H-HANDOFF-DUPLICATION",
+       "H-IDEMPOTENCY-MISCONFIG"
+      ],
+      "resolves_unknowns": [],
+      "addresses": [],
+      "why_now": "This is the catalog item that most directly names idempotency keys, the exact mechanism separating the three technical duplicate-capture hypotheses."
+     },
+     {
+      "catalog_ref": "crm-tickets:double_charge_tickets_by_week",
+      "question": "What is the weekly volume and content pattern of double-charge complaint tickets, and does it correlate with ledger duplicate-capture events?",
+      "decision_impact": 0.6,
+      "uncertainty": 0.6,
+      "discriminative_power": 0.5,
+      "answerability": 0.9,
+      "process_data_handoff_impact": 0.2,
+      "action_proximity": 0.3,
+      "constraint_risk": 0.05,
+      "estimated_cost_minutes": 10,
+      "expected_information_gain": "Reveals whether ticket spikes align with actual duplicate-capture events or are independent, informing whether misclassification or a communication gap explains the complaints.",
+      "decision_impact_rationale": "If tickets do not correlate with real duplicates, it strengthens H-TICKET-MISCLASSIFICATION and the requester's apology-fix framing as the primary driver; if they do correlate, it supports pursuing the technical cause instead.",
+      "discriminates_hypotheses": [
+       "H-TICKET-MISCLASSIFICATION",
+       "H-REQUESTER-APOLOGY-FIX"
+      ],
+      "resolves_unknowns": [],
+      "addresses": [],
+      "why_now": "This directly matches the mechanism claimed by H-TICKET-MISCLASSIFICATION (tickets misreading charges) and the requester's framing in H-REQUESTER-APOLOGY-FIX, neither yet checked against ticket content."
+     }
+    ],
+    "stop": false,
+    "stop_reason": "Four catalog items each most directly match a still-live hypothesis's exact mechanism (config-audit for H-IDEMPOTENCY-MISCONFIG, psp-logs for the client-retry/handoff split, payments-db for ground-truth duplicates, crm-tickets for misclassification/apology framing); none have been run yet so stopping now would leave every live hypothesis unchecked."
+   }
+  },
+  "refs": [
+   "H-CLIENT-RETRY-DUPLICATE",
+   "H-HANDOFF-DUPLICATION",
+   "H-IDEMPOTENCY-MISCONFIG",
+   "H-REQUESTER-APOLOGY-FIX",
+   "H-TICKET-MISCLASSIFICATION"
+  ]
+ },
+ {
+  "seq": 7,
+  "type": "discovery_action_selected",
+  "importance": "NORMAL",
+  "payload": {
+   "selected": "config-audit:gateway_config_changes",
+   "ranking": [
+    {
+     "id": "config-audit:gateway_config_changes",
+     "score": 12.1406,
+     "excluded": false,
+     "reason": "value=32.17 cost=16.5"
+    },
+    {
+     "id": "payments-db:duplicate_captures_by_day",
+     "score": 10.8094,
+     "excluded": false,
+     "reason": "value=28.65 cost=16.5"
+    },
+    {
+     "id": "crm-tickets:double_charge_tickets_by_week",
+     "score": 9.9571,
+     "excluded": false,
+     "reason": "value=20.91 cost=11.0"
+    },
+    {
+     "id": "psp-logs:capture_attempts_for_duplicate_orders",
+     "score": 9.2437,
+     "excluded": false,
+     "reason": "value=29.58 cost=22.0"
+    }
+   ]
+  },
+  "refs": []
+ },
+ {
+  "seq": 8,
+  "type": "safe_point_reached",
+  "importance": "NORMAL",
+  "payload": {
+   "kind": "BEFORE_ACTION"
+  },
+  "refs": []
+ },
+ {
+  "seq": 9,
+  "type": "tool_called",
+  "importance": "LOW",
+  "payload": {
+   "tool": "config-audit",
+   "operation": "gateway_config_changes",
+   "status": "SUCCESS",
+   "completeness": "COMPLETE",
+   "cost": 2.0
+  },
+  "refs": []
+ },
+ {
+  "seq": 10,
+  "type": "tool_health_changed",
+  "importance": "NORMAL",
+  "payload": {
+   "tool": "config-audit",
+   "from": "UNKNOWN",
+   "to": "HEALTHY"
+  },
+  "refs": []
+ },
+ {
+  "seq": 11,
+  "type": "safe_point_reached",
+  "importance": "NORMAL",
+  "payload": {
+   "kind": "AFTER_TOOL_RESULT"
+  },
+  "refs": []
+ },
+ {
+  "seq": 12,
+  "type": "reasoning_completed",
+  "importance": "NORMAL",
+  "payload": {
+   "reasoning_id": "R-3",
+   "skill": "interpret_evidence",
+   "status": "SUCCESS",
+   "provider": "claude-cli",
+   "model": "sonnet",
+   "input_state_version": 2,
+   "schema_version": "1.0",
+   "order": 3,
+   "attempts": 1,
+   "input_digest": "2777a9a1fa448f3b",
+   "evidence_refs": [
+    "E-01",
+    "H-CLIENT-RETRY-DUPLICATE",
+    "H-HANDOFF-DUPLICATION",
+    "H-IDEMPOTENCY-MISCONFIG",
+    "H-REQUESTER-APOLOGY-FIX",
+    "H-TICKET-MISCLASSIFICATION"
+   ],
+   "confidence": 0.85,
+   "fallback_used": null,
+   "errors": [],
+   "proposal": {
+    "assertion_key": "idempotency_key_enforcement.state",
+    "assertion_value": "off",
+    "interpretation": "The gateway config audit log shows payments engineer SH-PAY disabled idempotency_key_enforcement (on→off) via change CHG-77 on 2026-09-09 for latency debugging, and the rollback was never executed, matching the exact mechanism H-IDEMPOTENCY-MISCONFIG describes.",
+    "hypothesis_effects": [
+     {
+      "hypothesis": "H-IDEMPOTENCY-MISCONFIG",
+      "effect": "SUPPORTS",
+      "rationale": "The audit log directly confirms idempotency-key enforcement was disabled by SH-PAY and never rolled back, the precise causal mechanism this hypothesis claims."
+     },
+     {
+      "hypothesis": "H-REQUESTER-APOLOGY-FIX",
+      "effect": "CONTRADICTS",
+      "rationale": "Evidence of a live, un-rolled-back technical misconfiguration implies a real payment-pipeline defect, undermining the claim that only communication tooling is needed."
+     },
+     {
+      "hypothesis": "H-TICKET-MISCLASSIFICATION",
+      "effect": "CONTRADICTS",
+      "rationale": "A plausible systemic technical cause (disabled enforcement) weighs against the claim that no systemic payment defect exists."
+     },
+     {
+      "hypothesis": "H-CLIENT-RETRY-DUPLICATE",
+      "effect": "NEUTRAL",
+      "rationale": "This observation is about gateway config, not checkout retry logic, so it neither confirms nor rules out client-side duplicate capture requests."
+     },
+     {
+      "hypothesis": "H-HANDOFF-DUPLICATION",
+      "effect": "NEUTRAL",
+      "rationale": "The config change is unrelated to in-transit handoff duplication between ORG-SHOP and ORG-PSP, so it does not bear on this hypothesis directly."
+     }
+    ],
+    "new_hypotheses": [],
+    "fact_candidates": [
+     {
+      "statement": "Gateway config change CHG-77, made by SH-PAY on 2026-09-09 for latency debugging, disabled idempotency_key_enforcement (on→off); rollback has not been executed.",
+      "assertion_key": "idempotency_key_enforcement.state",
+      "value": "off",
+      "evidence_refs": [
+       "E-01"
+      ]
+     }
+    ],
+    "unknown_resolutions": [],
+    "authorization_candidates": [],
+    "contradiction_assessment": {
+     "relation": "UNRELATED",
+     "target_type": "NONE",
+     "target_refs": [],
+     "materiality": "LOW",
+     "problem_invalidating": false,
+     "rationale": "No problem_definition is present in state, so no premise comparison applies."
+    },
+    "vob_proposals": [
+     {
+      "unresolved_question": "Does the un-rolled-back idempotency enforcement change (CHG-77, 2026-09-09) actually correlate in time with the duplicate-capture tickets, confirming it as the root cause before re-enabling enforcement?",
+      "decision_impact": "CRITICAL",
+      "required_before": "BEFORE_PROTECTED_ACTION",
+      "blocking_scope": [
+       {
+        "action": "set_capture_idempotency",
+        "target": "gateway-config"
+       }
+      ],
+      "entire_solution": false,
+      "validation_method": "Compare duplicate_captures_by_day and capture_attempts_for_duplicate_orders timelines against the 2026-09-09 CHG-77 date to confirm a correlated spike in duplicate captures.",
+      "required_evidence": [
+       "payments-db:duplicate_captures_by_day",
+       "psp-logs:capture_attempts_for_duplicate_orders"
+      ],
+      "linked_unknown": "",
+      "rationale": "K-GW requires payments-ops approval before re-enabling idempotency enforcement; confirming CHG-77 is the actual cause justifies that protected action and avoids masking other contributing causes."
+     }
+    ],
+    "follow_up_actions": [
+     "payments-db:duplicate_captures_by_day",
+     "psp-logs:capture_attempts_for_duplicate_orders",
+     "crm-tickets:double_charge_tickets_by_week"
+    ],
+    "confidence": 0.85
+   }
+  },
+  "refs": [
+   "E-01",
+   "H-CLIENT-RETRY-DUPLICATE",
+   "H-HANDOFF-DUPLICATION",
+   "H-IDEMPOTENCY-MISCONFIG",
+   "H-REQUESTER-APOLOGY-FIX",
+   "H-TICKET-MISCLASSIFICATION"
+  ]
+ },
+ {
+  "seq": 13,
+  "type": "state_committed",
+  "importance": "NORMAL",
+  "payload": {
+   "reason": "evidence E-01",
+   "version": 3,
+   "diff": [
+    {
+     "kind": "CHANGED",
+     "collection": "hypotheses",
+     "id": "H-REQUESTER-APOLOGY-FIX",
+     "importance": "CRITICAL"
+    },
+    {
+     "kind": "CHANGED",
+     "collection": "hypotheses",
+     "id": "H-IDEMPOTENCY-MISCONFIG",
+     "importance": "CRITICAL"
+    },
+    {
+     "kind": "CHANGED",
+     "collection": "hypotheses",
+     "id": "H-TICKET-MISCLASSIFICATION",
+     "importance": "NORMAL"
+    },
+    {
+     "kind": "NEW",
+     "collection": "evidence",
+     "id": "E-01",
+     "importance": "LOW"
+    }
+   ]
+  },
+  "refs": []
+ },
+ {
+  "seq": 14,
+  "type": "evidence_added",
+  "importance": "NORMAL",
+  "payload": {
+   "evidence": "E-01",
+   "source": "config-audit"
+  },
+  "refs": [
+   "E-01"
+  ]
+ },
+ {
+  "seq": 15,
+  "type": "state_committed",
+  "importance": "NORMAL",
+  "payload": {
+   "reason": "fact F-01",
+   "version": 4,
+   "diff": [
+    {
+     "kind": "NEW",
+     "collection": "facts",
+     "id": "F-01",
+     "importance": "LOW"
+    }
+   ]
+  },
+  "refs": []
+ },
+ {
+  "seq": 16,
+  "type": "fact_established",
+  "importance": "NORMAL",
+  "payload": {
+   "fact": "F-01"
+  },
+  "refs": [
+   "E-01"
+  ]
+ },
+ {
+  "seq": 17,
+  "type": "proposal_adjusted",
+  "importance": "NORMAL",
+  "payload": {
+   "skill": "interpret_evidence",
+   "reasoning_id": "R-3",
+   "detail": [
+    "VOB proposals need an ACTIVE canonical Problem: dropped"
+   ]
+  },
+  "refs": []
+ },
+ {
+  "seq": 18,
+  "type": "proposal_accepted",
+  "importance": "NORMAL",
+  "payload": {
+   "skill": "interpret_evidence",
+   "reasoning_id": "R-3",
+   "detail": {
+    "evidence": "E-01",
+    "assertion": "idempotency_key_enforcement.state",
+    "supports": [
+     "H-IDEMPOTENCY-MISCONFIG"
+    ],
+    "contradicts": [
+     "H-REQUESTER-APOLOGY-FIX",
+     "H-TICKET-MISCLASSIFICATION"
+    ],
+    "assessment": "NONE",
+    "challenge_raised": false
+   }
+  },
+  "refs": [
+   "E-01"
+  ]
+ },
+ {
+  "seq": 19,
+  "type": "proposal_adjusted",
+  "importance": "NORMAL",
+  "payload": {
+   "skill": "interpret_evidence",
+   "reasoning_id": "R-3",
+   "detail": [
+    "follow-up 'payments-db:duplicate_captures_by_day' not run: only deferred queries are re-attempted, and only on new external input (Information-Value ranking decides the rest)",
+    "follow-up 'psp-logs:capture_attempts_for_duplicate_orders' not run: only deferred queries are re-attempted, and only on new external input (Information-Value ranking decides the rest)",
+    "follow-up 'crm-tickets:double_charge_tickets_by_week' not run: only deferred queries are re-attempted, and only on new external input (Information-Value ranking decides the rest)"
+   ]
+  },
+  "refs": []
+ },
+ {
+  "seq": 20,
+  "type": "discovery_action_selected",
+  "importance": "NORMAL",
+  "payload": {
+   "selected": "payments-db:duplicate_captures_by_day",
+   "ranking": [
+    {
+     "id": "payments-db:duplicate_captures_by_day",
+     "score": 10.7285,
+     "excluded": false,
+     "reason": "value=28.65 cost=16.7"
+    },
+    {
+     "id": "crm-tickets:double_charge_tickets_by_week",
+     "score": 9.8943,
+     "excluded": false,
+     "reason": "value=20.91 cost=11.1"
+    },
+    {
+     "id": "psp-logs:capture_attempts_for_duplicate_orders",
+     "score": 9.1674,
+     "excluded": false,
+     "reason": "value=29.58 cost=22.3"
+    }
+   ]
+  },
+  "refs": []
+ },
+ {
+  "seq": 21,
+  "type": "safe_point_reached",
+  "importance": "NORMAL",
+  "payload": {
+   "kind": "BEFORE_ACTION"
+  },
+  "refs": []
+ },
+ {
+  "seq": 22,
+  "type": "tool_called",
+  "importance": "LOW",
+  "payload": {
+   "tool": "payments-db",
+   "operation": "duplicate_captures_by_day",
+   "status": "SUCCESS",
+   "completeness": "COMPLETE",
+   "cost": 3.0
+  },
+  "refs": []
+ },
+ {
+  "seq": 23,
+  "type": "tool_health_changed",
+  "importance": "NORMAL",
+  "payload": {
+   "tool": "payments-db",
+   "from": "UNKNOWN",
+   "to": "HEALTHY"
+  },
+  "refs": []
+ },
+ {
+  "seq": 24,
+  "type": "safe_point_reached",
+  "importance": "NORMAL",
+  "payload": {
+   "kind": "AFTER_TOOL_RESULT"
+  },
+  "refs": []
+ },
+ {
+  "seq": 25,
+  "type": "reasoning_completed",
+  "importance": "NORMAL",
+  "payload": {
+   "reasoning_id": "R-4",
+   "skill": "interpret_evidence",
+   "status": "SUCCESS",
+   "provider": "claude-cli",
+   "model": "sonnet",
+   "input_state_version": 4,
+   "schema_version": "1.0",
+   "order": 4,
+   "attempts": 1,
+   "input_digest": "f37afbc14938ce0a",
+   "evidence_refs": [
+    "E-02",
+    "H-CLIENT-RETRY-DUPLICATE",
+    "H-HANDOFF-DUPLICATION",
+    "H-IDEMPOTENCY-MISCONFIG",
+    "H-REQUESTER-APOLOGY-FIX",
+    "H-TICKET-MISCLASSIFICATION"
+   ],
+   "confidence": 0.92,
+   "fallback_used": null,
+   "errors": [],
+   "proposal": {
+    "assertion_key": "duplicate_captures_match_timeout_retries_post_chg77",
+    "assertion_value": true,
+    "confidence": 0.92,
+    "interpretation": "The payments-db daily data shows orders_with_2_captures was 0 on 2026-09-07 and 09-08 despite gateway_timeout_retries of 121 and 117, then jumped to exactly match gateway_timeout_retries (118=118 on 09-09, 124=124 on 09-10) — the same date CHG-77 disabled idempotency_key_enforcement. This quantitatively confirms gateway timeout retries only produce duplicate captures once idempotency enforcement is off.",
+    "hypothesis_effects": [
+     {
+      "hypothesis": "H-IDEMPOTENCY-MISCONFIG",
+      "effect": "SUPPORTS",
+      "rationale": "Duplicate captures appear only from 2026-09-09 onward and their count equals gateway_timeout_retries exactly, matching the disabled-enforcement mechanism and its CHG-77 date."
+     },
+     {
+      "hypothesis": "H-REQUESTER-APOLOGY-FIX",
+      "effect": "CONTRADICTS",
+      "rationale": "The data confirms a real, quantifiable payment-pipeline defect (duplicate captures), not merely a communication gap."
+     },
+     {
+      "hypothesis": "H-TICKET-MISCLASSIFICATION",
+      "effect": "CONTRADICTS",
+      "rationale": "orders_with_2_captures is an authoritative ledger count of genuine duplicate captures, not a customer misreading artifact."
+     },
+     {
+      "hypothesis": "H-CLIENT-RETRY-DUPLICATE",
+      "effect": "CONTRADICTS",
+      "rationale": "The hypothesis claims duplication is independent of gateway config, but duplicates begin exactly on the CHG-77 date and track timeout-retry volume, tying the cause to the config change."
+     },
+     {
+      "hypothesis": "H-HANDOFF-DUPLICATION",
+      "effect": "CONTRADICTS",
+      "rationale": "The hypothesis claims duplication is independent of idempotency settings, but the zero-to-matching jump precisely at the idempotency-disable date shows strong dependence on that setting."
+     }
+    ],
+    "new_hypotheses": [],
+    "fact_candidates": [
+     {
+      "statement": "payments-db duplicate_captures_by_day shows orders_with_2_captures=0 on 2026-09-07/08 (gateway_timeout_retries 121/117) then equals gateway_timeout_retries exactly on 2026-09-09/10 (118/118, 124/124), the date idempotency_key_enforcement was disabled.",
+      "assertion_key": "duplicate_captures_match_timeout_retries_post_chg77",
+      "value": true,
+      "evidence_refs": [
+       "E-02"
+      ]
+     }
+    ],
+    "unknown_resolutions": [],
+    "authorization_candidates": [],
+    "contradiction_assessment": {
+     "relation": "UNRELATED",
+     "target_type": "NONE",
+     "target_refs": [],
+     "materiality": "LOW",
+     "problem_invalidating": false,
+     "rationale": "No problem_definition is present in state to assess this observation against."
+    },
+    "vob_proposals": [
+     {
+      "unresolved_question": "Does PSP-side capture-attempt data confirm the duplicate captures on 2026-09-09/10 are the same checkout retried without a reused idempotency key (ruling out independent client or handoff duplication) before re-enabling enforcement?",
+      "decision_impact": "CRITICAL",
+      "required_before": "BEFORE_PROTECTED_ACTION",
+      "blocking_scope": [
+       {
+        "action": "set_capture_idempotency",
+        "target": "gateway-config"
+       }
+      ],
+      "entire_solution": false,
+      "validation_method": "Run psp-logs:capture_attempts_for_duplicate_orders and cross-check idempotency keys for the orders with 2 captures on 2026-09-09/10 against checkout retry timestamps.",
+      "required_evidence": [
+       "psp-logs capture attempts for the specific duplicate-capture orders on 2026-09-09 and 2026-09-10 showing missing/non-reused idempotency keys tied to gateway timeout retries"
+      ],
+      "linked_unknown": "",
+      "rationale": "K-GW requires SH-OPS runtime confirmation before re-enabling idempotency enforcement, so the causal link should be corroborated at the PSP log level before that protected action."
+     }
+    ],
+    "follow_up_actions": [
+     "psp-logs:capture_attempts_for_duplicate_orders"
+    ]
+   }
+  },
+  "refs": [
+   "E-02",
+   "H-CLIENT-RETRY-DUPLICATE",
+   "H-HANDOFF-DUPLICATION",
+   "H-IDEMPOTENCY-MISCONFIG",
+   "H-REQUESTER-APOLOGY-FIX",
+   "H-TICKET-MISCLASSIFICATION"
+  ]
+ },
+ {
+  "seq": 26,
+  "type": "state_committed",
+  "importance": "NORMAL",
+  "payload": {
+   "reason": "evidence E-02",
+   "version": 5,
+   "diff": [
+    {
+     "kind": "CHANGED",
+     "collection": "hypotheses",
+     "id": "H-REQUESTER-APOLOGY-FIX",
+     "importance": "CRITICAL"
+    },
+    {
+     "kind": "CHANGED",
+     "collection": "hypotheses",
+     "id": "H-IDEMPOTENCY-MISCONFIG",
+     "importance": "CRITICAL"
+    },
+    {
+     "kind": "CHANGED",
+     "collection": "hypotheses",
+     "id": "H-CLIENT-RETRY-DUPLICATE",
+     "importance": "NORMAL"
+    },
+    {
+     "kind": "CHANGED",
+     "collection": "hypotheses",
+     "id": "H-HANDOFF-DUPLICATION",
+     "importance": "NORMAL"
+    },
+    {
+     "kind": "CHANGED",
+     "collection": "hypotheses",
+     "id": "H-TICKET-MISCLASSIFICATION",
+     "importance": "NORMAL"
+    },
+    {
+     "kind": "NEW",
+     "collection": "evidence",
+     "id": "E-02",
+     "importance": "LOW"
+    }
+   ]
+  },
+  "refs": []
+ },
+ {
+  "seq": 27,
+  "type": "evidence_added",
+  "importance": "NORMAL",
+  "payload": {
+   "evidence": "E-02",
+   "source": "payments-db"
+  },
+  "refs": [
+   "E-02"
+  ]
+ },
+ {
+  "seq": 28,
+  "type": "state_committed",
+  "importance": "NORMAL",
+  "payload": {
+   "reason": "fact F-02",
+   "version": 6,
+   "diff": [
+    {
+     "kind": "NEW",
+     "collection": "facts",
+     "id": "F-02",
+     "importance": "LOW"
+    }
+   ]
+  },
+  "refs": []
+ },
+ {
+  "seq": 29,
+  "type": "fact_established",
+  "importance": "NORMAL",
+  "payload": {
+   "fact": "F-02"
+  },
+  "refs": [
+   "E-02"
+  ]
+ },
+ {
+  "seq": 30,
+  "type": "proposal_adjusted",
+  "importance": "NORMAL",
+  "payload": {
+   "skill": "interpret_evidence",
+   "reasoning_id": "R-4",
+   "detail": [
+    "VOB proposals need an ACTIVE canonical Problem: dropped"
+   ]
+  },
+  "refs": []
+ },
+ {
+  "seq": 31,
+  "type": "proposal_accepted",
+  "importance": "NORMAL",
+  "payload": {
+   "skill": "interpret_evidence",
+   "reasoning_id": "R-4",
+   "detail": {
+    "evidence": "E-02",
+    "assertion": "duplicate_captures_match_timeout_retries_post_chg77",
+    "supports": [
+     "H-IDEMPOTENCY-MISCONFIG"
+    ],
+    "contradicts": [
+     "H-REQUESTER-APOLOGY-FIX",
+     "H-TICKET-MISCLASSIFICATION",
+     "H-CLIENT-RETRY-DUPLICATE",
+     "H-HANDOFF-DUPLICATION"
+    ],
+    "assessment": "NONE",
+    "challenge_raised": false
+   }
+  },
+  "refs": [
+   "E-02"
+  ]
+ },
+ {
+  "seq": 32,
+  "type": "proposal_adjusted",
+  "importance": "NORMAL",
+  "payload": {
+   "skill": "interpret_evidence",
+   "reasoning_id": "R-4",
+   "detail": [
+    "follow-up 'psp-logs:capture_attempts_for_duplicate_orders' not run: only deferred queries are re-attempted, and only on new external input (Information-Value ranking decides the rest)"
+   ]
+  },
+  "refs": []
+ },
+ {
+  "seq": 33,
+  "type": "discovery_action_selected",
+  "importance": "NORMAL",
+  "payload": {
+   "selected": "crm-tickets:double_charge_tickets_by_week",
+   "ranking": [
+    {
+     "id": "crm-tickets:double_charge_tickets_by_week",
+     "score": 9.7407,
+     "excluded": false,
+     "reason": "value=20.91 cost=11.5"
+    },
+    {
+     "id": "psp-logs:capture_attempts_for_duplicate_orders",
+     "score": 8.9818,
+     "excluded": false,
+     "reason": "value=29.58 cost=22.9"
+    }
+   ]
+  },
+  "refs": []
+ },
+ {
+  "seq": 34,
+  "type": "safe_point_reached",
+  "importance": "NORMAL",
+  "payload": {
+   "kind": "BEFORE_ACTION"
+  },
+  "refs": []
+ },
+ {
+  "seq": 35,
+  "type": "tool_called",
+  "importance": "LOW",
+  "payload": {
+   "tool": "crm-tickets",
+   "operation": "double_charge_tickets_by_week",
+   "status": "SUCCESS",
+   "completeness": "COMPLETE",
+   "cost": 2.0
+  },
+  "refs": []
+ },
+ {
+  "seq": 36,
+  "type": "tool_health_changed",
+  "importance": "NORMAL",
+  "payload": {
+   "tool": "crm-tickets",
+   "from": "UNKNOWN",
+   "to": "HEALTHY"
+  },
+  "refs": []
+ },
+ {
+  "seq": 37,
+  "type": "safe_point_reached",
+  "importance": "NORMAL",
+  "payload": {
+   "kind": "AFTER_TOOL_RESULT"
+  },
+  "refs": []
+ },
+ {
+  "seq": 38,
+  "type": "reasoning_completed",
+  "importance": "NORMAL",
+  "payload": {
+   "reasoning_id": "R-5",
+   "skill": "interpret_evidence",
+   "status": "SUCCESS",
+   "provider": "claude-cli",
+   "model": "sonnet",
+   "input_state_version": 6,
+   "schema_version": "1.0",
+   "order": 5,
+   "attempts": 1,
+   "input_digest": "c013ac168b525c24",
+   "evidence_refs": [
+    "E-03",
+    "H-CLIENT-RETRY-DUPLICATE",
+    "H-HANDOFF-DUPLICATION",
+    "H-IDEMPOTENCY-MISCONFIG",
+    "H-REQUESTER-APOLOGY-FIX",
+    "H-TICKET-MISCLASSIFICATION"
+   ],
+   "confidence": 0.8,
+   "fallback_used": null,
+   "errors": [],
+   "proposal": {
+    "assertion_key": "double_charge_ticket_spike_aligns_with_chg77",
+    "assertion_value": true,
+    "authorization_candidates": [],
+    "claim_assertion_key": "",
+    "claim_assertion_value": "",
+    "confidence": 0.8,
+    "contradiction_assessment": {
+     "relation": "UNRELATED",
+     "target_type": "NONE",
+     "target_refs": [],
+     "materiality": "LOW",
+     "problem_invalidating": false,
+     "rationale": "No problem_definition is present in state, so no premise comparison applies."
+    },
+    "fact_candidates": [
+     {
+      "statement": "crm-tickets.double_charge_tickets_by_week shows weekly double-charge ticket counts of 9, 11, 288, 301 for weeks 2026-W35..W38 respectively, with order volumes stable (~21000, 20500, 21400, 20900); the jump occurs at W37, the week containing CHG-77 (2026-09-09).",
+      "assertion_key": "double_charge_ticket_spike_aligns_with_chg77",
+      "value": true,
+      "evidence_refs": [
+       "E-03"
+      ]
+     }
+    ],
+    "follow_up_actions": [
+     "psp-logs:capture_attempts_for_duplicate_orders"
+    ],
+    "hypothesis_effects": [
+     {
+      "hypothesis": "H-IDEMPOTENCY-MISCONFIG",
+      "effect": "SUPPORTS",
+      "rationale": "Ticket volume for double-charge complaints jumps roughly 30x starting the week containing CHG-77 (2026-09-09), consistent with disabled idempotency enforcement driving a sustained surge."
+     },
+     {
+      "hypothesis": "H-REQUESTER-APOLOGY-FIX",
+      "effect": "CONTRADICTS",
+      "rationale": "A ticket-volume spike tightly timed to a specific gateway config change indicates a systemic technical cause, not merely a communication/apology gap."
+     },
+     {
+      "hypothesis": "H-TICKET-MISCLASSIFICATION",
+      "effect": "CONTRADICTS",
+      "rationale": "Misclassification of statements (hold vs capture) would not produce a sudden 30x step-change aligned precisely with a gateway config change date; the pattern instead tracks a specific technical event."
+     },
+     {
+      "hypothesis": "H-CLIENT-RETRY-DUPLICATE",
+      "effect": "CONTRADICTS",
+      "rationale": "This hypothesis claims duplication independent of gateway config, but the ticket spike coincides exactly with the week of the idempotency-disabling change (CHG-77), undermining independence from config."
+     },
+     {
+      "hypothesis": "H-HANDOFF-DUPLICATION",
+      "effect": "CONTRADICTS",
+      "rationale": "This hypothesis claims duplication independent of idempotency settings, but the ticket spike's timing aligns with the idempotency enforcement being disabled, undermining independence."
+     }
+    ],
+    "interpretation": "Weekly support-ticket counts for double-charge complaints are flat and low (9, 11) in the two weeks before CHG-77, then jump roughly 30x (288, 301) in the week containing CHG-77 (2026-09-09) and the following week, while order volume stays roughly constant; this corroborates that the surge in complaints began with the same event that disabled idempotency enforcement rather than a steady background rate.",
+    "new_hypotheses": [],
+    "unknown_resolutions": [],
+    "vob_proposals": []
+   }
+  },
+  "refs": [
+   "E-03",
+   "H-CLIENT-RETRY-DUPLICATE",
+   "H-HANDOFF-DUPLICATION",
+   "H-IDEMPOTENCY-MISCONFIG",
+   "H-REQUESTER-APOLOGY-FIX",
+   "H-TICKET-MISCLASSIFICATION"
+  ]
+ },
+ {
+  "seq": 39,
+  "type": "state_committed",
+  "importance": "NORMAL",
+  "payload": {
+   "reason": "evidence E-03",
+   "version": 7,
+   "diff": [
+    {
+     "kind": "CHANGED",
+     "collection": "hypotheses",
+     "id": "H-REQUESTER-APOLOGY-FIX",
+     "importance": "CRITICAL"
+    },
+    {
+     "kind": "CHANGED",
+     "collection": "hypotheses",
+     "id": "H-IDEMPOTENCY-MISCONFIG",
+     "importance": "CRITICAL"
+    },
+    {
+     "kind": "CHANGED",
+     "collection": "hypotheses",
+     "id": "H-CLIENT-RETRY-DUPLICATE",
+     "importance": "NORMAL"
+    },
+    {
+     "kind": "CHANGED",
+     "collection": "hypotheses",
+     "id": "H-HANDOFF-DUPLICATION",
+     "importance": "NORMAL"
+    },
+    {
+     "kind": "CHANGED",
+     "collection": "hypotheses",
+     "id": "H-TICKET-MISCLASSIFICATION",
+     "importance": "NORMAL"
+    },
+    {
+     "kind": "NEW",
+     "collection": "evidence",
+     "id": "E-03",
+     "importance": "LOW"
+    }
+   ]
+  },
+  "refs": []
+ },
+ {
+  "seq": 40,
+  "type": "evidence_added",
+  "importance": "NORMAL",
+  "payload": {
+   "evidence": "E-03",
+   "source": "crm-tickets"
+  },
+  "refs": [
+   "E-03"
+  ]
+ },
+ {
+  "seq": 41,
+  "type": "state_committed",
+  "importance": "NORMAL",
+  "payload": {
+   "reason": "fact F-03",
+   "version": 8,
+   "diff": [
+    {
+     "kind": "NEW",
+     "collection": "facts",
+     "id": "F-03",
+     "importance": "LOW"
+    }
+   ]
+  },
+  "refs": []
+ },
+ {
+  "seq": 42,
+  "type": "fact_established",
+  "importance": "NORMAL",
+  "payload": {
+   "fact": "F-03"
+  },
+  "refs": [
+   "E-03"
+  ]
+ },
+ {
+  "seq": 43,
+  "type": "proposal_accepted",
+  "importance": "NORMAL",
+  "payload": {
+   "skill": "interpret_evidence",
+   "reasoning_id": "R-5",
+   "detail": {
+    "evidence": "E-03",
+    "assertion": "double_charge_ticket_spike_aligns_with_chg77",
+    "supports": [
+     "H-IDEMPOTENCY-MISCONFIG"
+    ],
+    "contradicts": [
+     "H-REQUESTER-APOLOGY-FIX",
+     "H-TICKET-MISCLASSIFICATION",
+     "H-CLIENT-RETRY-DUPLICATE",
+     "H-HANDOFF-DUPLICATION"
+    ],
+    "assessment": "NONE",
+    "challenge_raised": false
+   }
+  },
+  "refs": [
+   "E-03"
+  ]
+ },
+ {
+  "seq": 44,
+  "type": "proposal_adjusted",
+  "importance": "NORMAL",
+  "payload": {
+   "skill": "interpret_evidence",
+   "reasoning_id": "R-5",
+   "detail": [
+    "follow-up 'psp-logs:capture_attempts_for_duplicate_orders' not run: only deferred queries are re-attempted, and only on new external input (Information-Value ranking decides the rest)"
+   ]
+  },
+  "refs": []
+ },
+ {
+  "seq": 45,
+  "type": "reasoning_completed",
+  "importance": "NORMAL",
+  "payload": {
+   "reasoning_id": "R-6",
+   "skill": "discover_actions",
+   "status": "SUCCESS",
+   "provider": "claude-cli",
+   "model": "sonnet",
+   "input_state_version": 8,
+   "schema_version": "1.0",
+   "order": 6,
+   "attempts": 1,
+   "input_digest": "31c61dd44ff2cabd",
+   "evidence_refs": [
+    "E-01",
+    "E-02",
+    "E-03",
+    "H-CLIENT-RETRY-DUPLICATE",
+    "H-HANDOFF-DUPLICATION",
+    "H-IDEMPOTENCY-MISCONFIG",
+    "H-REQUESTER-APOLOGY-FIX",
+    "H-TICKET-MISCLASSIFICATION"
+   ],
+   "confidence": null,
+   "fallback_used": null,
+   "errors": [],
+   "proposal": {
+    "actions": [
+     {
+      "catalog_ref": "psp-logs:capture_attempts_for_duplicate_orders",
+      "question": "For orders flagged with duplicate captures, do PSP capture attempt logs show the same idempotency key reused (config-driven duplication) or distinct keys/duplicated requests (client-retry or in-transit duplication)?",
+      "decision_impact": 0.85,
+      "uncertainty": 0.7,
+      "discriminative_power": 0.9,
+      "answerability": 0.75,
+      "process_data_handoff_impact": 0.7,
+      "action_proximity": 0.75,
+      "constraint_risk": 0.1,
+      "estimated_cost_minutes": 15,
+      "expected_information_gain": "The PSP log of capture attempts with idempotency keys reveals whether duplicate captures reuse the same key (config-driven, consistent with disabled enforcement) or arrive with distinct keys or duplicated transit requests, directly separating the gateway-config, client-retry, and handoff-duplication mechanisms.",
+      "decision_impact_rationale": "The remediation path differs sharply by cause: re-enabling gateway idempotency enforcement (the pending protected action) only fixes the problem if duplication is config-driven; if PSP logs show distinct keys or in-transit duplication, a different fix (client code or network handoff) is needed instead.",
+      "discriminates_hypotheses": [
+       "H-CLIENT-RETRY-DUPLICATE",
+       "H-HANDOFF-DUPLICATION",
+       "H-IDEMPOTENCY-MISCONFIG"
+      ],
+      "resolves_unknowns": [],
+      "addresses": [],
+      "why_now": "Config, ticket, and ledger evidence (E-01, E-02, E-03) already strongly supports H-IDEMPOTENCY-MISCONFIG and contradicts H-REQUESTER-APOLOGY-FIX/H-TICKET-MISCLASSIFICATION, but no evidence yet directly tests whether client-retry logic or in-transit handoff duplication independently contribute; this is the only remaining catalog item whose description (idempotency keys per capture attempt) names that exact mechanism."
+     }
+    ],
+    "stop": false,
+    "stop_reason": "The PSP capture-attempt log is the only unexecuted catalog item whose description directly names a mechanism (idempotency keys per attempt) still contested by live hypotheses H-CLIENT-RETRY-DUPLICATE and H-HANDOFF-DUPLICATION, so it must be run before stopping; the two interview items have no description specifying a checkable mechanism and the remaining live hypotheses (H-REQUESTER-APOLOGY-FIX, H-TICKET-MISCLASSIFICATION) are already strongly contradicted by E-01/E-02/E-03, so they add little further decision-changing value."
+   }
+  },
+  "refs": [
+   "E-01",
+   "E-02",
+   "E-03",
+   "H-CLIENT-RETRY-DUPLICATE",
+   "H-HANDOFF-DUPLICATION",
+   "H-IDEMPOTENCY-MISCONFIG",
+   "H-REQUESTER-APOLOGY-FIX",
+   "H-TICKET-MISCLASSIFICATION"
+  ]
+ },
+ {
+  "seq": 46,
+  "type": "discovery_action_selected",
+  "importance": "NORMAL",
+  "payload": {
+   "selected": "psp-logs:capture_attempts_for_duplicate_orders",
+   "ranking": [
+    {
+     "id": "psp-logs:capture_attempts_for_duplicate_orders",
+     "score": 10.9638,
+     "excluded": false,
+     "reason": "value=30.26 cost=17.6"
+    }
+   ]
+  },
+  "refs": []
+ },
+ {
+  "seq": 47,
+  "type": "safe_point_reached",
+  "importance": "NORMAL",
+  "payload": {
+   "kind": "BEFORE_ACTION"
+  },
+  "refs": []
+ },
+ {
+  "seq": 48,
+  "type": "tool_called",
+  "importance": "LOW",
+  "payload": {
+   "tool": "psp-logs",
+   "operation": "capture_attempts_for_duplicate_orders",
+   "status": "SUCCESS",
+   "completeness": "COMPLETE",
+   "cost": 3.0
+  },
+  "refs": []
+ },
+ {
+  "seq": 49,
+  "type": "tool_health_changed",
+  "importance": "NORMAL",
+  "payload": {
+   "tool": "psp-logs",
+   "from": "UNKNOWN",
+   "to": "HEALTHY"
+  },
+  "refs": []
+ },
+ {
+  "seq": 50,
+  "type": "safe_point_reached",
+  "importance": "NORMAL",
+  "payload": {
+   "kind": "AFTER_TOOL_RESULT"
+  },
+  "refs": []
+ },
+ {
+  "seq": 51,
+  "type": "reasoning_completed",
+  "importance": "NORMAL",
+  "payload": {
+   "reasoning_id": "R-7",
+   "skill": "interpret_evidence",
+   "status": "SUCCESS",
+   "provider": "claude-cli",
+   "model": "sonnet",
+   "input_state_version": 8,
+   "schema_version": "1.0",
+   "order": 7,
+   "attempts": 1,
+   "input_digest": "d9dd300fb3911512",
+   "evidence_refs": [
+    "E-04",
+    "H-CLIENT-RETRY-DUPLICATE",
+    "H-HANDOFF-DUPLICATION",
+    "H-IDEMPOTENCY-MISCONFIG",
+    "H-REQUESTER-APOLOGY-FIX",
+    "H-TICKET-MISCLASSIFICATION"
+   ],
+   "confidence": 0.93,
+   "fallback_used": null,
+   "errors": [],
+   "proposal": {
+    "assertion_key": "duplicate_captures_match_timeout_retries_post_chg77",
+    "assertion_value": true,
+    "interpretation": "PSP-side capture logs show that before CHG-77 (2026-09-01..08) all 238 gateway timeout retries carried an idempotency key and were deduplicated by the PSP, yielding 0 duplicate orders; after CHG-77 (2026-09-09..10) all 242 duplicate orders are attributed to gateway-timeout-retry second captures sent with 0 idempotency keys, and 0 duplicates came from any other path. This isolates the duplicate-capture mechanism entirely to timeout retries missing an idempotency key, with no contribution from client-side distinct retry logic or in-transit/handoff duplication.",
+    "hypothesis_effects": [
+     {
+      "hypothesis": "H-IDEMPOTENCY-MISCONFIG",
+      "effect": "SUPPORTS",
+      "rationale": "PSP log shows the exact mechanism: timeout retries with idempotency key were deduplicated pre-CHG-77 (238/238), and post-CHG-77 all 242 duplicates are timeout retries sent with 0 idempotency keys."
+     },
+     {
+      "hypothesis": "H-CLIENT-RETRY-DUPLICATE",
+      "effect": "CONTRADICTS",
+      "rationale": "duplicates_from_other_paths=0 and second_capture_is_gateway_timeout_retry=242 shows duplicates are gateway-level timeout retries, not distinct client-initiated capture requests independent of config."
+     },
+     {
+      "hypothesis": "H-HANDOFF-DUPLICATION",
+      "effect": "CONTRADICTS",
+      "rationale": "duplicates_from_other_paths=0 rules out in-transit/handoff duplication unrelated to idempotency settings; pre-CHG-77 identical retry volume (238) was fully deduplicated by the PSP via idempotency key."
+     },
+     {
+      "hypothesis": "H-REQUESTER-APOLOGY-FIX",
+      "effect": "CONTRADICTS",
+      "rationale": "PSP log confirms a concrete technical defect (missing idempotency key on retries) causes real duplicate captures, not a mere communication/apology gap."
+     },
+     {
+      "hypothesis": "H-TICKET-MISCLASSIFICATION",
+      "effect": "CONTRADICTS",
+      "rationale": "The PSP capture log independently confirms 242 genuine duplicate captures tied to timeout retries without idempotency keys, not customer misreading of statements."
+     }
+    ],
+    "new_hypotheses": [],
+    "fact_candidates": [
+     {
+      "statement": "psp-logs.capture_attempts_for_duplicate_orders shows 0 duplicate orders in 2026-09-01..08 (238 gateway timeout retries, all sent with idempotency key, all deduplicated by PSP) versus 242 duplicate orders in 2026-09-09..10 (all second captures are gateway timeout retries, 0 sent with idempotency key, 0 duplicates from other paths).",
+      "assertion_key": "duplicate_captures_match_timeout_retries_post_chg77",
+      "value": true,
+      "evidence_refs": [
+       "E-04"
+      ]
+     }
+    ],
+    "unknown_resolutions": [],
+    "authorization_candidates": [],
+    "contradiction_assessment": {
+     "relation": "UNRELATED",
+     "target_type": "NONE",
+     "target_refs": [],
+     "materiality": "LOW",
+     "problem_invalidating": false,
+     "rationale": "No problem_definition field is present in the state to assess this observation against."
+    },
+    "vob_proposals": [],
+    "follow_up_actions": [],
+    "confidence": 0.93
+   }
+  },
+  "refs": [
+   "E-04",
+   "H-CLIENT-RETRY-DUPLICATE",
+   "H-HANDOFF-DUPLICATION",
+   "H-IDEMPOTENCY-MISCONFIG",
+   "H-REQUESTER-APOLOGY-FIX",
+   "H-TICKET-MISCLASSIFICATION"
+  ]
+ },
+ {
+  "seq": 52,
+  "type": "state_committed",
+  "importance": "NORMAL",
+  "payload": {
+   "reason": "evidence E-04",
+   "version": 9,
+   "diff": [
+    {
+     "kind": "CHANGED",
+     "collection": "hypotheses",
+     "id": "H-REQUESTER-APOLOGY-FIX",
+     "importance": "CRITICAL"
+    },
+    {
+     "kind": "CHANGED",
+     "collection": "hypotheses",
+     "id": "H-IDEMPOTENCY-MISCONFIG",
+     "importance": "CRITICAL"
+    },
+    {
+     "kind": "CHANGED",
+     "collection": "hypotheses",
+     "id": "H-CLIENT-RETRY-DUPLICATE",
+     "importance": "NORMAL"
+    },
+    {
+     "kind": "CHANGED",
+     "collection": "hypotheses",
+     "id": "H-HANDOFF-DUPLICATION",
+     "importance": "NORMAL"
+    },
+    {
+     "kind": "CHANGED",
+     "collection": "hypotheses",
+     "id": "H-TICKET-MISCLASSIFICATION",
+     "importance": "NORMAL"
+    },
+    {
+     "kind": "NEW",
+     "collection": "evidence",
+     "id": "E-04",
+     "importance": "LOW"
+    }
+   ]
+  },
+  "refs": []
+ },
+ {
+  "seq": 53,
+  "type": "evidence_added",
+  "importance": "NORMAL",
+  "payload": {
+   "evidence": "E-04",
+   "source": "psp-logs"
+  },
+  "refs": [
+   "E-04"
+  ]
+ },
+ {
+  "seq": 54,
+  "type": "state_committed",
+  "importance": "NORMAL",
+  "payload": {
+   "reason": "fact F-04",
+   "version": 10,
+   "diff": [
+    {
+     "kind": "NEW",
+     "collection": "facts",
+     "id": "F-04",
+     "importance": "LOW"
+    }
+   ]
+  },
+  "refs": []
+ },
+ {
+  "seq": 55,
+  "type": "fact_established",
+  "importance": "NORMAL",
+  "payload": {
+   "fact": "F-04"
+  },
+  "refs": [
+   "E-04"
+  ]
+ },
+ {
+  "seq": 56,
+  "type": "proposal_accepted",
+  "importance": "NORMAL",
+  "payload": {
+   "skill": "interpret_evidence",
+   "reasoning_id": "R-7",
+   "detail": {
+    "evidence": "E-04",
+    "assertion": "duplicate_captures_match_timeout_retries_post_chg77",
+    "supports": [
+     "H-IDEMPOTENCY-MISCONFIG"
+    ],
+    "contradicts": [
+     "H-CLIENT-RETRY-DUPLICATE",
+     "H-HANDOFF-DUPLICATION",
+     "H-REQUESTER-APOLOGY-FIX",
+     "H-TICKET-MISCLASSIFICATION"
+    ],
+    "assessment": "NONE",
+    "challenge_raised": false
+   }
+  },
+  "refs": [
+   "E-04"
+  ]
+ },
+ {
+  "seq": 57,
+  "type": "reasoning_completed",
+  "importance": "NORMAL",
+  "payload": {
+   "reasoning_id": "R-8",
+   "skill": "discover_actions",
+   "status": "SUCCESS",
+   "provider": "claude-cli",
+   "model": "sonnet",
+   "input_state_version": 10,
+   "schema_version": "1.0",
+   "order": 8,
+   "attempts": 1,
+   "input_digest": "2a7b8daddf2f8adc",
+   "evidence_refs": [
+    "CL-01",
+    "E-01",
+    "E-01..E-04",
+    "H-CLIENT-RETRY-DUPLICATE",
+    "H-HANDOFF-DUPLICATION",
+    "H-IDEMPOTENCY-MISCONFIG",
+    "H-REQUESTER-APOLOGY-FIX",
+    "H-TICKET-MISCLASSIFICATION"
+   ],
+   "confidence": null,
+   "fallback_used": null,
+   "errors": [],
+   "proposal": {
+    "actions": [
+     {
+      "catalog_ref": "interview:SH-PAY",
+      "question": "Can you confirm the rationale and scope of CHG-77 (disabling idempotency_key_enforcement on 2026-09-09), why the rollback was never executed, and whether any other client-side retry or capture-handoff logic changed around that time?",
+      "decision_impact": 0.6,
+      "uncertainty": 0.35,
+      "discriminative_power": 0.5,
+      "answerability": 0.8,
+      "process_data_handoff_impact": 0.15,
+      "action_proximity": 0.55,
+      "constraint_risk": 0.25,
+      "estimated_cost_minutes": 15,
+      "expected_information_gain": "Direct first-person confirmation from the engineer who made CHG-77 on intent, scope and why no rollback occurred, plus whether any parallel client-side/handoff changes could explain residual variance.",
+      "decision_impact_rationale": "Informs whether to recommend requesting SH-OPS approval to re-enable idempotency enforcement (protected action set_capture_idempotency under K-GW) and whether any confound needs addressing before that recommendation.",
+      "discriminates_hypotheses": [
+       "H-IDEMPOTENCY-MISCONFIG",
+       "H-CLIENT-RETRY-DUPLICATE",
+       "H-HANDOFF-DUPLICATION"
+      ],
+      "resolves_unknowns": [],
+      "addresses": [],
+      "why_now": "SH-PAY is the named actor in F-01/E-01 and is the only remaining catalog item that directly names the person behind the exact mechanism H-IDEMPOTENCY-MISCONFIG describes, and no tool query has yet asked the change's author about intent or rollback status."
+     },
+     {
+      "catalog_ref": "interview:SH-CS",
+      "question": "Of the recent 'charged twice' tickets, how many describe an actual second charge on the statement versus a pending hold being mistaken for a charge, and given the technical root cause found, does CS still want an apology-drafting tool or a different response?",
+      "decision_impact": 0.55,
+      "uncertainty": 0.4,
+      "discriminative_power": 0.5,
+      "answerability": 0.7,
+      "process_data_handoff_impact": 0.1,
+      "action_proximity": 0.5,
+      "constraint_risk": 0.1,
+      "estimated_cost_minutes": 15,
+      "expected_information_gain": "Clarifies whether ticket content matches true duplicate captures (vs. misclassification) and whether the original request (CL-01, still UNVERIFIED) should be reprofiled now that a technical cause is found.",
+      "decision_impact_rationale": "Determines whether to recommend keeping, modifying, or dropping the apology-tool deliverable in favor of the technical fix, directly affecting scope of the next proposal to the requester.",
+      "discriminates_hypotheses": [
+       "H-REQUESTER-APOLOGY-FIX",
+       "H-TICKET-MISCLASSIFICATION"
+      ],
+      "resolves_unknowns": [
+       "CL-01"
+      ],
+      "addresses": [],
+      "why_now": "SH-CS is the requester behind CL-01 and H-REQUESTER-APOLOGY-FIX and is the last remaining catalog item that can directly test whether the complaint-queue framing still holds given the strong technical evidence (E-01..E-04) already gathered."
+     }
+    ],
+    "stop": false,
+    "stop_reason": "Two catalog items remain unexecuted (interview:SH-CS, interview:SH-PAY) that directly match live hypotheses H-REQUESTER-APOLOGY-FIX/H-TICKET-MISCLASSIFICATION and H-IDEMPOTENCY-MISCONFIG/H-CLIENT-RETRY-DUPLICATE/H-HANDOFF-DUPLICATION respectively; propose both before stopping."
+   }
+  },
+  "refs": [
+   "CL-01",
+   "E-01",
+   "E-01..E-04",
+   "H-CLIENT-RETRY-DUPLICATE",
+   "H-HANDOFF-DUPLICATION",
+   "H-IDEMPOTENCY-MISCONFIG",
+   "H-REQUESTER-APOLOGY-FIX",
+   "H-TICKET-MISCLASSIFICATION"
+  ]
+ },
+ {
+  "seq": 58,
+  "type": "proposal_adjusted",
+  "importance": "NORMAL",
+  "payload": {
+   "skill": "discover_actions",
+   "reasoning_id": "R-8",
+   "detail": [
+    "dropped unknown unknown ref 'CL-01'"
+   ]
+  },
+  "refs": []
+ },
+ {
+  "seq": 59,
+  "type": "discovery_action_selected",
+  "importance": "NORMAL",
+  "payload": {
+   "selected": "interview:SH-PAY",
+   "ranking": [
+    {
+     "id": "interview:SH-PAY",
+     "score": 8.3274,
+     "excluded": false,
+     "reason": "value=23.40 cost=18.1"
+    },
+    {
+     "id": "interview:SH-CS",
+     "score": 7.6512,
+     "excluded": false,
+     "reason": "value=21.50 cost=18.1"
+    }
+   ]
+  },
+  "refs": []
+ },
+ {
+  "seq": 60,
+  "type": "reasoning_completed",
+  "importance": "NORMAL",
+  "payload": {
+   "reasoning_id": "R-9",
+   "skill": "interpret_evidence",
+   "status": "SUCCESS",
+   "provider": "claude-cli",
+   "model": "sonnet",
+   "input_state_version": 10,
+   "schema_version": "1.0",
+   "order": 9,
+   "attempts": 1,
+   "input_digest": "ed89201b8d43296e",
+   "evidence_refs": [
+    "E-01",
+    "E-02",
+    "E-04",
+    "H-CLIENT-RETRY-DUPLICATE",
+    "H-HANDOFF-DUPLICATION",
+    "H-IDEMPOTENCY-MISCONFIG",
+    "H-REQUESTER-APOLOGY-FIX",
+    "H-TICKET-MISCLASSIFICATION"
+   ],
+   "confidence": 0.68,
+   "fallback_used": null,
+   "errors": [],
+   "proposal": {
+    "assertion_key": "duplicate_captures_match_timeout_retries_post_chg77",
+    "assertion_value": true,
+    "claim_assertion_key": "duplicate_captures_match_timeout_retries_post_chg77",
+    "claim_assertion_value": true,
+    "confidence": 0.68,
+    "interpretation": "SH-PAY, the engineer behind CHG-77, states the 2026-09-09 idempotency-key disablement was meant to be temporary, that gateway timeouts/automatic retries have always occurred at a steady background rate, and that the presence of the idempotency key is what lets the PSP drop a retried capture (so capturing twice is a direct consequence of the key being off, not of retry frequency changing). This stakeholder account corroborates the mechanism already shown by E-01/E-02/E-04 and confirms re-enabling is a single gateway-config setting that still requires payments-ops runtime confirmation (consistent with constraint K-GW).",
+    "hypothesis_effects": [
+     {
+      "hypothesis": "H-IDEMPOTENCY-MISCONFIG",
+      "effect": "SUPPORTS",
+      "rationale": "SH-PAY's own description of the mechanism (key off → PSP no longer drops the timeout-retry capture) matches this hypothesis exactly."
+     },
+     {
+      "hypothesis": "H-CLIENT-RETRY-DUPLICATE",
+      "effect": "CONTRADICTS",
+      "rationale": "SH-PAY states timeout/retry frequency has always been roughly constant, so duplicates track the idempotency-key state, not any change in client-side retry logic."
+     },
+     {
+      "hypothesis": "H-HANDOFF-DUPLICATION",
+      "effect": "CONTRADICTS",
+      "rationale": "The described mechanism is PSP-side dedup keyed on the idempotency key, not in-transit/handoff duplication of requests."
+     },
+     {
+      "hypothesis": "H-TICKET-MISCLASSIFICATION",
+      "effect": "CONTRADICTS",
+      "rationale": "SH-PAY confirms a real mechanical duplicate-capture path exists, inconsistent with complaints being mere statement misreadings."
+     },
+     {
+      "hypothesis": "H-REQUESTER-APOLOGY-FIX",
+      "effect": "CONTRADICTS",
+      "rationale": "The stakeholder closest to the system attributes double charges to a reversible payment-gateway config issue, not a communication gap."
+     }
+    ],
+    "new_hypotheses": [],
+    "fact_candidates": [],
+    "unknown_resolutions": [],
+    "authorization_candidates": [],
+    "contradiction_assessment": {
+     "relation": "UNRELATED",
+     "target_type": "NONE",
+     "target_refs": [],
+     "materiality": "LOW",
+     "problem_invalidating": false,
+     "rationale": "No problem_definition is present in state to assess this observation against."
+    },
+    "vob_proposals": [],
+    "follow_up_actions": []
+   }
+  },
+  "refs": [
+   "E-01",
+   "E-02",
+   "E-04",
+   "H-CLIENT-RETRY-DUPLICATE",
+   "H-HANDOFF-DUPLICATION",
+   "H-IDEMPOTENCY-MISCONFIG",
+   "H-REQUESTER-APOLOGY-FIX",
+   "H-TICKET-MISCLASSIFICATION"
+  ]
+ },
+ {
+  "seq": 61,
+  "type": "state_committed",
+  "importance": "NORMAL",
+  "payload": {
+   "reason": "claim CL-02",
+   "version": 11,
+   "diff": [
+    {
+     "kind": "NEW",
+     "collection": "claims",
+     "id": "CL-02",
+     "importance": "LOW"
+    }
+   ]
+  },
+  "refs": []
+ },
+ {
+  "seq": 62,
+  "type": "claim_recorded",
+  "importance": "NORMAL",
+  "payload": {
+   "claim": "CL-02",
+   "stakeholder": "SH-PAY"
+  },
+  "refs": []
+ },
+ {
+  "seq": 63,
+  "type": "state_committed",
+  "importance": "NORMAL",
+  "payload": {
+   "reason": "evidence E-05",
+   "version": 12,
+   "diff": [
+    {
+     "kind": "CHANGED",
+     "collection": "hypotheses",
+     "id": "H-REQUESTER-APOLOGY-FIX",
+     "importance": "CRITICAL"
+    },
+    {
+     "kind": "CHANGED",
+     "collection": "hypotheses",
+     "id": "H-IDEMPOTENCY-MISCONFIG",
+     "importance": "CRITICAL"
+    },
+    {
+     "kind": "CHANGED",
+     "collection": "hypotheses",
+     "id": "H-CLIENT-RETRY-DUPLICATE",
+     "importance": "NORMAL"
+    },
+    {
+     "kind": "CHANGED",
+     "collection": "hypotheses",
+     "id": "H-HANDOFF-DUPLICATION",
+     "importance": "NORMAL"
+    },
+    {
+     "kind": "CHANGED",
+     "collection": "hypotheses",
+     "id": "H-TICKET-MISCLASSIFICATION",
+     "importance": "NORMAL"
+    },
+    {
+     "kind": "NEW",
+     "collection": "evidence",
+     "id": "E-05",
+     "importance": "LOW"
+    }
+   ]
+  },
+  "refs": []
+ },
+ {
+  "seq": 64,
+  "type": "evidence_added",
+  "importance": "NORMAL",
+  "payload": {
+   "evidence": "E-05",
+   "source": "SH-PAY"
+  },
+  "refs": [
+   "E-05"
+  ]
+ },
+ {
+  "seq": 65,
+  "type": "proposal_accepted",
+  "importance": "NORMAL",
+  "payload": {
+   "skill": "interpret_evidence",
+   "reasoning_id": "R-9",
+   "detail": {
+    "evidence": "E-05",
+    "assertion": "duplicate_captures_match_timeout_retries_post_chg77",
+    "supports": [
+     "H-IDEMPOTENCY-MISCONFIG"
+    ],
+    "contradicts": [
+     "H-CLIENT-RETRY-DUPLICATE",
+     "H-HANDOFF-DUPLICATION",
+     "H-TICKET-MISCLASSIFICATION",
+     "H-REQUESTER-APOLOGY-FIX"
+    ],
+    "assessment": "NONE",
+    "challenge_raised": false
+   }
+  },
+  "refs": [
+   "E-05"
+  ]
+ },
+ {
+  "seq": 66,
+  "type": "discovery_action_selected",
+  "importance": "NORMAL",
+  "payload": {
+   "selected": "interview:SH-CS",
+   "ranking": [
+    {
+     "id": "interview:SH-CS",
+     "score": 7.6512,
+     "excluded": false,
+     "reason": "value=21.50 cost=18.1"
+    }
+   ]
+  },
+  "refs": []
+ },
+ {
+  "seq": 67,
+  "type": "reasoning_completed",
+  "importance": "NORMAL",
+  "payload": {
+   "reasoning_id": "R-10",
+   "skill": "interpret_evidence",
+   "status": "SUCCESS",
+   "provider": "claude-cli",
+   "model": "sonnet",
+   "input_state_version": 12,
+   "schema_version": "1.0",
+   "order": 10,
+   "attempts": 1,
+   "input_digest": "e08cf1f966335e74",
+   "evidence_refs": [
+    "CL-01",
+    "E-01",
+    "E-02",
+    "E-03",
+    "E-04",
+    "E-05.",
+    "H-CLIENT-RETRY-DUPLICATE",
+    "H-HANDOFF-DUPLICATION",
+    "H-IDEMPOTENCY-MISCONFIG",
+    "H-REQUESTER-APOLOGY-FIX",
+    "H-TICKET-MISCLASSIFICATION"
+   ],
+   "confidence": 0.85,
+   "fallback_used": null,
+   "errors": [],
+   "proposal": {
+    "assertion_key": "double_charge_complaints.appropriate_fix",
+    "assertion_value": "apology_communication_tooling",
+    "claim_assertion_key": "double_charge_complaints.appropriate_fix",
+    "claim_assertion_value": "apology_communication_tooling",
+    "interpretation": "SH-CS (the requester) restates the original framing — faster/nicer apology replies — as the needed fix, matching CL-01, but says nothing about the payment pipeline mechanism already established by E-01/E-02/E-03/E-04/E-05.",
+    "hypothesis_effects": [
+     {
+      "hypothesis": "H-REQUESTER-APOLOGY-FIX",
+      "effect": "SUPPORTS",
+      "rationale": "This is the stakeholder's own restatement of the apology-only framing the hypothesis encodes, reinforcing CL-01's claim."
+     },
+     {
+      "hypothesis": "H-IDEMPOTENCY-MISCONFIG",
+      "effect": "NEUTRAL",
+      "rationale": "The statement addresses customer communication, not the gateway idempotency mechanism; it neither supports nor contradicts the technical cause."
+     },
+     {
+      "hypothesis": "H-CLIENT-RETRY-DUPLICATE",
+      "effect": "NEUTRAL",
+      "rationale": "No information about client-side retry logic is provided."
+     },
+     {
+      "hypothesis": "H-HANDOFF-DUPLICATION",
+      "effect": "NEUTRAL",
+      "rationale": "No information about in-transit duplication is provided."
+     },
+     {
+      "hypothesis": "H-TICKET-MISCLASSIFICATION",
+      "effect": "NEUTRAL",
+      "rationale": "The statement does not address whether tickets reflect real duplicate captures or misreading."
+     }
+    ],
+    "new_hypotheses": [],
+    "fact_candidates": [],
+    "unknown_resolutions": [],
+    "authorization_candidates": [],
+    "contradiction_assessment": {
+     "relation": "UNRELATED",
+     "target_type": "NONE",
+     "target_refs": [],
+     "materiality": "LOW",
+     "problem_invalidating": false,
+     "rationale": "No problem_definition is present in state to assess this stakeholder restatement against."
+    },
+    "vob_proposals": [],
+    "follow_up_actions": [],
+    "confidence": 0.85
+   }
+  },
+  "refs": [
+   "CL-01",
+   "E-01",
+   "E-02",
+   "E-03",
+   "E-04",
+   "E-05.",
+   "H-CLIENT-RETRY-DUPLICATE",
+   "H-HANDOFF-DUPLICATION",
+   "H-IDEMPOTENCY-MISCONFIG",
+   "H-REQUESTER-APOLOGY-FIX",
+   "H-TICKET-MISCLASSIFICATION"
+  ]
+ },
+ {
+  "seq": 68,
+  "type": "state_committed",
+  "importance": "NORMAL",
+  "payload": {
+   "reason": "claim CL-03",
+   "version": 13,
+   "diff": [
+    {
+     "kind": "NEW",
+     "collection": "claims",
+     "id": "CL-03",
+     "importance": "LOW"
+    }
+   ]
+  },
+  "refs": []
+ },
+ {
+  "seq": 69,
+  "type": "claim_recorded",
+  "importance": "NORMAL",
+  "payload": {
+   "claim": "CL-03",
+   "stakeholder": "SH-CS"
+  },
+  "refs": []
+ },
+ {
+  "seq": 70,
+  "type": "state_committed",
+  "importance": "NORMAL",
+  "payload": {
+   "reason": "evidence E-06",
+   "version": 14,
+   "diff": [
+    {
+     "kind": "CHANGED",
+     "collection": "hypotheses",
+     "id": "H-REQUESTER-APOLOGY-FIX",
+     "importance": "CRITICAL"
+    },
+    {
+     "kind": "NEW",
+     "collection": "evidence",
+     "id": "E-06",
+     "importance": "LOW"
+    }
+   ]
+  },
+  "refs": []
+ },
+ {
+  "seq": 71,
+  "type": "evidence_added",
+  "importance": "NORMAL",
+  "payload": {
+   "evidence": "E-06",
+   "source": "SH-CS"
+  },
+  "refs": [
+   "E-06"
+  ]
+ },
+ {
+  "seq": 72,
+  "type": "proposal_accepted",
+  "importance": "NORMAL",
+  "payload": {
+   "skill": "interpret_evidence",
+   "reasoning_id": "R-10",
+   "detail": {
+    "evidence": "E-06",
+    "assertion": "double_charge_complaints.appropriate_fix",
+    "supports": [
+     "H-REQUESTER-APOLOGY-FIX"
+    ],
+    "contradicts": [],
+    "assessment": "NONE",
+    "challenge_raised": false
+   }
+  },
+  "refs": [
+   "E-06"
+  ]
+ },
+ {
+  "seq": 73,
+  "type": "reasoning_completed",
+  "importance": "NORMAL",
+  "payload": {
+   "reasoning_id": "R-11",
+   "skill": "discover_actions",
+   "status": "SUCCESS",
+   "provider": "claude-cli",
+   "model": "sonnet",
+   "input_state_version": 14,
+   "schema_version": "1.0",
+   "order": 11,
+   "attempts": 1,
+   "input_digest": "e6b17a6141fe6250",
+   "evidence_refs": [
+    "E-01",
+    "E-02",
+    "E-03",
+    "E-04",
+    "E-05",
+    "H-IDEMPOTENCY-MISCONFIG"
+   ],
+   "confidence": null,
+   "fallback_used": null,
+   "errors": [],
+   "proposal": {
+    "actions": [],
+    "stop": true,
+    "stop_reason": "The catalog provided is empty, so no new information-gathering actions can be proposed. All prior actions (config audit, duplicate-capture metrics, ticket trends, PSP logs, both stakeholder interviews) have already been executed and converge on E-01/E-02/E-03/E-04/E-05 supporting H-IDEMPOTENCY-MISCONFIG and contradicting the other four hypotheses; with no catalog items remaining to query, no further live hypothesis can be checked against a matching catalog item."
+   }
+  },
+  "refs": [
+   "E-01",
+   "E-02",
+   "E-03",
+   "E-04",
+   "E-05",
+   "H-IDEMPOTENCY-MISCONFIG"
+  ]
+ },
+ {
+  "seq": 74,
+  "type": "reasoning_completed",
+  "importance": "NORMAL",
+  "payload": {
+   "reasoning_id": "R-12",
+   "skill": "assess_hypotheses",
+   "status": "SUCCESS",
+   "provider": "claude-cli",
+   "model": "sonnet",
+   "input_state_version": 14,
+   "schema_version": "1.0",
+   "order": 12,
+   "attempts": 1,
+   "input_digest": "4c56ed714aab4e91",
+   "evidence_refs": [
+    "E-01",
+    "E-02",
+    "E-03",
+    "E-04",
+    "E-05",
+    "H-CLIENT-RETRY-DUPLICATE",
+    "H-HANDOFF-DUPLICATION",
+    "H-IDEMPOTENCY-MISCONFIG",
+    "H-REQUESTER-APOLOGY-FIX",
+    "H-TICKET-MISCLASSIFICATION"
+   ],
+   "confidence": null,
+   "fallback_used": null,
+   "errors": [],
+   "proposal": {
+    "rationale": "Four authoritative, complete, mutually-consistent evidence sources (config audit, charge ledger, ticket counts, PSP capture log) converge on the same mechanism and timing (CHG-77, 2026-09-09), with the stakeholder account corroborating and no contradiction, so H-IDEMPOTENCY-MISCONFIG is elevated to CONFIRMED. The same evidence set directly contradicts the three alternative causal hypotheses and the requester's apology-only framing, so those are REJECTED.",
+    "updates": [
+     {
+      "hypothesis": "H-IDEMPOTENCY-MISCONFIG",
+      "status": "CONFIRMED",
+      "rationale": "Authoritative, complete evidence from four independent sources (gateway config audit, charge ledger, support tickets, PSP capture log) all show the duplicate-capture mechanism and onset exactly matching CHG-77's disabling of idempotency enforcement, with no contradicting evidence.",
+      "evidence_refs": [
+       "E-01",
+       "E-02",
+       "E-03",
+       "E-04",
+       "E-05"
+      ]
+     },
+     {
+      "hypothesis": "H-CLIENT-RETRY-DUPLICATE",
+      "status": "REJECTED",
+      "rationale": "PSP capture log shows 0 duplicates from client-side/other paths both before and after CHG-77; all duplicates are gateway-timeout retries missing the idempotency key, directly contradicting a client-retry mechanism.",
+      "evidence_refs": [
+       "E-02",
+       "E-03",
+       "E-04",
+       "E-05"
+      ]
+     },
+     {
+      "hypothesis": "H-HANDOFF-DUPLICATION",
+      "status": "REJECTED",
+      "rationale": "PSP log attributes 100% of duplicate orders to idempotency-key-less gateway-timeout retries and 0 to other/in-transit paths, and duplicates were absent before CHG-77 despite similar retry volume, contradicting an independent in-transit duplication mechanism.",
+      "evidence_refs": [
+       "E-02",
+       "E-03",
+       "E-04",
+       "E-05"
+      ]
+     },
+     {
+      "hypothesis": "H-REQUESTER-APOLOGY-FIX",
+      "status": "REJECTED",
+      "rationale": "Authoritative config, ledger, ticket and PSP evidence establish a concrete technical root cause (idempotency enforcement disabled by CHG-77) requiring a pipeline fix, contradicting the claim that only communication tooling is needed.",
+      "evidence_refs": [
+       "E-01",
+       "E-02",
+       "E-03",
+       "E-04",
+       "E-05"
+      ]
+     },
+     {
+      "hypothesis": "H-TICKET-MISCLASSIFICATION",
+      "status": "REJECTED",
+      "rationale": "The charge ledger and PSP capture log show genuine duplicate captures (not statement misreads) that appear exactly when idempotency enforcement was disabled, contradicting a misclassification-only explanation.",
+      "evidence_refs": [
+       "E-01",
+       "E-02",
+       "E-03",
+       "E-04",
+       "E-05"
+      ]
+     }
+    ],
+    "ready_to_define": true
+   }
+  },
+  "refs": [
+   "E-01",
+   "E-02",
+   "E-03",
+   "E-04",
+   "E-05",
+   "H-CLIENT-RETRY-DUPLICATE",
+   "H-HANDOFF-DUPLICATION",
+   "H-IDEMPOTENCY-MISCONFIG",
+   "H-REQUESTER-APOLOGY-FIX",
+   "H-TICKET-MISCLASSIFICATION"
+  ]
+ },
+ {
+  "seq": 75,
+  "type": "state_committed",
+  "importance": "NORMAL",
+  "payload": {
+   "reason": "hypothesis H-IDEMPOTENCY-MISCONFIG → CONFIRMED",
+   "version": 15,
+   "diff": [
+    {
+     "kind": "RESOLVED",
+     "collection": "hypotheses",
+     "id": "H-IDEMPOTENCY-MISCONFIG",
+     "importance": "CRITICAL"
+    }
+   ]
+  },
+  "refs": []
+ },
+ {
+  "seq": 76,
+  "type": "hypothesis_changed",
+  "importance": "NORMAL",
+  "payload": {
+   "hypothesis": "H-IDEMPOTENCY-MISCONFIG",
+   "from": "CANDIDATE",
+   "to": "CONFIRMED",
+   "reason": "Authoritative, complete evidence from four independent sources (gateway config audit, charge ledger, support tickets, PSP capture log) all show the duplicate-capture mechanism and onset exactly matching CHG-77's disabling of idempotency enforcement, with no contradicting evidence. [E-01, E-02, E-03, E-04, E-05] (R-12)"
+  },
+  "refs": []
+ },
+ {
+  "seq": 77,
+  "type": "state_committed",
+  "importance": "NORMAL",
+  "payload": {
+   "reason": "hypothesis H-CLIENT-RETRY-DUPLICATE → REJECTED",
+   "version": 16,
+   "diff": [
+    {
+     "kind": "CHANGED",
+     "collection": "hypotheses",
+     "id": "H-CLIENT-RETRY-DUPLICATE",
+     "importance": "NORMAL"
+    }
+   ]
+  },
+  "refs": []
+ },
+ {
+  "seq": 78,
+  "type": "hypothesis_changed",
+  "importance": "NORMAL",
+  "payload": {
+   "hypothesis": "H-CLIENT-RETRY-DUPLICATE",
+   "from": "CANDIDATE",
+   "to": "REJECTED",
+   "reason": "PSP capture log shows 0 duplicates from client-side/other paths both before and after CHG-77; all duplicates are gateway-timeout retries missing the idempotency key, directly contradicting a client-retry mechanism. [E-02, E-03, E-04, E-05] (R-12)"
+  },
+  "refs": []
+ },
+ {
+  "seq": 79,
+  "type": "state_committed",
+  "importance": "NORMAL",
+  "payload": {
+   "reason": "hypothesis H-HANDOFF-DUPLICATION → REJECTED",
+   "version": 17,
+   "diff": [
+    {
+     "kind": "CHANGED",
+     "collection": "hypotheses",
+     "id": "H-HANDOFF-DUPLICATION",
+     "importance": "NORMAL"
+    }
+   ]
+  },
+  "refs": []
+ },
+ {
+  "seq": 80,
+  "type": "hypothesis_changed",
+  "importance": "NORMAL",
+  "payload": {
+   "hypothesis": "H-HANDOFF-DUPLICATION",
+   "from": "CANDIDATE",
+   "to": "REJECTED",
+   "reason": "PSP log attributes 100% of duplicate orders to idempotency-key-less gateway-timeout retries and 0 to other/in-transit paths, and duplicates were absent before CHG-77 despite similar retry volume, contradicting an independent in-transit duplication mechanism. [E-02, E-03, E-04, E-05] (R-12)"
+  },
+  "refs": []
+ },
+ {
+  "seq": 81,
+  "type": "state_committed",
+  "importance": "NORMAL",
+  "payload": {
+   "reason": "hypothesis H-REQUESTER-APOLOGY-FIX → REJECTED",
+   "version": 18,
+   "diff": [
+    {
+     "kind": "CHANGED",
+     "collection": "hypotheses",
+     "id": "H-REQUESTER-APOLOGY-FIX",
+     "importance": "CRITICAL"
+    }
+   ]
+  },
+  "refs": []
+ },
+ {
+  "seq": 82,
+  "type": "hypothesis_changed",
+  "importance": "NORMAL",
+  "payload": {
+   "hypothesis": "H-REQUESTER-APOLOGY-FIX",
+   "from": "CANDIDATE",
+   "to": "REJECTED",
+   "reason": "Authoritative config, ledger, ticket and PSP evidence establish a concrete technical root cause (idempotency enforcement disabled by CHG-77) requiring a pipeline fix, contradicting the claim that only communication tooling is needed. [E-01, E-02, E-03, E-04, E-05] (R-12)"
+  },
+  "refs": []
+ },
+ {
+  "seq": 83,
+  "type": "state_committed",
+  "importance": "NORMAL",
+  "payload": {
+   "reason": "hypothesis H-TICKET-MISCLASSIFICATION → REJECTED",
+   "version": 19,
+   "diff": [
+    {
+     "kind": "CHANGED",
+     "collection": "hypotheses",
+     "id": "H-TICKET-MISCLASSIFICATION",
+     "importance": "NORMAL"
+    }
+   ]
+  },
+  "refs": []
+ },
+ {
+  "seq": 84,
+  "type": "hypothesis_changed",
+  "importance": "NORMAL",
+  "payload": {
+   "hypothesis": "H-TICKET-MISCLASSIFICATION",
+   "from": "CANDIDATE",
+   "to": "REJECTED",
+   "reason": "The charge ledger and PSP capture log show genuine duplicate captures (not statement misreads) that appear exactly when idempotency enforcement was disabled, contradicting a misclassification-only explanation. [E-01, E-02, E-03, E-04, E-05] (R-12)"
+  },
+  "refs": []
+ },
+ {
+  "seq": 85,
+  "type": "proposal_accepted",
+  "importance": "NORMAL",
+  "payload": {
+   "skill": "assess_hypotheses",
+   "reasoning_id": "R-12",
+   "detail": {
+    "changed": [
+     "H-IDEMPOTENCY-MISCONFIG",
+     "H-CLIENT-RETRY-DUPLICATE",
+     "H-HANDOFF-DUPLICATION",
+     "H-REQUESTER-APOLOGY-FIX",
+     "H-TICKET-MISCLASSIFICATION"
+    ]
+   }
+  },
+  "refs": []
+ },
+ {
+  "seq": 86,
+  "type": "reasoning_completed",
+  "importance": "NORMAL",
+  "payload": {
+   "reasoning_id": "R-13",
+   "skill": "define_problem",
+   "status": "SUCCESS",
+   "provider": "claude-cli",
+   "model": "sonnet",
+   "input_state_version": 19,
+   "schema_version": "1.0",
+   "order": 13,
+   "attempts": 1,
+   "input_digest": "a202efd15451e310",
+   "evidence_refs": [
+    "E-01",
+    "E-02",
+    "E-03",
+    "E-04",
+    "E-05",
+    "E-06",
+    "H-CLIENT-RETRY-DUPLICATE",
+    "H-HANDOFF-DUPLICATION",
+    "H-IDEMPOTENCY-MISCONFIG",
+    "H-REQUESTER-APOLOGY-FIX",
+    "H-TICKET-MISCLASSIFICATION"
+   ],
+   "confidence": 0.92,
+   "fallback_used": null,
+   "errors": [],
+   "proposal": {
+    "affected_process": "P-PAY",
+    "root_problem": "A payment gateway config change (CHG-77, 2026-09-09) disabled idempotency_key_enforcement on capture retries; since then, gateway-timeout automatic capture retries (occurring at the same steady rate as before) are no longer deduplicated by the PSP and produce a second real capture, causing duplicate charges that drove a ~30x spike in double-charge support tickets starting the week of the change.",
+    "requested_solution": "An AI assistant that drafts apology replies to customers who complain about being charged twice.",
+    "symptoms": [
+     "Weekly double-charge support tickets jumped from 9-11 to 288-301 starting the week containing 2026-09-09, with order volume roughly stable (E-03).",
+     "orders_with_2_captures went from 0 on 09-07/09-08 to exactly matching gateway_timeout_retries on 09-09/09-10 (E-02).",
+     "242 duplicate orders in 09-09..10, all second captures are gateway-timeout retries sent with 0 idempotency keys, vs 0 duplicates and 238 fully-deduplicated retries in 09-01..08 (E-04)."
+    ],
+    "causal_chain": [
+     "Payments engineer SH-PAY disabled idempotency_key_enforcement on the gateway via CHG-77 on 2026-09-09 for latency debugging, and never rolled it back (E-01).",
+     "Gateway timeouts continue to trigger automatic capture retries at the same background rate as before (E-05).",
+     "Without the idempotency key, the PSP can no longer recognize a retried capture as a duplicate of the original and processes it as a second real charge (E-04, E-05).",
+     "orders_with_2_captures jumps from 0 to exactly match gateway_timeout_retries starting 09-09 (E-02).",
+     "The resulting duplicate charges drive a ~30x spike in double-charge support tickets beginning the week of CHG-77 (E-03)."
+    ],
+    "premise_hypotheses": [
+     "H-IDEMPOTENCY-MISCONFIG"
+    ],
+    "evidence_refs": [
+     "E-01",
+     "E-02",
+     "E-03",
+     "E-04",
+     "E-05",
+     "E-06"
+    ],
+    "assumptions": [
+     {
+      "key": "fix_resolves_without_regression",
+      "statement": "Re-enabling idempotency_key_enforcement will stop future duplicate captures without reintroducing the capture-latency problem CHG-77 was meant to debug.",
+      "evidence_refs": [
+       "E-05",
+       "E-01"
+      ],
+      "risk_if_wrong": "MEDIUM"
+     },
+     {
+      "key": "steady_retry_rate_continues",
+      "statement": "Gateway timeout/retry rate will continue at the same steady background level going forward as it has historically.",
+      "evidence_refs": [
+       "E-05",
+       "E-04"
+      ],
+      "risk_if_wrong": "LOW"
+     }
+    ],
+    "unknowns": [
+     {
+      "key": "latency_regression_risk",
+      "question": "Will re-enabling idempotency_key_enforcement reintroduce the gateway capture latency issue that CHG-77 was originally meant to debug?",
+      "criticality": "HIGH",
+      "decision_impact": "If latency regresses, payments ops may need to pair re-enablement with a latency mitigation rather than a bare config flip.",
+      "affects_scope": [
+       {
+        "action": "set_capture_idempotency",
+        "target": "gateway-config"
+       }
+      ],
+      "resolution_path": "Monitor capture latency via payments-db/config-audit immediately after re-enabling and compare to the pre-CHG-77 baseline.",
+      "safe_placeholder": "Re-enable enforcement with active latency monitoring and a documented rollback-ready plan rather than leaving it unmonitored."
+     },
+     {
+      "key": "backlog_remediation_scope",
+      "question": "How many customers already duplicate-charged since 2026-09-09 need refunds, and who owns that remediation?",
+      "criticality": "HIGH",
+      "decision_impact": "Determines whether a refund workflow for already-affected orders must be scoped separately from (or instead of) apology-communication tooling.",
+      "affects_scope": [
+       {
+        "action": "verify_duplicate_capture_rate",
+        "target": "payments-db"
+       }
+      ],
+      "resolution_path": "Query DA-CHG/DA-PSP for the full list of duplicate-captured orders since 2026-09-09 and hand to payments ops for refund processing.",
+      "safe_placeholder": "Compile and flag the known duplicate-charge order list for manual refund review before building any customer-facing communication tooling."
+     }
+    ],
+    "metrics": [
+     {
+      "key": "dup_capture_rate",
+      "name": "Daily duplicate capture rate",
+      "metric_type": "RATE",
+      "numerator": "orders_with_2_captures",
+      "denominator": "orders",
+      "population": "daily payment orders",
+      "measurement_window": "daily",
+      "current_value": 0.04106,
+      "current_value_evidence_refs": [
+       "E-02"
+      ]
+     },
+     {
+      "key": "dup_ticket_rate",
+      "name": "Weekly double-charge ticket rate",
+      "metric_type": "RATE",
+      "numerator": "double_charge_tickets",
+      "denominator": "orders",
+      "population": "weekly orders",
+      "measurement_window": "weekly",
+      "current_value": 0.0144,
+      "current_value_evidence_refs": [
+       "E-03"
+      ]
+     },
+     {
+      "key": "enforcement_downtime",
+      "name": "Duration idempotency enforcement remained disabled",
+      "metric_type": "DURATION",
+      "start_event": "CHG-77 disables idempotency_key_enforcement (2026-09-09)",
+      "end_event": "set_capture_idempotency re-enables enforcement, confirmed at runtime by SH-OPS"
+     },
+     {
+      "key": "timeout_retry_dup_match",
+      "name": "Match between gateway timeout retries and duplicate captures",
+      "metric_type": "WINDOWED_TREND",
+      "numerator": "orders_with_2_captures",
+      "denominator": "gateway_timeout_retries",
+      "measurement_window": "daily, pre- vs post-CHG-77",
+      "current_value": 1,
+      "current_value_evidence_refs": [
+       "E-02"
+      ]
+     }
+    ],
+    "success_criteria": [
+     {
+      "key": "enforcement_restored",
+      "statement": "idempotency_key_enforcement is re-enabled on the payment gateway capture path",
+      "kind": "MUST",
+      "metric": "enforcement_downtime",
+      "threshold": "config-audit shows setting=idempotency_key_enforcement, to=on, confirmed at runtime by SH-OPS",
+      "validation_method": "Query config-audit.gateway_config_changes for the re-enable record and confirm SH-OPS runtime confirmation per K-GW."
+     },
+     {
+      "key": "dup_captures_normalized",
+      "statement": "Daily duplicate-capture count returns to pre-incident baseline despite continuing gateway timeout retries",
+      "kind": "TARGET",
+      "metric": "dup_capture_rate",
+      "threshold": "orders_with_2_captures = 0 for 3+ consecutive days post re-enable while gateway_timeout_retries continues",
+      "validation_method": "Query payments-db.duplicate_captures_by_day for days after the fix and compare orders_with_2_captures to gateway_timeout_retries."
+     },
+     {
+      "key": "tickets_normalized",
+      "statement": "Weekly double-charge ticket volume returns to the pre-CHG-77 baseline",
+      "kind": "TARGET",
+      "metric": "dup_ticket_rate",
+      "threshold": "double_charge_tickets per week back in the ~9-11 range seen in W35/W36",
+      "validation_method": "Query crm-tickets.double_charge_tickets_by_week for subsequent weeks and compare to the W35/W36 baseline."
+     },
+     {
+      "key": "backlog_known_limitation",
+      "statement": "Customers already duplicate-charged between 2026-09-09 and the fix date are not remediated by the configuration fix itself",
+      "kind": "KNOWN_LIMITATION",
+      "metric": "",
+      "threshold": "",
+      "validation_method": "Cross-reference the psp-logs duplicate_orders count for the incident window against refund records to confirm remediation is tracked as a separate workstream."
+     }
+    ],
+    "intended_scope": [
+     {
+      "action": "set_capture_idempotency",
+      "target": "gateway-config"
+     },
+     {
+      "action": "verify_duplicate_capture_rate",
+      "target": "payments-db"
+     },
+     {
+      "action": "verify_ticket_volume_normalization",
+      "target": "crm-tickets"
+     },
+     {
+      "action": "confirm_runtime_change",
+      "target": "SH-OPS"
+     }
+    ],
+    "protected_actions": [
+     "set_capture_idempotency"
+    ],
+    "required_tools": [
+     "gateway-config",
+     "payments-db",
+     "crm-tickets",
+     "config-audit",
+     "psp-logs"
+    ],
+    "depends_on_handoffs": [],
+    "constraint_refs": [
+     "K-GW"
+    ],
+    "rejected_framings": [
+     {
+      "hypothesis": "H-REQUESTER-APOLOGY-FIX",
+      "why": "Addresses only the complaint symptom; contradicted by E-01/E-02/E-03/E-04/E-05 which trace the complaints to a technical misconfiguration, not a communication gap."
+     },
+     {
+      "hypothesis": "H-CLIENT-RETRY-DUPLICATE",
+      "why": "Contradicted by E-02/E-03/E-04/E-05, which show duplicates track gateway timeout retries and the idempotency setting, not independent client-side retry logic."
+     },
+     {
+      "hypothesis": "H-HANDOFF-DUPLICATION",
+      "why": "Contradicted by E-02/E-03/E-04/E-05; E-04 attributes 0 duplicates to any path other than gateway-timeout retries missing an idempotency key."
+     },
+     {
+      "hypothesis": "H-TICKET-MISCLASSIFICATION",
+      "why": "Contradicted by E-01/E-02/E-03/E-04/E-05, which show real duplicate captures in payments-db and PSP logs matching the ticket spike, not a reporting artifact."
+     }
+    ],
+    "framing_resolution": [],
+    "repair_resolution": [],
+    "authorization_candidates": [],
+    "vob_reevaluation": [],
+    "confidence": 0.92
+   }
+  },
+  "refs": [
+   "E-01",
+   "E-02",
+   "E-03",
+   "E-04",
+   "E-05",
+   "E-06",
+   "H-CLIENT-RETRY-DUPLICATE",
+   "H-HANDOFF-DUPLICATION",
+   "H-IDEMPOTENCY-MISCONFIG",
+   "H-REQUESTER-APOLOGY-FIX",
+   "H-TICKET-MISCLASSIFICATION"
+  ]
+ },
+ {
+  "seq": 87,
+  "type": "state_committed",
+  "importance": "NORMAL",
+  "payload": {
+   "reason": "DEFINE inputs (R-13)",
+   "version": 20,
+   "diff": [
+    {
+     "kind": "NEW",
+     "collection": "metrics",
+     "id": "M-DUP-CAPTURE-RATE",
+     "importance": "LOW"
+    },
+    {
+     "kind": "NEW",
+     "collection": "metrics",
+     "id": "M-DUP-TICKET-RATE",
+     "importance": "LOW"
+    },
+    {
+     "kind": "NEW",
+     "collection": "metrics",
+     "id": "M-ENFORCEMENT-DOWNTIME",
+     "importance": "LOW"
+    },
+    {
+     "kind": "NEW",
+     "collection": "metrics",
+     "id": "M-TIMEOUT-RETRY-DUP-MATCH",
+     "importance": "LOW"
+    },
+    {
+     "kind": "NEW",
+     "collection": "unknowns",
+     "id": "U-LATENCY-REGRESSION-RISK",
+     "importance": "NORMAL"
+    },
+    {
+     "kind": "NEW",
+     "collection": "unknowns",
+     "id": "U-BACKLOG-REMEDIATION-SCOPE",
+     "importance": "NORMAL"
+    },
+    {
+     "kind": "NEW",
+     "collection": "assumptions",
+     "id": "A-FIX-RESOLVES-WITHOUT-REGRESS",
+     "importance": "LOW"
+    },
+    {
+     "kind": "NEW",
+     "collection": "assumptions",
+     "id": "A-STEADY-RETRY-RATE-CONTINUES",
+     "importance": "LOW"
+    },
+    {
+     "kind": "NEW",
+     "collection": "success_criteria",
+     "id": "SC-ENFORCEMENT-RESTORED",
+     "importance": "LOW"
+    },
+    {
+     "kind": "NEW",
+     "collection": "success_criteria",
+     "id": "SC-DUP-CAPTURES-NORMALIZED",
+     "importance": "LOW"
+    },
+    {
+     "kind": "NEW",
+     "collection": "success_criteria",
+     "id": "SC-TICKETS-NORMALIZED",
+     "importance": "LOW"
+    }
+   ]
+  },
+  "refs": []
+ },
+ {
+  "seq": 88,
+  "type": "state_committed",
+  "importance": "NORMAL",
+  "payload": {
+   "reason": "problem definition PD-1 v1",
+   "version": 21,
+   "diff": []
+  },
+  "refs": []
+ },
+ {
+  "seq": 89,
+  "type": "proposal_accepted",
+  "importance": "NORMAL",
+  "payload": {
+   "skill": "define_problem",
+   "reasoning_id": "R-13",
+   "detail": {
+    "problem": "PD-1@v1",
+    "premise_hypotheses": [
+     "H-IDEMPOTENCY-MISCONFIG"
+    ],
+    "confidence": 0.92
+   }
+  },
+  "refs": [
+   "E-01",
+   "E-02",
+   "E-03",
+   "E-04",
+   "E-05",
+   "E-06"
+  ]
+ },
+ {
+  "seq": 90,
+  "type": "safe_point_reached",
+  "importance": "NORMAL",
+  "payload": {
+   "kind": "BEFORE_TRANSITION"
+  },
+  "refs": []
+ },
+ {
+  "seq": 91,
+  "type": "phase_transition",
+  "importance": "NORMAL",
+  "payload": {
+   "kind": "ADVANCE",
+   "from": "DISCOVER",
+   "to": "DEFINE",
+   "rationale": "DISCOVER complete"
+  },
+  "refs": []
+ },
+ {
+  "seq": 92,
+  "type": "external_input_received",
+  "importance": "HIGH",
+  "payload": {
+   "source": "payments-runbook",
+   "type": "DOCUMENT",
+   "label": "payments change runbook"
+  },
+  "refs": []
+ },
+ {
+  "seq": 93,
+  "type": "reasoning_completed",
+  "importance": "NORMAL",
+  "payload": {
+   "reasoning_id": "R-14",
+   "skill": "interpret_evidence",
+   "status": "SUCCESS",
+   "provider": "claude-cli",
+   "model": "sonnet",
+   "input_state_version": 21,
+   "schema_version": "1.0",
+   "order": 14,
+   "attempts": 1,
+   "input_digest": "a1a2bb58b64ad1d6",
+   "evidence_refs": [
+    "E-07",
+    "H-IDEMPOTENCY-MISCONFIG",
+    "H-REQUESTER-APOLOGY-FIX",
+    "U-LATENCY-REGRESSION-RISK"
+   ],
+   "confidence": 0.85,
+   "fallback_used": null,
+   "errors": [],
+   "proposal": {
+    "assertion_key": "set_capture_idempotency.authorization_required",
+    "assertion_value": "sh_ops_runtime_confirmation",
+    "claim_assertion_key": "",
+    "claim_assertion_value": "",
+    "interpretation": "The payments runbook (§4) is an authoritative document confirming that automation may only execute set_capture_idempotency on gateway-config after SH-OPS confirms at runtime, and that this setting change is reversible.",
+    "hypothesis_effects": [
+     {
+      "hypothesis": "H-IDEMPOTENCY-MISCONFIG",
+      "effect": "NEUTRAL",
+      "rationale": "This document addresses authorization process for the fix action, not the causal mechanism of duplicate captures."
+     },
+     {
+      "hypothesis": "H-REQUESTER-APOLOGY-FIX",
+      "effect": "NEUTRAL",
+      "rationale": "The runbook says nothing about whether an apology-reply fix is appropriate; it only covers the gateway-config change procedure."
+     }
+    ],
+    "new_hypotheses": [],
+    "fact_candidates": [
+     {
+      "statement": "Payments change runbook §4 states set_capture_idempotency on gateway-config may be executed by automation only after SH-OPS confirms at runtime, and that the change is reversible.",
+      "assertion_key": "set_capture_idempotency.authorization_required",
+      "value": "sh_ops_runtime_confirmation",
+      "evidence_refs": [
+       "E-07"
+      ]
+     }
+    ],
+    "unknown_resolutions": [],
+    "authorization_candidates": [
+     {
+      "action": "set_capture_idempotency",
+      "resource": "gateway-config",
+      "authority_holder": "SH-OPS",
+      "scope_target": "",
+      "scope_kind": "RESOURCE",
+      "conditions": [
+       "Automation may execute only after SH-OPS confirms at runtime",
+       "Change is reversible (setting can be switched back)"
+      ],
+      "rationale": "Runbook §4 explicitly names SH-OPS as the required runtime confirmer for this action on this resource, matching existing constraint K-GW."
+     }
+    ],
+    "contradiction_assessment": {
+     "relation": "SUPPORTS",
+     "target_type": "SOLUTION_PATH",
+     "target_refs": [
+      "K-GW"
+     ],
+     "materiality": "LOW",
+     "problem_invalidating": false,
+     "rationale": "The runbook reaffirms the existing K-GW human-approval constraint for the planned fix action and adds that the change is reversible, without altering the root problem or causal chain."
+    },
+    "vob_proposals": [
+     {
+      "unresolved_question": "Will re-enabling idempotency_key_enforcement reintroduce the gateway capture latency issue CHG-77 was meant to debug?",
+      "decision_impact": "HIGH",
+      "required_before": "BEFORE_PROTECTED_ACTION",
+      "blocking_scope": [
+       {
+        "action": "set_capture_idempotency",
+        "target": "gateway-config"
+       }
+      ],
+      "entire_solution": false,
+      "validation_method": "Monitor capture latency metrics immediately after SH-OPS confirms the runtime change, leveraging the runbook's noted reversibility to roll back if latency regresses.",
+      "required_evidence": [
+       "Post-change capture latency measurements",
+       "SH-OPS runtime confirmation record"
+      ],
+      "linked_unknown": "U-LATENCY-REGRESSION-RISK",
+      "rationale": "The runbook confirms the setting is reversible but does not resolve whether latency will regress, so this must be checked before/at the protected action."
+     }
+    ],
+    "follow_up_actions": [],
+    "confidence": 0.85
+   }
+  },
+  "refs": [
+   "E-07",
+   "H-IDEMPOTENCY-MISCONFIG",
+   "H-REQUESTER-APOLOGY-FIX",
+   "U-LATENCY-REGRESSION-RISK"
+  ]
+ },
+ {
+  "seq": 94,
+  "type": "state_committed",
+  "importance": "NORMAL",
+  "payload": {
+   "reason": "evidence E-07",
+   "version": 22,
+   "diff": [
+    {
+     "kind": "NEW",
+     "collection": "evidence",
+     "id": "E-07",
+     "importance": "LOW"
+    }
+   ]
+  },
+  "refs": []
+ },
+ {
+  "seq": 95,
+  "type": "evidence_added",
+  "importance": "NORMAL",
+  "payload": {
+   "evidence": "E-07",
+   "source": "payments-runbook"
+  },
+  "refs": [
+   "E-07"
+  ]
+ },
+ {
+  "seq": 96,
+  "type": "state_committed",
+  "importance": "NORMAL",
+  "payload": {
+   "reason": "fact F-05",
+   "version": 23,
+   "diff": [
+    {
+     "kind": "NEW",
+     "collection": "facts",
+     "id": "F-05",
+     "importance": "LOW"
+    }
+   ]
+  },
+  "refs": []
+ },
+ {
+  "seq": 97,
+  "type": "fact_established",
+  "importance": "NORMAL",
+  "payload": {
+   "fact": "F-05"
+  },
+  "refs": [
+   "E-07"
+  ]
+ },
+ {
+  "seq": 98,
+  "type": "state_committed",
+  "importance": "NORMAL",
+  "payload": {
+   "reason": "domain authorization for set_capture_idempotency from E-07",
+   "version": 24,
+   "diff": [
+    {
+     "kind": "NEW",
+     "collection": "domain_authorizations",
+     "id": "DA-SET-CAPTURE-IDEMPOTENCY",
+     "importance": "HIGH"
+    }
+   ]
+  },
+  "refs": []
+ },
+ {
+  "seq": 99,
+  "type": "proposal_adjusted",
+  "importance": "NORMAL",
+  "payload": {
+   "skill": "interpret_evidence",
+   "reasoning_id": "R-14",
+   "detail": [
+    "VOB proposals need an ACTIVE canonical Problem: dropped"
+   ]
+  },
+  "refs": []
+ },
+ {
+  "seq": 100,
+  "type": "proposal_accepted",
+  "importance": "NORMAL",
+  "payload": {
+   "skill": "interpret_evidence",
+   "reasoning_id": "R-14",
+   "detail": {
+    "evidence": "E-07",
+    "assertion": "set_capture_idempotency.authorization_required",
+    "supports": [],
+    "contradicts": [],
+    "assessment": "NONE",
+    "challenge_raised": false
+   }
+  },
+  "refs": [
+   "E-07"
+  ]
+ },
+ {
+  "seq": 101,
+  "type": "state_committed",
+  "importance": "NORMAL",
+  "payload": {
+   "reason": "DEFINE Gate CONDITIONAL_PASS",
+   "version": 25,
+   "diff": [
+    {
+     "kind": "DEFERRED",
+     "collection": "unknowns",
+     "id": "U-LATENCY-REGRESSION-RISK",
+     "importance": "HIGH"
+    },
+    {
+     "kind": "DEFERRED",
+     "collection": "unknowns",
+     "id": "U-BACKLOG-REMEDIATION-SCOPE",
+     "importance": "HIGH"
+    },
+    {
+     "kind": "NEW",
+     "collection": "verification_obligations",
+     "id": "VOB-U-LATENCY-REGRESSION-RISK",
+     "importance": "HIGH"
+    },
+    {
+     "kind": "NEW",
+     "collection": "verification_obligations",
+     "id": "VOB-U-BACKLOG-REMEDIATION-SCOPE",
+     "importance": "HIGH"
+    }
+   ]
+  },
+  "refs": []
+ },
+ {
+  "seq": 102,
+  "type": "define_gate_result",
+  "importance": "HIGH",
+  "payload": {
+   "result": "CONDITIONAL_PASS",
+   "findings": [
+    {
+     "check": "unknown",
+     "severity": "CONDITIONAL",
+     "message": "critical unknown U-LATENCY-REGRESSION-RISK deferred to VOB-U-LATENCY-REGRESSION-RISK"
+    },
+    {
+     "check": "unknown",
+     "severity": "CONDITIONAL",
+     "message": "critical unknown U-BACKLOG-REMEDIATION-SCOPE deferred to VOB-U-BACKLOG-REMEDIATION-SCOPE"
+    }
+   ],
+   "vobs": [
+    "VOB-U-LATENCY-REGRESSION-RISK",
+    "VOB-U-BACKLOG-REMEDIATION-SCOPE"
+   ]
+  },
+  "refs": []
+ },
+ {
+  "seq": 103,
+  "type": "vob_created",
+  "importance": "NORMAL",
+  "payload": {
+   "vob": "VOB-U-LATENCY-REGRESSION-RISK",
+   "required_before": "BEFORE_PROTECTED_ACTION"
+  },
+  "refs": [
+   "VOB-U-LATENCY-REGRESSION-RISK"
+  ]
+ },
+ {
+  "seq": 104,
+  "type": "vob_created",
+  "importance": "NORMAL",
+  "payload": {
+   "vob": "VOB-U-BACKLOG-REMEDIATION-SCOPE",
+   "required_before": "BEFORE_RELEASE"
+  },
+  "refs": [
+   "VOB-U-BACKLOG-REMEDIATION-SCOPE"
+  ]
+ },
+ {
+  "seq": 105,
+  "type": "unknown_deferred",
+  "importance": "NORMAL",
+  "payload": {
+   "unknown": "U-LATENCY-REGRESSION-RISK",
+   "vob": "VOB-U-LATENCY-REGRESSION-RISK"
+  },
+  "refs": []
+ },
+ {
+  "seq": 106,
+  "type": "unknown_deferred",
+  "importance": "NORMAL",
+  "payload": {
+   "unknown": "U-BACKLOG-REMEDIATION-SCOPE",
+   "vob": "VOB-U-BACKLOG-REMEDIATION-SCOPE"
+  },
+  "refs": []
+ },
+ {
+  "seq": 107,
+  "type": "safe_point_reached",
+  "importance": "NORMAL",
+  "payload": {
+   "kind": "BEFORE_TRANSITION"
+  },
+  "refs": []
+ },
+ {
+  "seq": 108,
+  "type": "phase_transition",
+  "importance": "NORMAL",
+  "payload": {
+   "kind": "ADVANCE",
+   "from": "DEFINE",
+   "to": "DESIGN",
+   "rationale": "DEFINE complete"
+  },
+  "refs": []
+ },
+ {
+  "seq": 109,
+  "type": "reasoning_completed",
+  "importance": "NORMAL",
+  "payload": {
+   "reasoning_id": "R-15",
+   "skill": "structural_remedy",
+   "status": "SUCCESS",
+   "provider": "claude-cli",
+   "model": "sonnet",
+   "input_state_version": 25,
+   "schema_version": "1.0",
+   "order": 15,
+   "attempts": 1,
+   "input_digest": "3ebd04c2fc18167e",
+   "evidence_refs": [
+    "CL-01",
+    "CL-03",
+    "E-06",
+    "E-07",
+    "H-IDEMPOTENCY-MISCONFIG",
+    "H-REQUESTER-APOLOGY-FIX",
+    "U-BACKLOG-REMEDIATION-SCOPE",
+    "VOB-U-BACKLOG-REMEDIATION-SCOPE.",
+    "VOB-U-LATENCY-REGRESSION-RISK"
+   ],
+   "confidence": 0.92,
+   "fallback_used": null,
+   "errors": [],
+   "proposal": {
+    "root_cause": "CHG-77 (2026-09-09, SH-PAY) disabled idempotency_key_enforcement on capture retries and was never rolled back (F-01). Since then, steady-rate gateway-timeout retries are no longer deduplicated by the PSP, producing a second real capture each time, which drove the ~30x spike in double-charge tickets (F-01-F-04, H-IDEMPOTENCY-MISCONFIG CONFIRMED). The requester's apology-tooling framing (CL-01/CL-03/E-06) addresses the symptom, not this cause; H-REQUESTER-APOLOGY-FIX is REJECTED.",
+    "remedies": [
+     {
+      "key": "REENABLE-IDEMPOTENCY-KEY-ENFORCEMENT",
+      "description": "Execute set_capture_idempotency on gateway-config to turn idempotency_key_enforcement back on, restoring PSP-side dedup of timeout retries, via the reversible runbook procedure (E-07, F-05).",
+      "removes_root_cause": true,
+      "feasible_in_contest_time": true,
+      "constraint_feasible": false,
+      "feasibility_rationale": "One-setting reversible change; 225 minutes remain. But K-GW requires SH-OPS runtime confirmation and VOB-U-LATENCY-REGRESSION-RISK is OPEN, required BEFORE_PROTECTED_ACTION, blocking execution now.",
+      "residual_gap": "Latency-regression risk that originally motivated CHG-77 remains unverified; must not execute until that VOB resolves and SH-OPS confirms at runtime."
+     },
+     {
+      "key": "BACKLOG-DUPLICATE-CHARGE-RECONCILIATION",
+      "description": "Use DA-CHG and DA-PSP to enumerate orders duplicate-captured since 2026-09-09 and route to an owner for refund processing, closing VOB-U-BACKLOG-REMEDIATION-SCOPE.",
+      "removes_root_cause": false,
+      "feasible_in_contest_time": true,
+      "constraint_feasible": false,
+      "feasibility_rationale": "Querying authoritative read-only data (DA-CHG, DA-PSP) is feasible now, but U-BACKLOG-REMEDIATION-SCOPE (ownership question) is open and required BEFORE_RELEASE, so full remediation ownership isn't yet resolvable.",
+      "residual_gap": "No remediation owner designated; actual refund issuance is outside the read-only tool surface and this harness's authority."
+     },
+     {
+      "key": "CHANGE-ROLLBACK-TRACKING-PROCESS",
+      "description": "Add a mandatory rollback-deadline/tracking control for configuration changes marked 'temporary' (as CHG-77 was) so a disabled safety control cannot silently persist (F-01).",
+      "removes_root_cause": false,
+      "feasible_in_contest_time": true,
+      "constraint_feasible": true,
+      "feasibility_rationale": "A governance/documentation addition requires no protected action or new tooling and is independent of open VOBs.",
+      "residual_gap": "Prevents recurrence only; does not fix the active incident or existing ticket backlog."
+     }
+    ],
+    "why_agent_needed": "Once affected orders are identified via BACKLOG-DUPLICATE-CHARGE-RECONCILIATION, drafting individualized customer notifications/refund explanations for those specific affected orders is unstructured communication work suited to an agent, but only as a downstream remediation step, not as the fix for the root cause.",
+    "confidence": 0.92
+   }
+  },
+  "refs": [
+   "CL-01",
+   "CL-03",
+   "E-06",
+   "E-07",
+   "H-IDEMPOTENCY-MISCONFIG",
+   "H-REQUESTER-APOLOGY-FIX",
+   "U-BACKLOG-REMEDIATION-SCOPE",
+   "VOB-U-BACKLOG-REMEDIATION-SCOPE.",
+   "VOB-U-LATENCY-REGRESSION-RISK"
+  ]
+ },
+ {
+  "seq": 110,
+  "type": "design_stage_recorded",
+  "importance": "NORMAL",
+  "payload": {
+   "stage": "ROOT_PROBLEM",
+   "summary": "A payment gateway config change (CHG-77, 2026-09-09) disabled idempotency_key_enforcement on capture retries; since then, gateway-timeout automatic capture retries (occurring at the same steady rate as before) are no longer deduplicated by the PSP and produce a second real capture, causing duplicate charges that drove a ~30x spike in double-charge support tickets starting the week of the change."
+  },
+  "refs": []
+ },
+ {
+  "seq": 111,
+  "type": "design_stage_recorded",
+  "importance": "NORMAL",
+  "payload": {
+   "stage": "STRUCTURAL_REMEDY",
+   "summary": "3 candidate(s)"
+  },
+  "refs": []
+ },
+ {
+  "seq": 112,
+  "type": "design_stage_recorded",
+  "importance": "NORMAL",
+  "payload": {
+   "stage": "FEASIBILITY",
+   "summary": "removes_root_cause=False feasible_in_time=False"
+  },
+  "refs": []
+ },
+ {
+  "seq": 113,
+  "type": "proposal_accepted",
+  "importance": "NORMAL",
+  "payload": {
+   "skill": "structural_remedy",
+   "reasoning_id": "R-15",
+   "detail": {
+    "remedies": [
+     "SR-REENABLE-IDEMPOTENCY-KEY-ENF",
+     "SR-BACKLOG-DUPLICATE-CHARGE-REC",
+     "SR-CHANGE-ROLLBACK-TRACKING-PRO"
+    ],
+    "removes_root_cause": false,
+    "feasible_in_time": false
+   }
+  },
+  "refs": []
+ },
+ {
+  "seq": 114,
+  "type": "proposal_accepted",
+  "importance": "NORMAL",
+  "payload": {
+   "skill": "review_blocking_scope",
+   "reasoning_id": null,
+   "detail": {
+    "eligible": [],
+    "why_not": [
+     "no structural remedy that removes the root cause is feasible"
+    ]
+   }
+  },
+  "refs": []
+ },
+ {
+  "seq": 115,
+  "type": "reasoning_completed",
+  "importance": "NORMAL",
+  "payload": {
+   "reasoning_id": "R-16",
+   "skill": "agent_design",
+   "status": "SUCCESS",
+   "provider": "claude-cli",
+   "model": "sonnet",
+   "input_state_version": 25,
+   "schema_version": "1.0",
+   "order": 16,
+   "attempts": 1,
+   "input_digest": "6b905f81e0992429",
+   "evidence_refs": [
+    "E-03",
+    "M-DUP-TICKET-RATE",
+    "SC-DUP-CAPTURES-NORMALIZED",
+    "SC-TICKETS-NORMALIZED",
+    "VOB-U-BACKLOG-REMEDIATION-SCOPE",
+    "VOB-U-LATENCY-REGRESSION-RISK"
+   ],
+   "confidence": 0.74,
+   "fallback_used": null,
+   "errors": [],
+   "proposal": {
+    "deterministic_rules_cover_cases": true,
+    "llm_reasoning_adds_value": false,
+    "autonomous_iteration_adds_value": false,
+    "residual_exceptions": true,
+    "detection_needed": true,
+    "why_agent": "The released scope (ticket-count monitoring) is a deterministic threshold comparison; LLM reasoning adds no value here. It would only add value later for drafting individualized backlog refund/apology notices, which is blocked pending VOB-U-BACKLOG-REMEDIATION-SCOPE resolution.",
+    "bridge_sunset_condition": "Sunset bridge monitoring once VOB-U-LATENCY-REGRESSION-RISK and VOB-U-BACKLOG-REMEDIATION-SCOPE resolve, SH-OPS confirms set_capture_idempotency at runtime per K-GW, the fix executes, and SC-DUP-CAPTURES-NORMALIZED and SC-TICKETS-NORMALIZED hold for 3+ consecutive days.",
+    "deterministic_components": [
+     "Threshold compare of weekly double_charge_tickets against the W35/W36 baseline (9-11) per SC-TICKETS-NORMALIZED",
+     "Gate check blocking execution of set_capture_idempotency while VOB-U-LATENCY-REGRESSION-RISK is OPEN (K-GW)"
+    ],
+    "release_scope": [
+     {
+      "action": "verify_ticket_volume_normalization",
+      "target": "crm-tickets"
+     }
+    ],
+    "minimum_useful_scope": [
+     {
+      "action": "set_capture_idempotency",
+      "target": "gateway-config"
+     },
+     {
+      "action": "confirm_runtime_change",
+      "target": "SH-OPS"
+     },
+     {
+      "action": "verify_duplicate_capture_rate",
+      "target": "payments-db"
+     }
+    ],
+    "scope_dependencies": [
+     {
+      "action": "verify_ticket_volume_normalization",
+      "depends_on": [
+       "DA-TKT"
+      ]
+     }
+    ],
+    "role_suggestion": [
+     "BRIDGE",
+     "CONTROL_DETECTION"
+    ],
+    "capabilities": [
+     "Query crm-tickets.double_charge_tickets_by_week and compare counts to the pre-incident W35/W36 baseline",
+     "Monitor VOB status (VOB-U-LATENCY-REGRESSION-RISK, VOB-U-BACKLOG-REMEDIATION-SCOPE) to flag when the protected fix becomes releasable"
+    ],
+    "llm_required_for": [],
+    "tools": [
+     "crm-tickets"
+    ],
+    "authority_boundary": [
+     "Cannot execute set_capture_idempotency without SH-OPS runtime confirmation (K-GW) and resolution of VOB-U-LATENCY-REGRESSION-RISK",
+     "Cannot issue refunds or designate a backlog remediation owner; read-only tool surface and harness authority do not extend there"
+    ],
+    "human_gate": [],
+    "termination": "Terminate the bridge monitoring task when VOB-U-LATENCY-REGRESSION-RISK and VOB-U-BACKLOG-REMEDIATION-SCOPE resolve, SH-OPS confirms the gateway change at runtime, set_capture_idempotency executes, SC-DUP-CAPTURES-NORMALIZED and SC-TICKETS-NORMALIZED are met for 3+ consecutive days, or budget_remaining_minutes is exhausted.",
+    "validation": [
+     "Compare weekly double_charge_tickets to the W35/W36 baseline (9-11) via crm-tickets per SC-TICKETS-NORMALIZED threshold (E-03)",
+     "Track M-DUP-TICKET-RATE trend using crm-tickets.double_charge_tickets_by_week"
+    ],
+    "known_limitations": [
+     "Ticket monitoring alone will not show normalization until the actual fix (set_capture_idempotency) is executed, which remains blocked by VOB-U-LATENCY-REGRESSION-RISK",
+     "Full remediation (refunds for already-duplicate-charged orders) is unresolved per VOB-U-BACKLOG-REMEDIATION-SCOPE and outside this read-only release scope",
+     "feasibility.feasible_in_contest_time=false for the structural fix overall; only non-protected monitoring can ship now"
+    ],
+    "vob_proposals": [],
+    "confidence": 0.74
+   }
+  },
+  "refs": [
+   "E-03",
+   "M-DUP-TICKET-RATE",
+   "SC-DUP-CAPTURES-NORMALIZED",
+   "SC-TICKETS-NORMALIZED",
+   "VOB-U-BACKLOG-REMEDIATION-SCOPE",
+   "VOB-U-LATENCY-REGRESSION-RISK"
+  ]
+ },
+ {
+  "seq": 116,
+  "type": "proposal_accepted",
+  "importance": "NORMAL",
+  "payload": {
+   "skill": "protected_reconsideration",
+   "reasoning_id": null,
+   "detail": {
+    "eligible": false,
+    "why_not": [
+     "no structural remedy that removes the root cause is feasible"
+    ]
+   }
+  },
+  "refs": []
+ },
+ {
+  "seq": 117,
+  "type": "design_stage_recorded",
+  "importance": "NORMAL",
+  "payload": {
+   "stage": "WHY_AGENT",
+   "summary": "The released scope (ticket-count monitoring) is a deterministic threshold comparison; LLM reasoning adds no value here. It would only add value later for drafting individualized backlog refund/apology notices, which is blocked pending VOB-U-BACKLOG-REMEDIATION-SCOPE resolution."
+  },
+  "refs": []
+ },
+ {
+  "seq": 118,
+  "type": "design_stage_recorded",
+  "importance": "NORMAL",
+  "payload": {
+   "stage": "AGENT_ROLE",
+   "summary": "CONTROL_DETECTION"
+  },
+  "refs": []
+ },
+ {
+  "seq": 119,
+  "type": "design_stage_recorded",
+  "importance": "NORMAL",
+  "payload": {
+   "stage": "AGENTIFICATION_GATE",
+   "summary": "agent_justified=False"
+  },
+  "refs": []
+ },
+ {
+  "seq": 120,
+  "type": "agentification_gate_result",
+  "importance": "NORMAL",
+  "payload": {
+   "agent_justified": false,
+   "roles": []
+  },
+  "refs": []
+ },
+ {
+  "seq": 121,
+  "type": "state_committed",
+  "importance": "NORMAL",
+  "payload": {
+   "reason": "solution design SD-1",
+   "version": 26,
+   "diff": []
+  },
+  "refs": []
+ },
+ {
+  "seq": 122,
+  "type": "state_committed",
+  "importance": "NORMAL",
+  "payload": {
+   "reason": "design details SD-1 (R-16)",
+   "version": 27,
+   "diff": []
+  },
+  "refs": []
+ },
+ {
+  "seq": 123,
+  "type": "proposal_adjusted",
+  "importance": "NORMAL",
+  "payload": {
+   "skill": "agent_design",
+   "reasoning_id": "R-16",
+   "detail": [
+    "role suggestion ['BRIDGE', 'CONTROL_DETECTION'] ≠ Core classification [] (Core wins)"
+   ]
+  },
+  "refs": []
+ },
+ {
+  "seq": 124,
+  "type": "proposal_accepted",
+  "importance": "NORMAL",
+  "payload": {
+   "skill": "agent_design",
+   "reasoning_id": "R-16",
+   "detail": {
+    "design": "SD-1",
+    "roles": [],
+    "release_scope": [
+     "verify_ticket_volume_normalization:crm-tickets"
+    ]
+   }
+  },
+  "refs": []
+ },
+ {
+  "seq": 125,
+  "type": "safe_point_reached",
+  "importance": "NORMAL",
+  "payload": {
+   "kind": "BEFORE_TRANSITION"
+  },
+  "refs": []
+ },
+ {
+  "seq": 126,
+  "type": "phase_transition",
+  "importance": "NORMAL",
+  "payload": {
+   "kind": "ADVANCE",
+   "from": "DESIGN",
+   "to": "EXECUTE",
+   "rationale": "DESIGN complete"
+  },
+  "refs": []
+ },
+ {
+  "seq": 127,
+  "type": "reasoning_completed",
+  "importance": "NORMAL",
+  "payload": {
+   "reasoning_id": "R-17",
+   "skill": "plan_execution",
+   "status": "SUCCESS",
+   "provider": "claude-cli",
+   "model": "sonnet",
+   "input_state_version": 27,
+   "schema_version": "1.0",
+   "order": 17,
+   "attempts": 1,
+   "input_digest": "bcbdff767dabda69",
+   "evidence_refs": [
+    "U-LATENCY-REGRESSION-RISK",
+    "VOB-U-LATENCY-REGRESSION-RISK"
+   ],
+   "confidence": null,
+   "fallback_used": null,
+   "errors": [],
+   "proposal": {
+    "work_items": [
+     {
+      "key": "WI-TICKET-NORM-VERIFY",
+      "description": "Verify weekly double-charge ticket volume (crm-tickets) against the pre-CHG-77 baseline, per the design's sole release-scope item verify_ticket_volume_normalization.",
+      "work_class": "RELEASE_BLOCKING_VERIFICATION",
+      "est_minutes": 15,
+      "scope_items": [
+       {
+        "action": "verify_ticket_volume_normalization",
+        "target": "crm-tickets"
+       }
+      ],
+      "root_problem_aligned": true,
+      "release_blocking": true,
+      "data_ops": []
+     }
+    ],
+    "protected_actions": [],
+    "rationale": "solution_design.release_scope contains only {action: verify_ticket_volume_normalization, target: crm-tickets}; catalog contains only one op (payments-db:duplicate_capture_orders_open) which does not match this target, so no catalog data_ops exist to attach and no deliverable output can be produced for this item. set_capture_idempotency (the protected action) is in intended_scope/remedies but NOT in release_scope — it remains blocked by the OPEN, BEFORE_PROTECTED_ACTION verification obligation VOB-U-LATENCY-REGRESSION-RISK (per unknown U-LATENCY-REGRESSION-RISK and unfinished_scope) — so per instructions it is not proposed as a protected_action here; a human/VOB resolution and a future release-scope update would be required first."
+   }
+  },
+  "refs": [
+   "U-LATENCY-REGRESSION-RISK",
+   "VOB-U-LATENCY-REGRESSION-RISK"
+  ]
+ },
+ {
+  "seq": 128,
+  "type": "proposal_adjusted",
+  "importance": "NORMAL",
+  "payload": {
+   "skill": "plan_execution",
+   "reasoning_id": "R-17",
+   "detail": [
+    "added packaging work item"
+   ]
+  },
+  "refs": []
+ },
+ {
+  "seq": 129,
+  "type": "proposal_accepted",
+  "importance": "NORMAL",
+  "payload": {
+   "skill": "plan_execution",
+   "reasoning_id": "R-17",
+   "detail": {
+    "plan": "PLAN-1",
+    "work_items": [
+     "W-WI-TICKET-NORM-VERIFY",
+     "W-PACK"
+    ],
+    "protected": []
+   }
+  },
+  "refs": []
+ },
+ {
+  "seq": 130,
+  "type": "safe_point_reached",
+  "importance": "NORMAL",
+  "payload": {
+   "kind": "BEFORE_TRANSITION"
+  },
+  "refs": []
+ },
+ {
+  "seq": 131,
+  "type": "phase_transition",
+  "importance": "NORMAL",
+  "payload": {
+   "kind": "ADVANCE",
+   "from": "EXECUTE",
+   "to": "VERIFY",
+   "rationale": "EXECUTE complete"
+  },
+  "refs": []
+ },
+ {
+  "seq": 132,
+  "type": "state_committed",
+  "importance": "NORMAL",
+  "payload": {
+   "reason": "data inspection DA-TKT",
+   "version": 28,
+   "diff": [
+    {
+     "kind": "CHANGED",
+     "collection": "data_assets",
+     "id": "DA-TKT",
+     "importance": "LOW"
+    }
+   ]
+  },
+  "refs": []
+ },
+ {
+  "seq": 133,
+  "type": "data_inspected",
+  "importance": "NORMAL",
+  "payload": {
+   "asset": "DA-TKT",
+   "completeness": "COMPLETE",
+   "issues": []
+  },
+  "refs": []
+ },
+ {
+  "seq": 134,
+  "type": "reasoning_completed",
+  "importance": "NORMAL",
+  "payload": {
+   "reasoning_id": "R-18",
+   "skill": "semantic_judge",
+   "status": "SUCCESS",
+   "provider": "claude-cli",
+   "model": "sonnet",
+   "input_state_version": 28,
+   "schema_version": "1.0",
+   "order": 18,
+   "attempts": 1,
+   "input_digest": "4d85d761f43cfef4",
+   "evidence_refs": [
+    "A-FIX-RESOLVES-WITHOUT-REGRESS",
+    "A-STEADY-RETRY-RATE-CONTINUES",
+    "CL-01",
+    "CL-03",
+    "E-01",
+    "E-02",
+    "E-03",
+    "E-04",
+    "E-05",
+    "E-06",
+    "H-IDEMPOTENCY-MISCONFIG",
+    "H-REQUESTER-APOLOGY-FIX",
+    "U-BACKLOG-REMEDIATION-SCOPE",
+    "U-LATENCY-REGRESSION-RISK",
+    "VOB-U-BACKLOG-REMEDIATION-SCOPE",
+    "VOB-U-LATENCY-REGRESSION-RISK",
+    "VOB-U-LATENCY-REGRESSION-RISK."
+   ],
+   "confidence": null,
+   "fallback_used": null,
+   "errors": [],
+   "proposal": {
+    "checks": [
+     {
+      "name": "root_cause_vs_release_scope",
+      "status": "WARN",
+      "detail": "release_scope ships only verify_ticket_volume_normalization (monitoring), not the actual remedy set_capture_idempotency; root cause removal is deferred pending VOB-U-LATENCY-REGRESSION-RISK (BEFORE_PROTECTED_ACTION, OPEN).",
+      "refs": [
+       "PD-1",
+       "SD-1",
+       "VOB-U-LATENCY-REGRESSION-RISK",
+       "SR-REENABLE-IDEMPOTENCY-KEY-ENF"
+      ]
+     },
+     {
+      "name": "hypothesis_evidence_consistency",
+      "status": "PASS",
+      "detail": "H-IDEMPOTENCY-MISCONFIG is CONFIRMED by E-01/E-02/E-03/E-04/E-05 which jointly show the duplicate-capture timing, mechanism and magnitude match CHG-77; competing hypotheses (client-retry, handoff, misclassification, apology-fix) are correctly REJECTED against the same evidence set.",
+      "refs": [
+       "H-IDEMPOTENCY-MISCONFIG",
+       "E-01",
+       "E-02",
+       "E-03",
+       "E-04",
+       "E-05"
+      ]
+     },
+     {
+      "name": "requester_framing_treated_as_hypothesis",
+      "status": "PASS",
+      "detail": "SH-CS's apology-tooling request (CL-01/CL-03/E-06) is correctly treated as an unverified claim and tested as H-REQUESTER-APOLOGY-FIX, which is REJECTED by the technical evidence rather than accepted at face value.",
+      "refs": [
+       "CL-01",
+       "CL-03",
+       "E-06",
+       "H-REQUESTER-APOLOGY-FIX"
+      ]
+     },
+     {
+      "name": "limitations_disclosure_honesty",
+      "status": "PASS",
+      "detail": "unfinished_scope explicitly states that already-charged customers are not remediated, ticket normalization cannot show until the fix executes, backlog refund scope is unresolved, and the full structural fix is not feasible in contest time; this matches the OPEN status of VOB-U-BACKLOG-REMEDIATION-SCOPE and VOB-U-LATENCY-REGRESSION-RISK.",
+      "refs": [
+       "unfinished_scope",
+       "VOB-U-BACKLOG-REMEDIATION-SCOPE",
+       "VOB-U-LATENCY-REGRESSION-RISK",
+       "U-BACKLOG-REMEDIATION-SCOPE",
+       "U-LATENCY-REGRESSION-RISK"
+      ]
+     },
+     {
+      "name": "assumption_transparency",
+      "status": "PASS",
+      "detail": "Key forward-looking assumptions (fix resolves without latency regression; retry rate stays steady) are explicitly filed as ACTIVE assumptions tied to E-01/E-05/E-04 rather than asserted as fact, and align with the still-open latency-regression unknown.",
+      "refs": [
+       "A-FIX-RESOLVES-WITHOUT-REGRESS",
+       "A-STEADY-RETRY-RATE-CONTINUES",
+       "E-01",
+       "E-04",
+       "E-05"
+      ]
+     }
+    ]
+   }
+  },
+  "refs": [
+   "A-FIX-RESOLVES-WITHOUT-REGRESS",
+   "A-STEADY-RETRY-RATE-CONTINUES",
+   "CL-01",
+   "CL-03",
+   "E-01",
+   "E-02",
+   "E-03",
+   "E-04",
+   "E-05",
+   "E-06",
+   "H-IDEMPOTENCY-MISCONFIG",
+   "H-REQUESTER-APOLOGY-FIX",
+   "U-BACKLOG-REMEDIATION-SCOPE",
+   "U-LATENCY-REGRESSION-RISK",
+   "VOB-U-BACKLOG-REMEDIATION-SCOPE",
+   "VOB-U-LATENCY-REGRESSION-RISK",
+   "VOB-U-LATENCY-REGRESSION-RISK."
+  ]
+ },
+ {
+  "seq": 135,
+  "type": "state_committed",
+  "importance": "NORMAL",
+  "payload": {
+   "reason": "VERIFY run",
+   "version": 29,
+   "diff": []
+  },
+  "refs": []
+ },
+ {
+  "seq": 136,
+  "type": "verify_completed",
+  "importance": "NORMAL",
+  "payload": {
+   "layer1_passed": true,
+   "failed": []
+  },
+  "refs": []
+ },
+ {
+  "seq": 137,
+  "type": "safe_point_reached",
+  "importance": "NORMAL",
+  "payload": {
+   "kind": "BEFORE_TRANSITION"
+  },
+  "refs": []
+ },
+ {
+  "seq": 138,
+  "type": "phase_transition",
+  "importance": "NORMAL",
+  "payload": {
+   "kind": "ADVANCE",
+   "from": "VERIFY",
+   "to": "RELEASE",
+   "rationale": "VERIFY complete"
+  },
+  "refs": []
+ },
+ {
+  "seq": 139,
+  "type": "state_committed",
+  "importance": "NORMAL",
+  "payload": {
+   "reason": "Release Gate RELEASE_WITH_KNOWN_LIMITATION",
+   "version": 30,
+   "diff": []
+  },
+  "refs": []
+ },
+ {
+  "seq": 140,
+  "type": "release_gate_result",
+  "importance": "CRITICAL",
+  "payload": {
+   "decision": "RELEASE_WITH_KNOWN_LIMITATION",
+   "hold": [],
+   "limitations": [
+    "DEFINE Gate CONDITIONAL_PASS (deferred items tracked as VOBs)",
+    "VOB-U-LATENCY-REGRESSION-RISK open; blocking_scope outside release scope",
+    "VOB-U-BACKLOG-REMEDIATION-SCOPE open; blocking_scope outside release scope",
+    "unfinished: known limitation: Customers already duplicate-charged between 2026-09-09 and the fix date are not remediated by the configuration fix itself",
+    "unfinished: known limitation: Ticket monitoring alone will not show normalization until the actual fix (set_capture_idempotency) is executed, which remains blocked by VOB-U-LATENCY-REGRESSION-RISK",
+    "unfinished: known limitation: Full remediation (refunds for already-duplicate-charged orders) is unresolved per VOB-U-BACKLOG-REMEDIATION-SCOPE and outside this read-only release scope",
+    "unfinished: known limitation: feasibility.feasible_in_contest_time=false for the structural fix overall; only non-protected monitoring can ship now"
+   ],
+   "scope": [
+    "verify_ticket_volume_normalization:crm-tickets"
+   ]
+  },
+  "refs": []
+ },
+ {
+  "seq": 141,
+  "type": "reasoning_completed",
+  "importance": "NORMAL",
+  "payload": {
+   "reasoning_id": "R-19",
+   "skill": "release_summary",
+   "status": "SUCCESS",
+   "provider": "claude-cli",
+   "model": "sonnet",
+   "input_state_version": 30,
+   "schema_version": "1.0",
+   "order": 19,
+   "attempts": 1,
+   "input_digest": "1ae1cc5b29c59df7",
+   "evidence_refs": [
+    "CL-01",
+    "CL-03",
+    "E-01",
+    "E-02",
+    "E-03",
+    "E-04",
+    "E-05",
+    "E-06",
+    "E-07",
+    "H-IDEMPOTENCY-MISCONFIG",
+    "H-REQUESTER-APOLOGY-FIX",
+    "VOB-U-BACKLOG-REMEDIATION-SCOPE",
+    "VOB-U-LATENCY-REGRESSION-RISK"
+   ],
+   "confidence": null,
+   "fallback_used": null,
+   "errors": [],
+   "proposal": {
+    "summary": "The initial request (SH-CS, claim CL-01/CL-03) asked for an AI assistant to draft apology replies to customers complaining about double charges. Investigation of the actual data established a different root problem: on 2026-09-09, gateway config change CHG-77 (SH-PAY) disabled idempotency_key_enforcement to debug capture latency, and rollback was never executed (E-01, F-01). payments-db shows duplicate captures were 0 before CHG-77 then jumped to exactly match gateway-timeout retries after it (E-02, F-02); PSP logs confirm all post-change duplicates are timeout retries sent with no idempotency key, versus full dedup before (E-04, F-04); support tickets spiked ~30x the week of the change while order volume stayed flat (E-03, F-03). The stakeholder account from SH-PAY (E-05) corroborates this mechanism. Hypothesis H-IDEMPOTENCY-MISCONFIG was CONFIRMED; competing explanations (client-retry duplication, in-transit handoff duplication, ticket misclassification, and the requester's apology-tooling framing H-REQUESTER-APOLOGY-FIX) were all REJECTED against this evidence. The release decision is RELEASE_WITH_KNOWN_LIMITATION: only the read-only verification step (verify_ticket_volume_normalization against crm-tickets) shipped now, per the solution design's release_scope and minimum_useful_scope. The protected structural fix itself (set_capture_idempotency, which requires SH-OPS runtime confirmation per constraint K-GW and runbook E-07/F-05) was not executed in this release because the DEFINE gate returned CONDITIONAL_PASS, deferring two high-criticality unknowns as open verification obligations: whether re-enabling the setting risks reintroducing the original latency problem (VOB-U-LATENCY-REGRESSION-RISK), and how refund/backlog remediation for already-duplicate-charged customers would be owned and scoped (VOB-U-BACKLOG-REMEDIATION-SCOPE). Both VOBs remain open and are outside this release's scope.",
+    "key_points": [
+     "Root cause established: CHG-77 on 2026-09-09 disabled idempotency_key_enforcement on the payment gateway for latency debugging and was never rolled back (E-01, F-01).",
+     "Quantitative evidence ties duplicate captures and the ticket spike precisely to the date of CHG-77: orders_with_2_captures went from 0 to exactly matching gateway_timeout_retries after 09-09 (E-02, F-02), PSP logs show 0 duplicates before vs 242 after with 0 idempotency keys used post-change (E-04, F-04), and weekly double-charge tickets jumped from 9-11 to 288-301 the week of the change with stable order volume (E-03, F-03).",
+     "The requester's original framing -- that the fix is better apology-reply drafting (CL-01, CL-03, E-06) -- was tested as hypothesis H-REQUESTER-APOLOGY-FIX and REJECTED against the technical evidence; other alternative explanations (client-side retry duplication, in-transit handoff duplication, ticket misclassification) were also REJECTED.",
+     "What was released: only the read-only verification action verify_ticket_volume_normalization against crm-tickets, matching the solution design's minimum_useful_scope and release_scope; this is the only item that shipped.",
+     "What was NOT released: the protected action set_capture_idempotency (the actual structural fix to re-enable enforcement), which requires SH-OPS runtime confirmation per constraint K-GW and the payments runbook (E-07, F-05); it was blocked by an open verification obligation, not executed, and backlog refund remediation (SR-BACKLOG-DUPLICATE-CHARGE-REC) was likewise not executed.",
+     "Release decision is RELEASE_WITH_KNOWN_LIMITATION, following a DEFINE gate CONDITIONAL_PASS that deferred two HIGH-criticality unknowns to open verification obligations rather than resolving them before release."
+    ],
+    "limitations_explained": [
+     "VOB-U-LATENCY-REGRESSION-RISK is open: it is unknown whether re-enabling idempotency_key_enforcement would reintroduce the original capture-latency problem that CHG-77 was meant to debug; this blocks the protected action set_capture_idempotency, so that fix could not be executed in this release.",
+     "VOB-U-BACKLOG-REMEDIATION-SCOPE is open: it is unknown how many customers already duplicate-charged since 2026-09-09 need refunds and who owns that remediation; this blocking scope kept duplicate-capture-rate verification and backlog refund work outside this release.",
+     "Customers already duplicate-charged between 2026-09-09 and whenever the fix is eventually executed are not remediated by anything shipped in this release -- the configuration fix itself has not been executed, only a monitoring/verification step shipped.",
+     "Ticket-volume monitoring alone will not show normalization because the actual root-cause fix (set_capture_idempotency) remains blocked by the open latency-regression unknown and was not executed.",
+     "Full remediation (issuing refunds for already-duplicate-charged orders) remains unresolved and is explicitly outside the scope of this read-only release.",
+     "The structural fix is marked not feasible within contest time overall (feasibility.feasible_in_contest_time=false for the full remedy); only the non-protected, read-only ticket-volume monitoring action could ship now."
+    ]
+   }
+  },
+  "refs": [
+   "CL-01",
+   "CL-03",
+   "E-01",
+   "E-02",
+   "E-03",
+   "E-04",
+   "E-05",
+   "E-06",
+   "E-07",
+   "H-IDEMPOTENCY-MISCONFIG",
+   "H-REQUESTER-APOLOGY-FIX",
+   "VOB-U-BACKLOG-REMEDIATION-SCOPE",
+   "VOB-U-LATENCY-REGRESSION-RISK"
+  ]
+ },
+ {
+  "seq": 142,
+  "type": "safe_point_reached",
+  "importance": "NORMAL",
+  "payload": {
+   "kind": "BEFORE_TRANSITION"
+  },
+  "refs": []
+ },
+ {
+  "seq": 143,
+  "type": "phase_transition",
+  "importance": "HIGH",
+  "payload": {
+   "kind": "FINISH",
+   "from": "RELEASE",
+   "to": "RELEASE",
+   "rationale": "Release Gate RELEASE_WITH_KNOWN_LIMITATION"
+  },
+  "refs": []
+ }
+]

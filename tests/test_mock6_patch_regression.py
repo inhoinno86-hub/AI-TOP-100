@@ -11,6 +11,8 @@ authoritative evidence that contradicts the premise (valid reads were rejected a
 
 from __future__ import annotations
 
+from typing import Any
+
 import pytest
 from builders import design, grant, make_ctx, mutation_ok, problem, seed_org, seed_success, tool_evidence
 
@@ -361,6 +363,152 @@ def test_dismissed_challenge_lifts_the_block():
     assert not ctx.problem.problem_definition.open_challenges()
     assert ctx.runtime.transition_candidate is None
     assert decide(ctx, HumanDecision(HumanDecisionKind.APPROVE), tool).status is GateStatus.EXECUTED
+
+
+# ==================== IDR-RV10-01 — bounded REPROFILE under an open challenge
+
+
+def _transition_proposal(kind: str, *, targets: list[str] | None = None, confidence: float = 0.8):
+    from aitop_harness.reasoning.models import ReprofileProposal, TransitionProposal
+
+    reprofile = (
+        ReprofileProposal(
+            targets=targets or [],
+            reason="need more evidence",
+            required_evidence=[],
+            expected_decision_impact="HIGH",
+        )
+        if targets is not None
+        else None
+    )
+    return TransitionProposal(
+        transition_candidate=kind,
+        trigger_evidence_refs=["E-mdms"],
+        rationale="not confident enough yet to redefine",
+        affected_scope=["PD-1"],
+        confidence=confidence,
+        reprofile=reprofile,
+    )
+
+
+def test_reprofile_under_open_challenge_leaves_the_challenge_open_and_does_not_execute_redefine():
+    """A17/IDR-RV10-01: REPROFILE never touches the Problem's premise, so a Reasoner that wants more
+    evidence before committing to REDEFINE is not forced into Human escalation on its first ask — but the
+    challenge itself is never dismissed by the Reasoner (IDR-REASON-06 still holds)."""
+    from aitop_harness.engine.proposals import evaluate_transition
+
+    ctx, _, _ = _world()
+    _late(ctx)
+    (challenge,) = ctx.problem.problem_definition.open_challenges()
+    prop = _transition_proposal("REPROFILE", targets=["H-OTHER"])
+    verdict = evaluate_transition(ctx, prop, "R-TEST")
+    assert verdict.execute_reprofile_under_challenge is True
+    assert verdict.execute_redefine is False
+    assert verdict.escalate is False
+    assert verdict.reprofile_targets == ["H-OTHER"]
+    # challenge is untouched — the Core allowed one more look, it did not dismiss anything
+    assert challenge.status.value == "OPEN"
+    assert ctx.problem.problem_definition.open_challenges() == [challenge]
+
+
+def test_reprofile_under_open_challenge_without_targets_still_escalates():
+    """No valid reprofile targets ⇒ there is nothing bounded to grant; falls back to the pre-RV10 rule."""
+    from aitop_harness.engine.proposals import evaluate_transition
+
+    ctx, _, _ = _world()
+    _late(ctx)
+    prop = _transition_proposal("REPROFILE", targets=[])
+    verdict = evaluate_transition(ctx, prop, "R-TEST")
+    assert verdict.execute_reprofile_under_challenge is False
+    assert verdict.escalate is True
+
+
+def test_reprofile_under_open_challenge_low_confidence_escalates():
+    from aitop_harness.engine.proposals import evaluate_transition
+
+    ctx, _, _ = _world()
+    _late(ctx)
+    prop = _transition_proposal("REPROFILE", targets=["H-OTHER"], confidence=0.1)
+    verdict = evaluate_transition(ctx, prop, "R-TEST")
+    assert verdict.execute_reprofile_under_challenge is False
+    assert verdict.escalate is True
+
+
+def test_replan_or_continue_under_open_challenge_still_escalates_unchanged():
+    """Only REPROFILE gets the IDR-RV10-01 bounded allowance — REPLAN/CONTINUE/RETRY under an open
+    challenge are unchanged: the Reasoner still cannot talk the Core out of the challenge any other way."""
+    from aitop_harness.engine.proposals import evaluate_transition
+
+    ctx, _, _ = _world()
+    _late(ctx)
+    prop = _transition_proposal("REPLAN", targets=None)
+    verdict = evaluate_transition(ctx, prop, "R-TEST")
+    assert verdict.escalate is True
+    assert verdict.execute_reprofile_under_challenge is False
+
+
+class _NoopEnv:
+    """Minimal Environment stand-in: no catalog, no executor — only _handle_challenge's control flow,
+    not DISCOVER's action loop, is under test here."""
+
+    registry = None
+
+    def catalog(self, stage: str, ctx: HarnessContext) -> list[Any]:
+        return []
+
+    def executor(self, resource: str) -> Any:
+        return None
+
+
+def _reprofile_transition_handler(targets: list[str], confidence: float = 0.8) -> Any:
+    def handler(req: Any, data: dict[str, Any]) -> dict[str, Any]:
+        trig = data["trigger"]["challenge"]["evidence_id"]
+        return {
+            "transition_candidate": "REPROFILE",
+            "trigger_evidence_refs": [trig],
+            "rationale": "need more evidence before redefining",
+            "affected_scope": [],
+            "confidence": confidence,
+            "reprofile_targets": targets,
+            "reprofile_reason": "confirm the mechanism",
+            "reprofile_required_evidence": [],
+            "reprofile_expected_decision_impact": "HIGH",
+        }
+
+    return handler
+
+
+def test_handle_challenge_bound_allows_one_reprofile_round_then_escalates_on_the_next():
+    """Orchestrator-level IDR-RV10-01: a challenge with no pending protected action in the way gets one
+    bounded REPROFILE round — the challenge stays OPEN and DISCOVER re-runs — but a second REPROFILE
+    proposal on the same still-open challenge is refused once AutonomousConfig.max_challenge_reprofiles is
+    spent, falling back to the pre-RV10 Human escalation exactly as before."""
+    from aitop_harness.engine.autonomous import AutonomousConfig, AutonomousOrchestrator
+    from aitop_harness.engine.environment import ScriptedHuman
+    from aitop_harness.reasoning.providers.fake import FakeProvider
+    from aitop_harness.reasoning.reasoner import Reasoner
+
+    ctx, _, _ = _world(propose=False)  # no pending protected action: isolates the REPROFILE path itself
+    _late(ctx)
+    handlers = {"propose_transition": _reprofile_transition_handler(["H-OTHER"])}
+    reasoner = Reasoner(FakeProvider(handlers))
+    orch = AutonomousOrchestrator(
+        ctx, _NoopEnv(), reasoner, ScriptedHuman([]), config=AutonomousConfig(max_challenge_reprofiles=1)
+    )
+
+    orch._handle_challenge()
+    assert orch.challenge_reprofile_attempts == {"E-mdms": 1}
+    assert ctx.runtime.phase is Phase.DISCOVER
+    assert ctx.runtime.execution_status is ExecutionStatus.RUNNING
+    (challenge,) = ctx.problem.problem_definition.open_challenges()  # still open, never dismissed
+    assert challenge.evidence_id == "E-mdms"
+
+    orch._handle_challenge()
+    assert orch.challenge_reprofile_attempts == {"E-mdms": 1}  # bound did not advance further
+    assert ctx.runtime.execution_status is ExecutionStatus.HOLD
+    assert orch.halt_reason is not None
+    assert "Human decides" in orch.halt_reason
+    assert "after 1 prior attempt" in orch.halt_reason
 
 
 # ==================== P1 — D2 redefine vs replan (P5)

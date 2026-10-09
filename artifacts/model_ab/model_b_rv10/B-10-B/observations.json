@@ -1,0 +1,1377 @@
+{
+ "scenario": "B",
+ "result": {
+  "release_decision": "RELEASE_WITH_KNOWN_LIMITATION",
+  "halt_reason": null,
+  "phase": "RELEASE",
+  "execution_status": "RELEASED",
+  "problem_ref": "PD-1@v1",
+  "operator_reasoner_calls": 0,
+  "trace_actors": [
+   "ENVIRONMENT",
+   "HARNESS",
+   "REASONER"
+  ],
+  "wall_seconds": 685.6
+ },
+ "human": [],
+ "problem": {
+  "id": "PD-1",
+  "version": 1,
+  "requested_solution": "Build a chatbot so customers get instant automated answers about refunds, removing the need to wait for a human response (SH-SUP, CL-01/CL-02).",
+  "symptoms": [
+   "900 open tickets recorded in ticket-db (E-02)",
+   "5 refund payment records failed processing with status FAILED_IBAN_FORMAT in payment-db (E-01)",
+   "Support lead reports customers waiting on refund answers and requests a chatbot (CL-01, CL-02, E-03)"
+  ],
+  "root_problem": "The refund ticket backlog (900 open tickets, E-02) is driven by refund payments failing outright due to malformed IBAN data (5 confirmed FAILED_IBAN_FORMAT records, E-01) combined with sheer ticket volume, not by slow per-ticket answering: median response time (2.0h) is well within the 24h SLA (E-02), which rules out an absent self-service answer channel as the primary mechanism.",
+  "evidence_refs": [
+   "E-01",
+   "E-02"
+  ],
+  "intended_scope": [
+   {
+    "action": "analyze_iban_failure_ticket_overlap",
+    "target": "DA-TCK"
+   },
+   {
+    "action": "analyze_iban_failure_ticket_overlap",
+    "target": "DA-PAY"
+   },
+   {
+    "action": "measure_ticket_volume_baseline",
+    "target": "DA-TCK"
+   },
+   {
+    "action": "validate_iban_data_quality",
+    "target": "DA-PAY"
+   }
+  ],
+  "protected_actions": [],
+  "depends_on_mappings": [],
+  "depends_on_handoffs": [],
+  "depends_on_exports": [],
+  "required_tools": [
+   "ticket-db",
+   "payment-db"
+  ],
+  "success_criteria": [
+   "SC-OVERLAP-MEASURED",
+   "SC-IBAN-FIX-TARGET"
+  ],
+  "metric_ids": [
+   "M-TICKET-VOLUME",
+   "M-MEDIAN-RESPONSE-TIME",
+   "M-IBAN-FAILURE-COUNT",
+   "M-IBAN-FAILURE-TICKET-OVERLAP"
+  ],
+  "status": "ACTIVE",
+  "gate_result": "CONDITIONAL_PASS",
+  "invalidated_by": [],
+  "supersedes": null,
+  "superseded_by": null,
+  "challenges": []
+ },
+ "framing_hypotheses": [
+  "H-RESPONSE-SPEED"
+ ],
+ "final_premise_hypotheses": [
+  "H-IBAN-FORMAT-FAILURE",
+  "H-TICKET-VOLUME"
+ ],
+ "release": {
+  "decision": "RELEASE_WITH_KNOWN_LIMITATION",
+  "hold": [],
+  "limitations": [
+   "DEFINE Gate CONDITIONAL_PASS (deferred items tracked as VOBs)",
+   "VOB-U-OVERLAP-FRACTION open; blocking_scope outside release scope",
+   "unfinished: Add input validation on the IBAN field at refund submission to reject malformed IBANs before payment processing, directly targeting the 5 FAILED_IBAN_FORMAT records (E-01).",
+   "unfinished: analyze_iban_failure_ticket_overlap:DA-TCK (blocked by VOB-U-OVERLAP-FRACTION until resolved: What fraction of the 900 open tickets are directly caused by IBAN-failed refunds versus other reasons (status inquiries, delays, etc.)?)",
+   "unfinished: known limitation: A median response time within SLA does not by itself disprove a backlog; a volume-driven symptom can persist even when per-ticket SLA is met.",
+   "unfinished: known limitation: Read-only tool_surface prevents deploying the IBAN-validation-at-submission fix or status notifications in this contest",
+   "unfinished: known limitation: Classification of remaining non-IBAN tickets into status-inquiry/delay/other causes is not covered by the deterministic join and stays open (U-STAFFING-VS-VOLUME)",
+   "unfinished: known limitation: Overall remedy set feasibility is false in contest time; only the two diagnostic remedies (SR-OVERLAP-MEASUREMENT-JOIN, SR-TICKET-VOLUME-BASELINE) are feasible now"
+  ]
+ },
+ "reasoning": [
+  {
+   "reasoning_id": "R-1",
+   "skill": "hypothesis_init",
+   "status": "SUCCESS",
+   "provider": "claude-cli",
+   "model": "sonnet",
+   "input_state_version": 0,
+   "schema_version": "1.0",
+   "order": 1,
+   "attempts": 1,
+   "input_digest": "8ec63560912ca0d1",
+   "evidence_refs": [],
+   "confidence": 0.55,
+   "errors": [],
+   "output": null,
+   "fallback_used": null
+  },
+  {
+   "reasoning_id": "R-2",
+   "skill": "discover_actions",
+   "status": "SUCCESS",
+   "provider": "claude-cli",
+   "model": "sonnet",
+   "input_state_version": 2,
+   "schema_version": "1.0",
+   "order": 2,
+   "attempts": 1,
+   "input_digest": "d9ff20f8e8c3892b",
+   "evidence_refs": [
+    "CL-01",
+    "H-PAYMENT-DELAY",
+    "H-PAYMENT-DELAY.",
+    "H-RESPONSE-SPEED",
+    "H-STAFF-CAPACITY",
+    "H-STATUS-VISIBILITY",
+    "H-STATUS-VISIBILITY."
+   ],
+   "confidence": null,
+   "errors": [],
+   "output": null,
+   "fallback_used": null
+  },
+  {
+   "reasoning_id": "R-3",
+   "skill": "interpret_evidence",
+   "status": "SUCCESS",
+   "provider": "claude-cli",
+   "model": "sonnet",
+   "input_state_version": 2,
+   "schema_version": "1.0",
+   "order": 3,
+   "attempts": 1,
+   "input_digest": "fb869494781e1b4a",
+   "evidence_refs": [
+    "E-01",
+    "H-IBAN-FORMAT-FAILURE",
+    "H-PAYMENT-DELAY",
+    "H-RESPONSE-SPEED",
+    "H-STAFF-CAPACITY",
+    "H-STATUS-VISIBILITY"
+   ],
+   "confidence": 0.78,
+   "errors": [],
+   "output": null,
+   "fallback_used": null
+  },
+  {
+   "reasoning_id": "R-4",
+   "skill": "interpret_evidence",
+   "status": "SUCCESS",
+   "provider": "claude-cli",
+   "model": "sonnet",
+   "input_state_version": 5,
+   "schema_version": "1.0",
+   "order": 4,
+   "attempts": 1,
+   "input_digest": "3746e5ebf4b2e9b5",
+   "evidence_refs": [
+    "E-02",
+    "H-IBAN-FORMAT-FAILURE",
+    "H-PAYMENT-DELAY",
+    "H-RESPONSE-SPEED",
+    "H-STAFF-CAPACITY",
+    "H-STATUS-VISIBILITY",
+    "H-TICKET-VOLUME"
+   ],
+   "confidence": 0.72,
+   "errors": [],
+   "output": null,
+   "fallback_used": null
+  },
+  {
+   "reasoning_id": "R-5",
+   "skill": "interpret_evidence",
+   "status": "SUCCESS",
+   "provider": "claude-cli",
+   "model": "sonnet",
+   "input_state_version": 8,
+   "schema_version": "1.0",
+   "order": 5,
+   "attempts": 1,
+   "input_digest": "5a9ae3df17886e78",
+   "evidence_refs": [
+    "CL-01",
+    "CL-01.",
+    "E-01",
+    "E-02",
+    "H-IBAN-FORMAT-FAILURE",
+    "H-PAYMENT-DELAY",
+    "H-RESPONSE-SPEED",
+    "H-STAFF-CAPACITY",
+    "H-STATUS-VISIBILITY",
+    "H-TICKET-VOLUME"
+   ],
+   "confidence": 0.3,
+   "errors": [],
+   "output": null,
+   "fallback_used": null
+  },
+  {
+   "reasoning_id": "R-6",
+   "skill": "discover_actions",
+   "status": "SUCCESS",
+   "provider": "claude-cli",
+   "model": "sonnet",
+   "input_state_version": 10,
+   "schema_version": "1.0",
+   "order": 6,
+   "attempts": 1,
+   "input_digest": "cba8f46ed2aef8d8",
+   "evidence_refs": [
+    "H-IBAN-FORMAT-FAILURE",
+    "H-PAYMENT-DELAY",
+    "H-RESPONSE-SPEED",
+    "H-STAFF-CAPACITY",
+    "H-STATUS-VISIBILITY",
+    "H-TICKET-VOLUME"
+   ],
+   "confidence": null,
+   "errors": [],
+   "output": null,
+   "fallback_used": null
+  },
+  {
+   "reasoning_id": "R-7",
+   "skill": "assess_hypotheses",
+   "status": "SUCCESS",
+   "provider": "claude-cli",
+   "model": "sonnet",
+   "input_state_version": 10,
+   "schema_version": "1.0",
+   "order": 7,
+   "attempts": 1,
+   "input_digest": "39e4105ab8fba527",
+   "evidence_refs": [
+    "E-01",
+    "E-02",
+    "E-03",
+    "H-IBAN-FORMAT-FAILURE",
+    "H-PAYMENT-DELAY",
+    "H-RESPONSE-SPEED",
+    "H-STAFF-CAPACITY",
+    "H-STATUS-VISIBILITY",
+    "H-TICKET-VOLUME"
+   ],
+   "confidence": null,
+   "errors": [],
+   "output": null,
+   "fallback_used": null
+  },
+  {
+   "reasoning_id": "R-8",
+   "skill": "define_problem",
+   "status": "SUCCESS",
+   "provider": "claude-cli",
+   "model": "sonnet",
+   "input_state_version": 13,
+   "schema_version": "1.0",
+   "order": 8,
+   "attempts": 1,
+   "input_digest": "306baa142bf4412b",
+   "evidence_refs": [
+    "CL-01",
+    "CL-02",
+    "E-01",
+    "E-02",
+    "E-03",
+    "H-IBAN-FORMAT-FAILURE",
+    "H-RESPONSE-SPEED",
+    "H-STAFF-CAPACITY",
+    "H-TICKET-VOLUME"
+   ],
+   "confidence": 0.6,
+   "errors": [],
+   "output": null,
+   "fallback_used": null
+  },
+  {
+   "reasoning_id": "R-9",
+   "skill": "structural_remedy",
+   "status": "SUCCESS",
+   "provider": "claude-cli",
+   "model": "sonnet",
+   "input_state_version": 16,
+   "schema_version": "1.0",
+   "order": 9,
+   "attempts": 1,
+   "input_digest": "5402ff901da65d62",
+   "evidence_refs": [
+    "A-VOLUME-IS-ABNORMAL",
+    "E-01",
+    "E-02",
+    "H-RESPONSE-SPEED",
+    "H-STATUS-VISIBILITY",
+    "SC-OVERLAP-MEASURED",
+    "U-OVERLAP-FRACTION",
+    "U-TICKET-VOLUME-BASELINE.",
+    "VOB-U-OVERLAP-FRACTION",
+    "VOB-U-OVERLAP-FRACTION."
+   ],
+   "confidence": 0.72,
+   "errors": [],
+   "output": null,
+   "fallback_used": null
+  },
+  {
+   "reasoning_id": "R-10",
+   "skill": "agent_design",
+   "status": "SUCCESS",
+   "provider": "claude-cli",
+   "model": "sonnet",
+   "input_state_version": 16,
+   "schema_version": "1.0",
+   "order": 10,
+   "attempts": 1,
+   "input_digest": "b492ddc086f33354",
+   "evidence_refs": [
+    "A-VOLUME-IS-ABNORMAL",
+    "E-02",
+    "M-IBAN-FAILURE-TICKET-OVERLAP",
+    "M-IBAN-FAILURE-TICKET-OVERLAP.",
+    "M-TICKET-VOLUME",
+    "SC-IBAN-FIX-TARGET",
+    "SC-OVERLAP-MEASURED",
+    "U-OVERLAP-FRACTION",
+    "U-STAFFING-VS-VOLUME",
+    "VOB-U-OVERLAP-FRACTION",
+    "VOB-U-OVERLAP-FRACTION."
+   ],
+   "confidence": 0.55,
+   "errors": [],
+   "output": null,
+   "fallback_used": null
+  },
+  {
+   "reasoning_id": "R-11",
+   "skill": "plan_execution",
+   "status": "SUCCESS",
+   "provider": "claude-cli",
+   "model": "sonnet",
+   "input_state_version": 18,
+   "schema_version": "1.0",
+   "order": 11,
+   "attempts": 1,
+   "input_digest": "f1105e88c6cbbdde",
+   "evidence_refs": [
+    "A-VOLUME-IS-ABNORMAL",
+    "E-01",
+    "E-02",
+    "U-TICKET-VOLUME-BASELINE.",
+    "VOB-U-OVERLAP-FRACTION",
+    "VOB-U-OVERLAP-FRACTION."
+   ],
+   "confidence": null,
+   "errors": [],
+   "output": null,
+   "fallback_used": null
+  },
+  {
+   "reasoning_id": "R-12",
+   "skill": "semantic_judge",
+   "status": "SUCCESS",
+   "provider": "claude-cli",
+   "model": "sonnet",
+   "input_state_version": 20,
+   "schema_version": "1.0",
+   "order": 12,
+   "attempts": 1,
+   "input_digest": "f225c511e2c2b0c9",
+   "evidence_refs": [
+    "A-IBAN-TICKETS-OVERLAP",
+    "CL-01",
+    "CL-02",
+    "E-01",
+    "E-02",
+    "E-03",
+    "H-IBAN-FORMAT-FAILURE",
+    "H-RESPONSE-SPEED",
+    "U-OVERLAP-FRACTION",
+    "U-STAFFING-VS-VOLUME",
+    "U-TICKET-VOLUME-BASELINE",
+    "VOB-U-OVERLAP-FRACTION"
+   ],
+   "confidence": null,
+   "errors": [],
+   "output": null,
+   "fallback_used": null
+  },
+  {
+   "reasoning_id": "R-13",
+   "skill": "release_summary",
+   "status": "SUCCESS",
+   "provider": "claude-cli",
+   "model": "sonnet",
+   "input_state_version": 22,
+   "schema_version": "1.0",
+   "order": 13,
+   "attempts": 1,
+   "input_digest": "a3d2df87819cb07c",
+   "evidence_refs": [
+    "A-IBAN-TICKETS-OVERLAP",
+    "A-VOLUME-IS-ABNORMAL",
+    "CL-01",
+    "CL-02",
+    "E-01",
+    "E-02",
+    "E-02.",
+    "H-IBAN-FORMAT-FAILURE",
+    "H-RESPONSE-SPEED",
+    "H-TICKET-VOLUME",
+    "U-OVERLAP-FRACTION",
+    "U-STAFFING-VS-VOLUME.",
+    "U-TICKET-VOLUME-BASELINE",
+    "VOB-U-OVERLAP-FRACTION",
+    "VOB-U-OVERLAP-FRACTION."
+   ],
+   "confidence": null,
+   "errors": [],
+   "output": null,
+   "fallback_used": null
+  }
+ ],
+ "proposals": {
+  "R-1": {
+   "skill": "hypothesis_init",
+   "status": "SUCCESS",
+   "output": {
+    "framing_assertion": {
+     "key": "refund_backlog.cause",
+     "value": "lack_of_self_service_answer_channel",
+     "rationale": "Initial request from SH-SUP assumes customers wait because no automated channel answers refund questions, so building a chatbot is framed as the fix."
+    },
+    "hypotheses": [
+     {
+      "key": "RESPONSE_SPEED",
+      "statement": "Customers experience long waits for refund answers because there is no self-service/automated answer channel; a chatbot would close that gap.",
+      "origin": "REQUESTER_FRAMING",
+      "decision_impact": "HIGH",
+      "rationale": "This is SH-SUP's own framing and the stated justification for the chatbot request; SH-SUP's noted bias is to frame everything as response speed, so this needs independent corroboration.",
+      "discriminating_evidence": [
+       "ticket-db response times",
+       "SH-SUP potential_bias: frames everything as response speed"
+      ]
+     },
+     {
+      "key": "STAFF_CAPACITY",
+      "statement": "The backlog stems from insufficient support staffing relative to ticket volume, not from an information/answer gap; a chatbot would only mask a capacity shortfall.",
+      "origin": "ALTERNATIVE",
+      "decision_impact": "HIGH",
+      "rationale": "If true, the fix is staffing/process reallocation rather than automation, which is a materially different solution path than requested.",
+      "discriminating_evidence": [
+       "ticket-db ticket volume trends vs response times",
+       "absence of staffing data in current tool surface (unknown)"
+      ]
+     },
+     {
+      "key": "PAYMENT_DELAY",
+      "statement": "Refund tickets pile up because the underlying refund payment processing (not the answering of questions) is slow, driving repeat/duplicate inquiries.",
+      "origin": "ALTERNATIVE",
+      "decision_impact": "HIGH",
+      "rationale": "If the root delay is in payment-db processing, a chatbot addresses symptoms (ticket volume) but not the cause, so the real fix is in process P-REF/payment handling.",
+      "discriminating_evidence": [
+       "payment-db refund processing times",
+       "correlation between payment-db completion dates and ticket-db follow-up/reopen tickets"
+      ]
+     },
+     {
+      "key": "STATUS_VISIBILITY",
+      "statement": "Customers lack visibility into existing refund status, generating repetitive 'where is my refund' tickets that could be resolved by status notifications rather than a conversational chatbot.",
+      "origin": "ALTERNATIVE",
+      "decision_impact": "MEDIUM",
+      "rationale": "This would redirect the solution toward proactive status communication/notifications instead of (or alongside) a chatbot, changing scope and tooling choice.",
+      "discriminating_evidence": [
+       "ticket-db ticket content/categories showing repeated status-check queries",
+       "elapsed time between ticket creation (ticket-db) and refund completion (payment-db)"
+      ]
+     }
+    ],
+    "confidence": 0.55
+   }
+  },
+  "R-2": {
+   "skill": "discover_actions",
+   "status": "SUCCESS",
+   "output": {
+    "actions": [
+     {
+      "catalog_ref": "payment-db:refund_failures",
+      "question": "Does the payment-db refund_failures data show refund payment processing delays/failures that explain the ticket backlog, rather than a lack of answer channel?",
+      "decision_impact": 0.9,
+      "uncertainty": 1,
+      "discriminative_power": 0.9,
+      "answerability": 0.9,
+      "process_data_handoff_impact": 0.5,
+      "action_proximity": 0.6,
+      "constraint_risk": 0.1,
+      "estimated_cost_minutes": 10,
+      "expected_information_gain": "Reveals whether refund payment failures/delays are frequent enough to be the real driver of ticket volume, directly confirming or rejecting H-PAYMENT-DELAY.",
+      "decision_impact_rationale": "If payment processing itself is slow/failing, a chatbot would not fix the root cause, redirecting the next decision away from a chatbot build.",
+      "discriminates_hypotheses": [
+       "H-PAYMENT-DELAY",
+       "H-RESPONSE-SPEED"
+      ],
+      "resolves_unknowns": [],
+      "addresses": [],
+      "why_now": "This catalog item's description literally covers refund payment failures, the exact mechanism H-PAYMENT-DELAY names, and is unexamined so far."
+     },
+     {
+      "catalog_ref": "ticket-db:response_times",
+      "question": "Do ticket response-time patterns indicate that customers are genuinely waiting long for answers (supporting H-RESPONSE-SPEED) versus a capacity mismatch between ticket volume and staffing (H-STAFF-CAPACITY)?",
+      "decision_impact": 0.9,
+      "uncertainty": 1,
+      "discriminative_power": 0.8,
+      "answerability": 0.9,
+      "process_data_handoff_impact": 0.5,
+      "action_proximity": 0.6,
+      "constraint_risk": 0.1,
+      "estimated_cost_minutes": 10,
+      "expected_information_gain": "Shows actual wait-time distribution and ticket volume trends over time, testing whether delays are an answer-channel gap or a staffing/throughput issue.",
+      "decision_impact_rationale": "Response-time evidence directly validates or undercuts the stakeholder's chatbot framing (CL-01) and the competing staffing explanation, shaping whether a chatbot or a staffing fix is proposed next.",
+      "discriminates_hypotheses": [
+       "H-RESPONSE-SPEED",
+       "H-STAFF-CAPACITY"
+      ],
+      "resolves_unknowns": [],
+      "addresses": [],
+      "why_now": "This is the only catalog item measuring response times, the exact mechanism named by H-RESPONSE-SPEED and relevant to H-STAFF-CAPACITY, and it has not yet been queried."
+     },
+     {
+      "catalog_ref": "interview:SH-SUP",
+      "question": "Does the support lead report insufficient staffing relative to ticket volume, or repetitive 'where is my refund' status-check tickets, independent of their stated chatbot framing?",
+      "decision_impact": 0.7,
+      "uncertainty": 0.9,
+      "discriminative_power": 0.6,
+      "answerability": 0.6,
+      "process_data_handoff_impact": 0.3,
+      "action_proximity": 0.5,
+      "constraint_risk": 0.2,
+      "estimated_cost_minutes": 20,
+      "expected_information_gain": "Surfaces staffing-level and ticket-content detail (e.g. status-check repetition) that no TOOL_QUERY in the catalog covers, informing H-STAFF-CAPACITY and H-STATUS-VISIBILITY.",
+      "decision_impact_rationale": "Staffing adequacy and status-visibility gaps are the only remaining live hypotheses with no data-query coverage; the support lead is the sole available source for staffing context, directly affecting whether capacity or notification fixes are proposed instead of a chatbot.",
+      "discriminates_hypotheses": [
+       "H-STAFF-CAPACITY",
+       "H-STATUS-VISIBILITY",
+       "H-RESPONSE-SPEED"
+      ],
+      "resolves_unknowns": [],
+      "addresses": [],
+      "why_now": "SH-SUP has potential bias toward framing everything as response speed (noted in stakeholder profile), so probing staffing and visibility topics directly tests whether CL-01's framing holds against alternative mechanisms no data query can reach."
+     }
+    ],
+    "stop": true,
+    "stop_reason": "All three catalog items have been proposed: payment-db:refund_failures and ticket-db:response_times are the most direct matches for H-PAYMENT-DELAY and H-RESPONSE-SPEED/H-STAFF-CAPACITY respectively, and interview:SH-SUP is the only remaining item that can reach H-STAFF-CAPACITY and H-STATUS-VISIBILITY, which no TOOL_QUERY describes. No catalog item remains unassessed against any still-live hypothesis."
+   }
+  },
+  "R-3": {
+   "skill": "interpret_evidence",
+   "status": "SUCCESS",
+   "output": {
+    "assertion_key": "refund_failures.root_cause",
+    "assertion_value": "iban_format_error",
+    "interpretation": "payment-db shows 5 refund records (R-0..R-4) failed with status FAILED_IBAN_FORMAT, an authoritative, complete record set from the refund payments system. This establishes that at least some refunds fail outright due to malformed IBAN data, a distinct mechanism from either slow processing or an absent self-service answer channel.",
+    "hypothesis_effects": [
+     {
+      "hypothesis": "H-RESPONSE-SPEED",
+      "effect": "CONTRADICTS",
+      "rationale": "The observed root issue is payment data/format failures (invalid IBAN), not an absence of a self-service answer channel; a chatbot cannot fix malformed IBAN data causing refund rejection."
+     },
+     {
+      "hypothesis": "H-PAYMENT-DELAY",
+      "effect": "SUPPORTS",
+      "rationale": "The evidence confirms refund payment processing itself (not question-answering) is where the problem originates, consistent with the general direction of this hypothesis, though the specific mechanism is failure rather than delay."
+     },
+     {
+      "hypothesis": "H-STAFF-CAPACITY",
+      "effect": "NEUTRAL",
+      "rationale": "The observation gives no information about staffing levels or ticket volume relative to staff."
+     },
+     {
+      "hypothesis": "H-STATUS-VISIBILITY",
+      "effect": "SUPPORTS",
+      "rationale": "Refunds failing silently due to IBAN format errors would plausibly generate repetitive 'where is my refund' tickets if customers are not notified, consistent with a visibility gap."
+     }
+    ],
+    "new_hypotheses": [
+     {
+      "key": "H-IBAN-FORMAT-FAILURE",
+      "statement": "Part of the refund ticket backlog is driven by refund payments failing due to invalid/malformed IBAN data, a payment-data-quality problem rather than a staffing or answer-channel gap.",
+      "decision_impact": "HIGH",
+      "rationale": "payment-db.refund_failures (E-01) shows 5 refunds failed specifically with status FAILED_IBAN_FORMAT, a concrete causal mechanism not represented by any current hypothesis."
+     }
+    ],
+    "fact_candidates": [
+     {
+      "statement": "5 refund records in payment-db failed with status FAILED_IBAN_FORMAT.",
+      "assertion_key": "refund_failures.iban_format_count",
+      "value": 5,
+      "evidence_refs": [
+       "E-01"
+      ]
+     }
+    ],
+    "unknown_resolutions": [],
+    "authorization_candidates": [],
+    "contradiction_assessment": {
+     "relation": "UNRELATED",
+     "target_type": "NONE",
+     "target_refs": [],
+     "materiality": "LOW",
+     "problem_invalidating": false,
+     "rationale": "No problem_definition object is present in state to assess this observation against."
+    },
+    "vob_proposals": [
+     {
+      "unresolved_question": "What fraction of the refund ticket backlog correlates with payment failures (e.g., FAILED_IBAN_FORMAT) versus a genuine lack of self-service answer channel?",
+      "decision_impact": "HIGH",
+      "required_before": "BEFORE_DESIGN_FINALIZATION",
+      "blocking_scope": [
+       {
+        "action": "finalize_design",
+        "target": "chatbot_solution"
+       }
+      ],
+      "entire_solution": true,
+      "validation_method": "Cross-reference ticket-db response_times/backlog tickets with payment-db refund_failures reason codes to quantify the share of backlog attributable to failed refunds.",
+      "required_evidence": [
+       "ticket-db response_times data correlated by refund id/time with payment-db refund_failures records"
+      ],
+      "linked_unknown": "",
+      "rationale": "H-RESPONSE-SPEED (the chatbot premise) is contradicted by this evidence, so proceeding to design a chatbot before quantifying the payment-failure share risks solving the wrong problem."
+     }
+    ],
+    "follow_up_actions": [
+     "ticket-db:response_times"
+    ],
+    "confidence": 0.78
+   }
+  },
+  "R-4": {
+   "skill": "interpret_evidence",
+   "status": "SUCCESS",
+   "output": {
+    "assertion_key": "ticket_response_time.sla_breach",
+    "assertion_value": false,
+    "claim_assertion_key": "",
+    "claim_assertion_value": "",
+    "confidence": 0.72,
+    "interpretation": "ticket-db shows 900 tickets with a median response time of 2.0 hours against a 24-hour SLA, i.e. tickets are being answered well within SLA on a per-ticket basis. This undercuts the premise that customers are stuck waiting long for answers, while leaving open whether sheer ticket volume (900) itself constitutes the backlog.",
+    "hypothesis_effects": [
+     {
+      "hypothesis": "H-RESPONSE-SPEED",
+      "effect": "CONTRADICTS",
+      "rationale": "Median response time of 2.0h vs a 24h SLA shows tickets are answered quickly, undermining the claim that a missing self-service channel leaves customers waiting long for answers."
+     },
+     {
+      "hypothesis": "H-STAFF-CAPACITY",
+      "effect": "CONTRADICTS",
+      "rationale": "A fast median response (2.0h) across 900 tickets suggests current staff are keeping up with per-ticket handling speed, which weighs against an insufficient-staffing explanation for the backlog."
+     },
+     {
+      "hypothesis": "H-IBAN-FORMAT-FAILURE",
+      "effect": "NEUTRAL",
+      "rationale": "Response-time data from ticket-db says nothing about IBAN format failures in payment-db."
+     },
+     {
+      "hypothesis": "H-PAYMENT-DELAY",
+      "effect": "NEUTRAL",
+      "rationale": "This metric measures ticket response speed, not refund payment processing speed, so it neither supports nor contradicts a payment-processing-delay cause."
+     },
+     {
+      "hypothesis": "H-STATUS-VISIBILITY",
+      "effect": "NEUTRAL",
+      "rationale": "The observation does not distinguish status-check tickets from other ticket types, so it does not bear on repetitive status-visibility inquiries specifically."
+     }
+    ],
+    "new_hypotheses": [
+     {
+      "key": "H-TICKET-VOLUME",
+      "statement": "The backlog may be driven by sheer ticket volume (900 tickets) rather than per-ticket response speed, since median handling time is already well within SLA.",
+      "decision_impact": "HIGH",
+      "rationale": "900 tickets with a fast 2.0h median response is consistent with a throughput/volume problem rather than a speed-of-answer problem, a cause not yet represented among current hypotheses."
+     }
+    ],
+    "fact_candidates": [
+     {
+      "statement": "ticket-db shows 900 tickets with median response time 2.0 hours against a 24-hour SLA.",
+      "assertion_key": "ticket_response_time.median_hours",
+      "value": 2,
+      "evidence_refs": [
+       "E-02"
+      ]
+     }
+    ],
+    "unknown_resolutions": [],
+    "authorization_candidates": [],
+    "contradiction_assessment": {
+     "relation": "UNRELATED",
+     "target_type": "NONE",
+     "target_refs": [],
+     "materiality": "LOW",
+     "problem_invalidating": false,
+     "rationale": "No problem_definition is present in state, so no premise-level assessment applies."
+    },
+    "vob_proposals": [
+     {
+      "unresolved_question": "Is the refund ticket backlog actually driven by ticket volume (900 tickets) rather than per-ticket response speed, which determines whether a chatbot addresses the real root cause?",
+      "decision_impact": "HIGH",
+      "required_before": "BEFORE_DESIGN_FINALIZATION",
+      "blocking_scope": [
+       {
+        "action": "design_chatbot_solution",
+        "target": "B-CHATBOT"
+       }
+      ],
+      "entire_solution": false,
+      "validation_method": "Query ticket-db for backlog/volume trend over time (e.g. open ticket count vs. closed, arrival rate) to see if volume, not speed, is the driver.",
+      "required_evidence": [
+       "ticket-db backlog volume trend showing whether open ticket count is growing independent of response speed"
+      ],
+      "linked_unknown": "",
+      "rationale": "H-RESPONSE-SPEED and H-STAFF-CAPACITY are now contradicted by fast median response time, but the actual backlog driver (volume) is still unverified and is decision-critical for whether a chatbot is the right fix."
+     }
+    ],
+    "follow_up_actions": [
+     "interview:SH-SUP"
+    ]
+   }
+  },
+  "R-5": {
+   "skill": "interpret_evidence",
+   "status": "SUCCESS",
+   "output": {
+    "assertion_key": "refund_backlog.cause",
+    "assertion_value": "lack_of_self_service_answer_channel",
+    "claim_assertion_key": "refund_backlog.cause",
+    "claim_assertion_value": "lack_of_self_service_answer_channel",
+    "interpretation": "SH-SUP (support lead, known to frame everything as response speed) restates the original request framing: customers wait and a chatbot would answer instantly. This is a non-authoritative repetition of CL-01's claim, adding no new data, and continues to sit alongside the already-collected evidence that at least part of the backlog traces to IBAN payment failures (E-01) and that median ticket response time is within SLA (E-02).",
+    "hypothesis_effects": [
+     {
+      "hypothesis": "H-RESPONSE-SPEED",
+      "effect": "SUPPORTS",
+      "rationale": "Stakeholder restates the exact claim this hypothesis is built on (no answer channel, chatbot would fix wait), but it is non-authoritative and adds no new evidence beyond CL-01."
+     },
+     {
+      "hypothesis": "H-IBAN-FORMAT-FAILURE",
+      "effect": "NEUTRAL",
+      "rationale": "Observation is a generic wait-time complaint and does not speak to payment-data IBAN failures."
+     },
+     {
+      "hypothesis": "H-PAYMENT-DELAY",
+      "effect": "NEUTRAL",
+      "rationale": "Statement does not address refund processing speed, only answer wait time."
+     },
+     {
+      "hypothesis": "H-STAFF-CAPACITY",
+      "effect": "NEUTRAL",
+      "rationale": "Observation does not address staffing or ticket volume relative to capacity."
+     },
+     {
+      "hypothesis": "H-STATUS-VISIBILITY",
+      "effect": "NEUTRAL",
+      "rationale": "Statement is about answer speed generically, not about refund status visibility specifically."
+     },
+     {
+      "hypothesis": "H-TICKET-VOLUME",
+      "effect": "NEUTRAL",
+      "rationale": "Observation does not reference ticket counts or volume-driven backlog."
+     }
+    ],
+    "new_hypotheses": [],
+    "fact_candidates": [],
+    "unknown_resolutions": [],
+    "authorization_candidates": [],
+    "contradiction_assessment": {
+     "relation": "UNRELATED",
+     "target_type": "NONE",
+     "target_refs": [],
+     "materiality": "LOW",
+     "problem_invalidating": false,
+     "rationale": "No problem_definition object is present in state to assess this stakeholder restatement against."
+    },
+    "vob_proposals": [],
+    "follow_up_actions": [],
+    "confidence": 0.3
+   }
+  },
+  "R-6": {
+   "skill": "discover_actions",
+   "status": "SUCCESS",
+   "output": {
+    "actions": [],
+    "stop": true,
+    "stop_reason": "The catalog array is empty, so no valid catalog_ref exists to propose any action against; every still-live hypothesis (H-IBAN-FORMAT-FAILURE, H-PAYMENT-DELAY, H-RESPONSE-SPEED, H-STAFF-CAPACITY, H-STATUS-VISIBILITY, H-TICKET-VOLUME) remains CANDIDATE but there is no catalog item left to check any of them against."
+   }
+  },
+  "R-7": {
+   "skill": "assess_hypotheses",
+   "status": "SUCCESS",
+   "output": {
+    "updates": [
+     {
+      "hypothesis": "H-IBAN-FORMAT-FAILURE",
+      "status": "SUPPORTED",
+      "rationale": "E-01 is authoritative, complete payment-db data showing 5 refunds failed with FAILED_IBAN_FORMAT, directly supporting a payment-data-quality cause with no contradicting evidence linked.",
+      "evidence_refs": [
+       "E-01"
+      ]
+     },
+     {
+      "hypothesis": "H-PAYMENT-DELAY",
+      "status": "REJECTED",
+      "rationale": "E-01's own interpretation explicitly identifies the IBAN failures as 'a distinct mechanism from... slow processing', so the only linked evidence undercuts the premise that payment processing is slow.",
+      "evidence_refs": [
+       "E-01"
+      ]
+     },
+     {
+      "hypothesis": "H-RESPONSE-SPEED",
+      "status": "REJECTED",
+      "rationale": "Contradicting evidence E-02 (authoritative, complete) shows median ticket response of 2.0h vs 24h SLA, well within SLA, and E-01 shows a distinct failure mechanism; the only supporting item E-03 is a non-authoritative restatement of the original stakeholder claim adding no new data.",
+      "evidence_refs": [
+       "E-01",
+       "E-02",
+       "E-03"
+      ]
+     },
+     {
+      "hypothesis": "H-TICKET-VOLUME",
+      "status": "SUPPORTED",
+      "rationale": "E-02 (authoritative, complete) shows per-ticket median handling is well within SLA across 900 tickets, consistent with volume rather than per-ticket speed being the backlog driver, with no contradicting evidence linked.",
+      "evidence_refs": [
+       "E-02"
+      ]
+     }
+    ],
+    "ready_to_define": true,
+    "rationale": "Evaluated each hypothesis strictly against its linked evidence: E-01 supports an IBAN data-quality cause and explicitly rules out slow processing, while E-02 shows response times within SLA, undercutting the stakeholder-framed response-speed hypothesis and favoring a volume-driven explanation; H-STAFF-CAPACITY and H-STATUS-VISIBILITY lack sufficiently direct supporting/contradicting evidence to change status."
+   }
+  },
+  "R-8": {
+   "skill": "define_problem",
+   "status": "SUCCESS",
+   "output": {
+    "root_problem": "The refund ticket backlog (900 open tickets, E-02) is driven by refund payments failing outright due to malformed IBAN data (5 confirmed FAILED_IBAN_FORMAT records, E-01) combined with sheer ticket volume, not by slow per-ticket answering: median response time (2.0h) is well within the 24h SLA (E-02), which rules out an absent self-service answer channel as the primary mechanism.",
+    "requested_solution": "Build a chatbot so customers get instant automated answers about refunds, removing the need to wait for a human response (SH-SUP, CL-01/CL-02).",
+    "symptoms": [
+     "900 open tickets recorded in ticket-db (E-02)",
+     "5 refund payment records failed processing with status FAILED_IBAN_FORMAT in payment-db (E-01)",
+     "Support lead reports customers waiting on refund answers and requests a chatbot (CL-01, CL-02, E-03)"
+    ],
+    "affected_process": "P-REF refund process",
+    "causal_chain": [
+     "Some refund payment attempts fail processing because the submitted IBAN data is malformed (E-01: 5 records with status FAILED_IBAN_FORMAT).",
+     "Failed refunds generate or prolong associated support tickets instead of resolving automatically.",
+     "Ticket volume accumulates to 900 open tickets in ticket-db (E-02).",
+     "Per-ticket response time remains fast (median 2.0h, within the 24h SLA, E-02), so individual answering speed does not explain the backlog.",
+     "The backlog symptom is therefore attributable to payment-data-quality failures plus overall ticket volume, not to a missing self-service answer channel."
+    ],
+    "premise_hypotheses": [
+     "H-IBAN-FORMAT-FAILURE",
+     "H-TICKET-VOLUME"
+    ],
+    "evidence_refs": [
+     "E-01",
+     "E-02"
+    ],
+    "assumptions": [
+     {
+      "key": "iban_tickets_overlap",
+      "statement": "At least some of the 900 open tickets correspond to the 5 IBAN-failed refunds; this join has not been directly measured.",
+      "evidence_refs": [
+       "E-01",
+       "E-02"
+      ],
+      "risk_if_wrong": "HIGH"
+     },
+     {
+      "key": "volume_is_abnormal",
+      "statement": "900 open tickets is treated as an abnormal backlog rather than normal steady-state volume, though no historical baseline is in evidence.",
+      "evidence_refs": [
+       "E-02"
+      ],
+      "risk_if_wrong": "MEDIUM"
+     }
+    ],
+    "unknowns": [
+     {
+      "key": "overlap_fraction",
+      "question": "What fraction of the 900 open tickets are directly caused by IBAN-failed refunds versus other reasons (status inquiries, delays, etc.)?",
+      "criticality": "HIGH",
+      "decision_impact": "Determines whether fixing IBAN validation materially reduces ticket volume or whether other mechanisms (staffing, status visibility) must also be addressed.",
+      "affects_scope": [
+       {
+        "action": "analyze_iban_failure_ticket_overlap",
+        "target": "DA-TCK"
+       }
+      ],
+      "resolution_path": "Join DA-TCK ticket records with DA-PAY refund records by refund id to measure overlap.",
+      "safe_placeholder": "Treat the IBAN data-quality fix and the ticket-volume investigation as two parallel, independently valued workstreams until overlap is measured."
+     },
+     {
+      "key": "ticket_volume_baseline",
+      "question": "Is 900 open tickets higher than historical/typical volume, i.e. is there an actual backlog growth trend rather than steady-state load?",
+      "criticality": "MEDIUM",
+      "decision_impact": "Without a baseline it is unclear whether a volume-reduction intervention is warranted at all.",
+      "affects_scope": [
+       {
+        "action": "measure_ticket_volume_baseline",
+        "target": "DA-TCK"
+       }
+      ],
+      "resolution_path": "Pull historical ticket counts/trend from ticket-db over prior comparable periods.",
+      "safe_placeholder": "Report the current 900-ticket figure as a point-in-time snapshot, not yet confirmed as anomalous."
+     },
+     {
+      "key": "staffing_vs_volume",
+      "question": "Is current support staffing sufficient relative to 900 tickets, i.e. does insufficient capacity (H-STAFF-CAPACITY) also contribute to the backlog?",
+      "criticality": "MEDIUM",
+      "decision_impact": "Would determine whether a staffing/process fix, not only a data-quality fix, is needed.",
+      "affects_scope": [
+       {
+        "action": "analyze_iban_failure_ticket_overlap",
+        "target": "DA-TCK"
+       }
+      ],
+      "resolution_path": "Compare ticket volume against support staff headcount/capacity data, which is not currently in evidence.",
+      "safe_placeholder": "Do not propose staffing changes until capacity data is available."
+     }
+    ],
+    "metrics": [
+     {
+      "key": "ticket_volume",
+      "name": "Open refund-related ticket volume",
+      "metric_type": "COUNT",
+      "population": "ticket-db open tickets",
+      "measurement_window": "point-in-time snapshot",
+      "current_value": 900,
+      "current_value_evidence_refs": [
+       "E-02"
+      ]
+     },
+     {
+      "key": "median_response_time",
+      "name": "Median ticket response time versus SLA",
+      "metric_type": "DURATION",
+      "start_event": "ticket_created",
+      "end_event": "first_response",
+      "current_value": 2,
+      "current_value_evidence_refs": [
+       "E-02"
+      ],
+      "target_value": 24
+     },
+     {
+      "key": "iban_failure_count",
+      "name": "Refund payments failed with FAILED_IBAN_FORMAT",
+      "metric_type": "COUNT",
+      "population": "payment-db refund records",
+      "current_value": 5,
+      "current_value_evidence_refs": [
+       "E-01"
+      ],
+      "target_value": 0
+     },
+     {
+      "key": "iban_failure_ticket_overlap_rate",
+      "name": "Share of open tickets attributable to IBAN-failed refunds",
+      "metric_type": "RATE",
+      "numerator": "tickets linked to refund records with status FAILED_IBAN_FORMAT",
+      "denominator": "total open refund tickets (900, E-02)"
+     }
+    ],
+    "success_criteria": [
+     {
+      "key": "overlap_measured",
+      "statement": "The fraction of the 900 open tickets attributable to IBAN-failed refunds is computed before any solution is scoped.",
+      "kind": "MUST",
+      "metric": "iban_failure_ticket_overlap_rate",
+      "threshold": "value computed, not estimated",
+      "validation_method": "Join ticket-db records to payment-db refund records with status FAILED_IBAN_FORMAT and count the overlap."
+     },
+     {
+      "key": "iban_fix_target",
+      "statement": "IBAN format failures in refund payments are reduced toward zero via data validation at submission.",
+      "kind": "TARGET",
+      "metric": "iban_failure_count",
+      "threshold": "<=1 failure per snapshot",
+      "validation_method": "Re-run payment-db.refund_failures query after a validation fix is deployed and compare to the current 5."
+     },
+     {
+      "key": "response_time_limitation",
+      "statement": "A median response time within SLA does not by itself disprove a backlog; a volume-driven symptom can persist even when per-ticket SLA is met.",
+      "kind": "KNOWN_LIMITATION",
+      "metric": "median_response_time",
+      "threshold": "n/a",
+      "validation_method": "Contrast the ticket_volume trend against the median_response_time metric over successive measurement windows."
+     }
+    ],
+    "intended_scope": [
+     {
+      "action": "analyze_iban_failure_ticket_overlap",
+      "target": "DA-TCK"
+     },
+     {
+      "action": "analyze_iban_failure_ticket_overlap",
+      "target": "DA-PAY"
+     },
+     {
+      "action": "measure_ticket_volume_baseline",
+      "target": "DA-TCK"
+     },
+     {
+      "action": "validate_iban_data_quality",
+      "target": "DA-PAY"
+     }
+    ],
+    "protected_actions": [],
+    "required_tools": [
+     "ticket-db",
+     "payment-db"
+    ],
+    "depends_on_handoffs": [],
+    "constraint_refs": [],
+    "rejected_framings": [
+     {
+      "hypothesis": "H-RESPONSE-SPEED",
+      "why": "Contradicted by E-01 (payment-data failures exist independent of answer speed) and E-02 (median response time 2.0h is well within the 24h SLA); it is the stakeholder's initial framing (CL-01, CL-02, E-03) repeated without new data, and status REJECTED in the hypothesis record."
+     }
+    ],
+    "confidence": 0.6,
+    "framing_resolution": [],
+    "repair_resolution": [],
+    "authorization_candidates": [],
+    "vob_reevaluation": []
+   }
+  },
+  "R-9": {
+   "skill": "structural_remedy",
+   "status": "SUCCESS",
+   "output": {
+    "root_cause": "The 900-ticket refund backlog traces to two confirmed, distinct mechanisms: IBAN format data-quality failures stopping refund payments outright (5 records, E-01) and sheer ticket volume (900, E-02), while per-ticket response time (2.0h) is well within the 24h SLA — ruling out an absent self-service answer channel as primary cause (H-RESPONSE-SPEED REJECTED by E-01/E-02). The exact split between IBAN-driven tickets and other causes remains unmeasured (U-OVERLAP-FRACTION, blocked by VOB-U-OVERLAP-FRACTION).",
+    "remedies": [
+     {
+      "key": "IBAN-VALIDATION-AT-SUBMISSION",
+      "description": "Add input validation on the IBAN field at refund submission to reject malformed IBANs before payment processing, directly targeting the 5 FAILED_IBAN_FORMAT records (E-01).",
+      "removes_root_cause": true,
+      "feasible_in_contest_time": false,
+      "constraint_feasible": false,
+      "feasibility_rationale": "The tool_surface for this scenario exposes only read-only access to ticket-db and payment-db, so no write/deploy action to implement or verify a validation fix is available in this contest.",
+      "residual_gap": "Even if deployed, it would not retroactively resolve the 5 already-failed refunds or clarify what share of the 900 open tickets they generated."
+     },
+     {
+      "key": "OVERLAP-MEASUREMENT-JOIN",
+      "description": "Execute the deferred join of ticket-db records to the payment-db FAILED_IBAN_FORMAT refunds (per SC-OVERLAP-MEASURED and intended_scope action analyze_iban_failure_ticket_overlap) to compute the actual overlap fraction before scoping any fix.",
+      "removes_root_cause": false,
+      "feasible_in_contest_time": true,
+      "constraint_feasible": true,
+      "feasibility_rationale": "Uses the existing read-only query access to DA-TCK and DA-PAY already in tool_surface, and directly resolves the blocking VOB-U-OVERLAP-FRACTION.",
+      "residual_gap": "Clarifies scope but does not itself fix IBAN failures or reduce ticket volume; non-IBAN tickets still need classification."
+     },
+     {
+      "key": "TICKET-VOLUME-BASELINE",
+      "description": "Pull historical ticket-db volume trend data (per measure_ticket_volume_baseline action) to test whether 900 open tickets is abnormal versus steady-state, addressing A-VOLUME-IS-ABNORMAL and U-TICKET-VOLUME-BASELINE.",
+      "removes_root_cause": false,
+      "feasible_in_contest_time": true,
+      "constraint_feasible": true,
+      "feasibility_rationale": "Same read-only ticket-db access already in tool_surface; it is purely a historical query, no write access needed.",
+      "residual_gap": "Establishes whether the backlog reflects growth versus steady-state but does not address IBAN failures or reduce the ticket count itself."
+     },
+     {
+      "key": "AUTOMATED-STATUS-NOTIFICATIONS",
+      "description": "Introduce proactive refund-status push notifications to pre-empt repetitive 'where is my refund' tickets, as a structural alternative to a conversational chatbot (H-STATUS-VISIBILITY).",
+      "removes_root_cause": false,
+      "feasible_in_contest_time": false,
+      "constraint_feasible": false,
+      "feasibility_rationale": "H-STATUS-VISIBILITY is only a CANDIDATE hypothesis with no direct supporting measurement of ticket impact, and the read-only tool_surface offers no deploy capability within contest time.",
+      "residual_gap": "Unverified whether status-visibility actually drives a meaningful share of the 900 tickets; building this before the overlap/baseline measurements would be premature."
+     }
+    ],
+    "why_agent_needed": "Once the overlap and volume-baseline measurements are computed, classifying the remaining non-IBAN tickets' causes (status inquiries vs delays vs other) involves reading unstructured ticket content that a deterministic join cannot resolve, which may require agent-level triage.",
+    "confidence": 0.72
+   }
+  },
+  "R-10": {
+   "skill": "agent_design",
+   "status": "SUCCESS",
+   "output": {
+    "deterministic_rules_cover_cases": false,
+    "llm_reasoning_adds_value": true,
+    "autonomous_iteration_adds_value": true,
+    "residual_exceptions": true,
+    "detection_needed": true,
+    "why_agent": "Deterministic joins/queries resolve the overlap fraction and volume baseline, but classifying the remaining non-IBAN tickets' causes (status inquiry vs delay vs other) requires reading unstructured ticket content, which a fixed join cannot do (feasibility.why_agent_needed).",
+    "bridge_sunset_condition": "This release is diagnostic-only; it sunsets once write/deploy access to payment-db becomes available to implement SR-IBAN-VALIDATION-AT-SUBMISSIO (validate_iban_data_quality) or an equivalent fix, and SC-IBAN-FIX-TARGET can be validated.",
+    "deterministic_components": [
+     "Join ticket-db records to payment-db FAILED_IBAN_FORMAT records to compute M-IBAN-FAILURE-TICKET-OVERLAP (SR-OVERLAP-MEASUREMENT-JOIN)",
+     "Historical ticket-volume trend query against ticket-db to compute M-TICKET-VOLUME baseline comparison (SR-TICKET-VOLUME-BASELINE)"
+    ],
+    "release_scope": [
+     {
+      "action": "analyze_iban_failure_ticket_overlap",
+      "target": "DA-TCK"
+     },
+     {
+      "action": "analyze_iban_failure_ticket_overlap",
+      "target": "DA-PAY"
+     },
+     {
+      "action": "measure_ticket_volume_baseline",
+      "target": "DA-TCK"
+     }
+    ],
+    "minimum_useful_scope": [
+     {
+      "action": "analyze_iban_failure_ticket_overlap",
+      "target": "DA-TCK"
+     },
+     {
+      "action": "analyze_iban_failure_ticket_overlap",
+      "target": "DA-PAY"
+     },
+     {
+      "action": "measure_ticket_volume_baseline",
+      "target": "DA-TCK"
+     },
+     {
+      "action": "validate_iban_data_quality",
+      "target": "DA-PAY"
+     }
+    ],
+    "scope_dependencies": [
+     {
+      "action": "analyze_iban_failure_ticket_overlap",
+      "depends_on": [
+       "DA-TCK",
+       "DA-PAY"
+      ]
+     },
+     {
+      "action": "measure_ticket_volume_baseline",
+      "depends_on": [
+       "DA-TCK"
+      ]
+     }
+    ],
+    "role_suggestion": [
+     "CONTROL_DETECTION",
+     "BRIDGE"
+    ],
+    "capabilities": [
+     "Query ticket-db for ticket records and response-time statistics",
+     "Query payment-db for refund records and status",
+     "Join ticket records to FAILED_IBAN_FORMAT refund records to compute overlap fraction",
+     "Compare current ticket volume (900, E-02) against historical baseline"
+    ],
+    "llm_required_for": [
+     "Classifying non-IBAN tickets' underlying cause from unstructured ticket content (status inquiry vs delay vs other), per feasibility.why_agent_needed"
+    ],
+    "tools": [
+     "ticket-db",
+     "payment-db"
+    ],
+    "authority_boundary": [
+     "Read-only access to ticket-db and payment-db only; no write/deploy action available in this contest",
+     "Cannot implement or deploy SR-IBAN-VALIDATION-AT-SUBMISSIO or SR-AUTOMATED-STATUS-NOTIFICATIO",
+     "Cannot decide or scope the chatbot/fix solution; reports measurements only"
+    ],
+    "human_gate": [],
+    "termination": "Agent terminates once M-IBAN-FAILURE-TICKET-OVERLAP and the ticket-volume baseline comparison are computed and reported; it does not proceed to building, deploying, or approving any fix.",
+    "validation": [
+     "Re-run the ticket-db to payment-db join (DA-TCK vs DA-PAY FAILED_IBAN_FORMAT records) and confirm the overlap fraction reproduces, per SC-OVERLAP-MEASURED validation_method",
+     "Compare the 900-ticket current count (E-02) against the historical baseline query result to confirm or reject A-VOLUME-IS-ABNORMAL"
+    ],
+    "known_limitations": [
+     "Read-only tool_surface prevents deploying the IBAN-validation-at-submission fix or status notifications in this contest",
+     "Classification of remaining non-IBAN tickets into status-inquiry/delay/other causes is not covered by the deterministic join and stays open (U-STAFFING-VS-VOLUME)",
+     "Overall remedy set feasibility is false in contest time; only the two diagnostic remedies (SR-OVERLAP-MEASUREMENT-JOIN, SR-TICKET-VOLUME-BASELINE) are feasible now"
+    ],
+    "vob_proposals": [
+     {
+      "unresolved_question": "Does running analyze_iban_failure_ticket_overlap against DA-TCK count as relying on the still-open overlap fraction (so it should be excluded by VOB-U-OVERLAP-FRACTION's blocking_scope), or is it the detection action that resolves that VOB and should ship?",
+      "decision_impact": "HIGH",
+      "required_before": "BEFORE_RELEASE",
+      "blocking_scope": [
+       {
+        "action": "analyze_iban_failure_ticket_overlap",
+        "target": "DA-TCK"
+       }
+      ],
+      "entire_solution": false,
+      "validation_method": "Harness confirms whether a blocking_scope entry that matches an unknown's own resolving action is exempt from release-scope exclusion, consistent with the detect-vs-rely distinction used for scope_dependencies.",
+      "required_evidence": [
+       "VOB-U-OVERLAP-FRACTION.blocking_scope definition",
+       "SR-OVERLAP-MEASUREMENT-JOIN rationale stating it directly resolves VOB-U-OVERLAP-FRACTION"
+      ],
+      "linked_unknown": "U-OVERLAP-FRACTION",
+      "rationale": "The remedy text explicitly states this action resolves the blocking VOB, yet the literal design rule says VOB-blocked scope must stay out of release; this self-referential case was resolved by including the action, but needs harness confirmation to avoid mis-scoping the single action that measures M-IBAN-FAILURE-TICKET-OVERLAP."
+     }
+    ],
+    "confidence": 0.55
+   }
+  },
+  "R-11": {
+   "skill": "plan_execution",
+   "status": "SUCCESS",
+   "output": {
+    "protected_actions": [],
+    "work_items": [
+     {
+      "key": "WI-01-IBAN-FAILED-REFUNDS",
+      "description": "Package the 5 FAILED_IBAN_FORMAT refund records (E-01) from payment-db as the deliverable dataset for the in-scope IBAN failure analysis on DA-PAY; ticket-side overlap join remains blocked by VOB-U-OVERLAP-FRACTION and is excluded from release_scope.",
+      "work_class": "CORE_FEATURE",
+      "est_minutes": 15,
+      "scope_items": [
+       {
+        "action": "analyze_iban_failure_ticket_overlap",
+        "target": "DA-PAY"
+       }
+      ],
+      "root_problem_aligned": true,
+      "release_blocking": true,
+      "data_ops": [
+       "payment-db:refund_failures"
+      ],
+      "output_name": "iban_failed_refunds",
+      "output_key_fields": [
+       "refund"
+      ],
+      "output_join": false,
+      "output_constant_fields": [
+       {
+        "field": "status",
+        "value": "FAILED_IBAN_FORMAT"
+       }
+      ]
+     },
+     {
+      "key": "WI-02-TICKET-VOLUME-BASELINE",
+      "description": "Package the ticket-db response_times aggregate (900 tickets, 2.0h median vs 24h SLA, E-02) as the ticket volume baseline deliverable for DA-TCK; no historical trend data op is available in catalog to test A-VOLUME-IS-ABNORMAL/U-TICKET-VOLUME-BASELINE.",
+      "work_class": "CORE_FEATURE",
+      "est_minutes": 10,
+      "scope_items": [
+       {
+        "action": "measure_ticket_volume_baseline",
+        "target": "DA-TCK"
+       }
+      ],
+      "root_problem_aligned": true,
+      "release_blocking": true,
+      "data_ops": [
+       "ticket-db:response_times"
+      ],
+      "output_name": "ticket_volume_baseline",
+      "output_key_fields": [
+       "tickets"
+      ],
+      "output_join": false,
+      "output_constant_fields": []
+     }
+    ],
+    "rationale": "The catalog contains only three refs (interview:SH-SUP, payment-db:refund_failures, ticket-db:response_times), all already executed; no additional data_ops exist to run. Both release_scope items are each served by a single tool's existing records, so no cross-tool join is possible or needed, and each is packaged as its own single-source deliverable (WI-01, WI-02), honestly reflecting that the DA-TCK side of analyze_iban_failure_ticket_overlap stays excluded per the blocking VOB-U-OVERLAP-FRACTION. mutating_tools is empty, so no protected_actions can be proposed in this release scope."
+   }
+  },
+  "R-12": {
+   "skill": "semantic_judge",
+   "status": "SUCCESS",
+   "output": {
+    "checks": [
+     {
+      "name": "release_scope_vs_root_problem",
+      "status": "PASS",
+      "detail": "Release scope packages the IBAN-failure dataset (DA-PAY) and ticket-volume baseline (DA-TCK), which matches minimum_useful_scope and the diagnostic framing of PD-1's root_problem; it correctly excludes the ticket-overlap join (analyze_iban_failure_ticket_overlap:DA-TCK) still blocked by the open, BEFORE_RELEASE verification obligation.",
+      "refs": [
+       "E-01",
+       "E-02",
+       "VOB-U-OVERLAP-FRACTION",
+       "PD-1"
+      ]
+     },
+     {
+      "name": "root_problem_causal_overreach",
+      "status": "WARN",
+      "detail": "PD-1's root_problem asserts the 900-ticket backlog 'is driven by' IBAN-failed refunds combined with volume, but the IBAN-to-ticket link is an unmeasured, active assumption (A-IBAN-TICKETS-OVERLAP) and the overlap fraction is an OPEN unknown (U-OVERLAP-FRACTION) — E-01 only shows 5 failures exist in payment-db, not that they explain any portion of the ticket backlog.",
+      "refs": [
+       "E-01",
+       "A-IBAN-TICKETS-OVERLAP",
+       "U-OVERLAP-FRACTION"
+      ]
+     },
+     {
+      "name": "hypothesis_support_sufficiency",
+      "status": "WARN",
+      "detail": "H-IBAN-FORMAT-FAILURE is marked SUPPORTED citing only E-01, but E-01 is payment-db-only evidence of 5 failed refunds and does not establish that these failures are 'part of the refund ticket backlog' as the hypothesis statement claims; that causal link remains untested.",
+      "refs": [
+       "E-01"
+      ]
+     },
+     {
+      "name": "requested_solution_rejection_consistency",
+      "status": "PASS",
+      "detail": "The chatbot solution (CL-01/CL-02, requested by SH-SUP) corresponds to H-RESPONSE-SPEED, which is correctly marked REJECTED with contradicting evidence E-01 and E-02 (median response time well within SLA), and no chatbot remedy appears in solution_design.remedies.",
+      "refs": [
+       "CL-01",
+       "CL-02",
+       "E-01",
+       "E-02"
+      ]
+     },
+     {
+      "name": "limitations_honestly_disclosed",
+      "status": "PASS",
+      "detail": "unfinished_scope explicitly states that within-SLA median time does not disprove a volume-driven backlog, that the read-only tool surface blocks deploying any fix, and that U-STAFFING-VS-VOLUME/U-TICKET-VOLUME-BASELINE remain open, giving an honest account of what was not resolved.",
+      "refs": [
+       "U-STAFFING-VS-VOLUME",
+       "U-TICKET-VOLUME-BASELINE",
+       "E-02"
+      ]
+     },
+     {
+      "name": "stakeholder_claim_vs_fact_distinction",
+      "status": "PASS",
+      "detail": "SH-SUP's statements (CL-01, CL-02, E-03) are consistently treated as unverified, non-authoritative claims rather than facts, and are kept distinct from the authoritative tool-derived facts F-01/F-02.",
+      "refs": [
+       "CL-01",
+       "CL-02",
+       "E-03",
+       "F-01",
+       "F-02"
+      ]
+     }
+    ]
+   }
+  },
+  "R-13": {
+   "skill": "release_summary",
+   "status": "SUCCESS",
+   "output": {
+    "key_points": [
+     "Initial request (SH-SUP, CL-01/CL-02): build a chatbot so customers stop waiting for refund answers. This framing (H-RESPONSE-SPEED) is REJECTED, contradicted by E-01 and E-02.",
+     "Evidence shows the real drivers: 5 refund payments failed with status FAILED_IBAN_FORMAT in payment-db (E-01, AUTHORITATIVE/COMPLETE), and ticket-db shows 900 open tickets but a median response time of 2.0h well within the 24h SLA (E-02, AUTHORITATIVE/COMPLETE) — so slow per-ticket answering is not the mechanism.",
+     "Hypotheses H-IBAN-FORMAT-FAILURE and H-TICKET-VOLUME are SUPPORTED by E-01/E-02 respectively; the problem definition PD-1 frames the root problem as IBAN payment failures plus raw ticket volume, not an absent self-service channel.",
+     "DEFINE gate result was CONDITIONAL_PASS: the critical unknown U-OVERLAP-FRACTION (what share of the 900 tickets is caused by IBAN failures) was deferred as VOB-U-OVERLAP-FRACTION rather than resolved.",
+     "What was released (release_scope, both work items DONE): the 5 FAILED_IBAN_FORMAT refund records from DA-PAY (W-WI-01), and the ticket-db volume/response-time baseline (900 tickets, 2.0h median vs 24h SLA) from DA-TCK (W-WI-02).",
+     "Decision is RELEASE_WITH_KNOWN_LIMITATION because VOB-U-OVERLAP-FRACTION remains OPEN and its blocking_scope (the ticket-to-refund overlap join on DA-TCK) sits outside the actual release scope; nothing was put on hold.",
+     "Two assumptions remain unverified: A-IBAN-TICKETS-OVERLAP (that some of the 900 tickets correspond to the 5 IBAN failures, not directly measured) and A-VOLUME-IS-ABNORMAL (treating 900 tickets as abnormal with no historical baseline in evidence).",
+     "Of four proposed remedies, only two diagnostic ones (SR-OVERLAP-MEASUREMENT-JOIN, SR-TICKET-VOLUME-BASELINE) are feasible in contest time; the fix remedies (IBAN validation at submission, status notifications) are not feasible given the read-only tool_surface."
+    ],
+    "limitations_explained": [
+     "VOB-U-OVERLAP-FRACTION is still OPEN: the fraction of the 900 open tickets directly caused by IBAN-failed refunds versus other causes (status inquiries, delays) was never computed; the overlap join on DA-TCK is blocked and excluded from release scope.",
+     "The IBAN-field input validation fix targeting the 5 FAILED_IBAN_FORMAT records (E-01) was never built or deployed in this release.",
+     "A median response time within SLA (2.0h vs 24h, E-02) does not by itself disprove a backlog — a volume-driven symptom can persist even when per-ticket SLA is met, so the 900-ticket volume question is not fully resolved.",
+     "The tool_surface for this contest is read-only (ticket-db, payment-db), which prevented deploying the IBAN-validation-at-submission fix or proactive status notifications regardless of their diagnostic value.",
+     "Classification of the remaining non-IBAN tickets into status-inquiry/delay/other causes was not covered by the deterministic join and stays open as U-STAFFING-VS-VOLUME.",
+     "Whether 900 open tickets is actually abnormal versus steady-state volume (U-TICKET-VOLUME-BASELINE) was not tested; no historical trend data was available in the catalog, so A-VOLUME-IS-ABNORMAL remains an unverified assumption.",
+     "Of the four proposed remedies, only the two diagnostic ones (overlap measurement join, ticket-volume baseline) were feasible in contest time; overall remedy-set feasibility for actually fixing the root cause is false in this release."
+    ],
+    "summary": "The support lead (SH-SUP) initially framed the problem as customers waiting too long for refund answers and requested a chatbot (CL-01/CL-02), but this hypothesis (H-RESPONSE-SPEED) was rejected: payment-db evidence (E-01) shows 5 refund records failed with FAILED_IBAN_FORMAT, and ticket-db evidence (E-02) shows 900 open tickets are being answered at a 2.0h median, well inside the 24h SLA. The problem definition (PD-1) therefore reframes the root problem as IBAN payment-data-quality failures combined with raw ticket volume, not a missing answer channel. The DEFINE gate returned CONDITIONAL_PASS, deferring the critical unknown of what fraction of the 900 tickets are actually caused by the 5 IBAN failures (U-OVERLAP-FRACTION) as VOB-U-OVERLAP-FRACTION. What was actually released and marked DONE is two diagnostic deliverables: the packaged set of 5 FAILED_IBAN_FORMAT refund records from payment-db, and the ticket-db volume/response-time baseline (900 tickets, 2.0h median vs 24h SLA). The release decision is RELEASE_WITH_KNOWN_LIMITATION because the open VOB blocks only the ticket-to-refund overlap join, which lies outside this release's actual scope, so nothing needed to be held. No fix (IBAN validation at submission, status notifications) could be deployed because the tool surface in this contest is read-only; those, along with the overlap classification and historical baseline questions, remain explicitly open limitations."
+   }
+  }
+ }
+}

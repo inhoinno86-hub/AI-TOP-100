@@ -149,6 +149,7 @@ class AutonomousConfig:
     protected_reconsideration: bool = True  # IDR-RV4-05
     blocking_scope_review: bool = True  # IDR-RV5-04
     release_scope_recovery: bool = True  # IDR-RV8-01
+    max_challenge_reprofiles: int = 1  # IDR-RV10-01: bounded "gather more evidence" attempts per challenge
     observer: Callable[[str, AutonomousOrchestrator], None] | None = None
 
 
@@ -198,6 +199,7 @@ class AutonomousOrchestrator:
         self.replans = 0
         self.redefines = 0
         self.release_scope_recovered = False
+        self.challenge_reprofile_attempts: dict[str, int] = {}  # IDR-RV10-01: by challenge evidence id
         self.report: VerifyReport | None = None
         self.release: ReleaseGateResult | None = None
         self.halt_reason: str | None = None
@@ -855,6 +857,34 @@ class AutonomousOrchestrator:
             escalate=verdict.escalate,
         )
         self._observe("transition_validated")
+        if verdict.execute_reprofile_under_challenge:
+            # IDR-RV10-01: the challenge is left OPEN (never dismissed) — this only lets the Reasoner
+            # gather the extra evidence it asked for, bounded per challenge, before falling back to Human
+            # escalation. _after_evidence() re-evaluates the (still-open) challenge once DISCOVER returns.
+            attempts = self.challenge_reprofile_attempts.get(challenge.evidence_id, 0)
+            # unlike redefine(), reprofile() cannot cancel a pending approval (it never touches the
+            # Problem, so it has no standing to revoke it) — a WAITING_APPROVAL gate must go to Human now.
+            waiting = self.ctx.runtime.execution_status is ExecutionStatus.WAITING_APPROVAL
+            if attempts >= self.cfg.max_challenge_reprofiles or waiting:
+                reason_txt = (
+                    "a protected action is awaiting Human approval"
+                    if waiting
+                    else f"Reasoner proposed REPROFILE again after {attempts} prior attempt(s) without "
+                    "resolving the challenge"
+                )
+                self._hold(f"canonical challenge {challenge.evidence_id}: {reason_txt}; Human decides")
+                return
+            self.challenge_reprofile_attempts[challenge.evidence_id] = attempts + 1
+            reason = res.proposal.reprofile.reason if res.proposal.reprofile else "targeted reprofile"
+            self.ctl.reprofile(verdict.reprofile_targets, reason or "targeted reprofile")
+            self._step(
+                "HARNESS",
+                "targeted REPROFILE under open challenge",
+                challenge=challenge.evidence_id,
+                targets=verdict.reprofile_targets,
+                attempt=attempts + 1,
+            )
+            return
         if not verdict.execute_redefine:
             self._hold(
                 f"canonical challenge {challenge.evidence_id}: Reasoner proposed {verdict.proposed}, "

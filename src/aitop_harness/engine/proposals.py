@@ -1895,6 +1895,7 @@ class TransitionVerdict:
     proposed: str
     core_kind: RecoveryKind | None
     execute_redefine: bool = False
+    execute_reprofile_under_challenge: bool = False  # IDR-RV10-01: bounded, challenge stays OPEN
     trigger: str | None = None
     reprofile_targets: list[str] = field(default_factory=list)
     escalate: bool = False
@@ -1945,6 +1946,19 @@ def evaluate_transition(
             notes.add(
                 f"REDEFINE validated but reasoner confidence {prop.confidence} < {min_confidence}: escalate"
             )
+    elif open_challenge and prop.transition_candidate == "REPROFILE" and verdict.reprofile_targets:
+        # IDR-RV10-01: REPROFILE never touches the Problem's premise (unlike REDEFINE/REPLAN) — it only
+        # gathers more evidence and returns. The challenge stays OPEN throughout: this is not the Reasoner
+        # dismissing it, it is the Core allowing one more bounded look before Human escalation (the caller
+        # enforces the bound; see AutonomousConfig.max_challenge_reprofiles).
+        verdict.core_kind = RecoveryKind.REPROFILE
+        verdict.execute_reprofile_under_challenge = prop.confidence >= min_confidence
+        if not verdict.execute_reprofile_under_challenge:
+            verdict.escalate = True
+            notes.add(
+                f"REPROFILE under open challenge {open_challenge} but reasoner confidence "
+                f"{prop.confidence} < {min_confidence}: escalate"
+            )
     elif open_challenge:
         verdict.escalate = True
         notes.add(
@@ -1965,6 +1979,7 @@ def evaluate_transition(
             "proposed": prop.transition_candidate,
             "core": verdict.core_kind.value if verdict.core_kind else None,
             "execute_redefine": verdict.execute_redefine,
+            "execute_reprofile_under_challenge": verdict.execute_reprofile_under_challenge,
             "escalate": verdict.escalate,
             "reprofile_targets": verdict.reprofile_targets,
         },

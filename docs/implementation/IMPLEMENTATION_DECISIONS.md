@@ -714,3 +714,43 @@ OPERATOR_REASONER unchanged (PASS / 0). No session-limit recurrence.
   during post-REDEFINE planning, before reaching Release — but the mechanism IDR-RV9-02 targets (CHALLENGED
   silently failing to invalidate) is demonstrated fixed by this one call regardless. See
   `RV9_RELIABILITY_REMEASURE_RESULT.md` §4 for the full transcript excerpt.
+
+- **IDR-RV10-01 — bounded REPROFILE allowance under an open canonical challenge.** A full Model B 35-run
+  re-measurement under IDR-RV9-02 (freeze `55f8407f95c8f290`, documented in full in
+  `RV10_FULL_REMEASURE_RESULT.md`) found Mock #6 overall correct *dropped* from RV-9's 60% to 30% even
+  though `REASONING_FAILURE` fell from 7/20 to 1/20 (IDR-RV9-02 doing exactly what it was built to do). The
+  gap moved into `HOLD_VALID` (12/20, up from near zero): 3 of those runs (A-02, A-04, A-11) hit a pattern
+  that essentially never fired before IDR-RV9-02, because it requires an open challenge to exist — the
+  Reasoner correctly identifies a canonical challenge and, instead of being confident enough for REDEFINE,
+  proposes `REPROFILE` ("I need `billing-config:validation_rule_changes` before I can say whether this also
+  explains the ACTUAL-read majority") with a reasonable confidence (0.58–0.72) and valid targets.
+  `evaluate_transition`'s pre-existing rule — *any* non-REDEFINE proposal while a challenge is open escalates
+  to Human, because "the Reasoner can never dismiss a challenge" (IDR-REASON-06) — treated this exactly like
+  a Reasoner trying to talk its way out of the challenge, even though REPROFILE never touches the Problem's
+  premise and the challenge was never going to be dismissed. In Mock #6's "scoped" variant the Human never
+  decides on the main line, so this is a permanent HOLD, not a brief pause.
+  - **Fix:** `engine/proposals.py:evaluate_transition` now special-cases `transition_candidate=="REPROFILE"`
+    with valid `reprofile_targets` while a challenge is open: it sets `core_kind=REPROFILE` and
+    `execute_reprofile_under_challenge=True` (confidence-gated at the existing `min_transition_confidence`)
+    instead of unconditionally escalating. The challenge itself is left `OPEN` the whole time — nothing
+    dismisses it, matching IDR-REASON-06 exactly; this only grants a bounded extra look.
+    `engine/autonomous.py:AutonomousOrchestrator._handle_challenge` executes it via `self.ctl.reprofile(...)`
+    (never `redefine()`), bounded per challenge by the new `AutonomousConfig.max_challenge_reprofiles`
+    (default 1, tracked in `self.challenge_reprofile_attempts`); once DISCOVER returns, `_after_evidence()`
+    re-evaluates the still-open challenge on the next authoritative evidence exactly as before, so a second
+    REPROFILE round (bound exhausted) or a REDEFINE both fall through to their existing paths unchanged.
+  - **Safety boundary found while implementing:** `controller.reprofile()`, unlike `controller.redefine()`,
+    has no standing to cancel a protected action that is already `WAITING_APPROVAL` (redefine's atomic
+    cancellation is justified by invalidating the Problem the approval depended on; reprofile never touches
+    the Problem). An initial version of this patch called `reprofile()` unconditionally on
+    `execute_reprofile_under_challenge` and crashed into `IllegalTransitionError: cannot transition while a
+    protected action is WAITING_APPROVAL` the first time a pending approval coincided with an open challenge
+    — exactly A-02's shape. Fixed by checking `ctx.runtime.execution_status is WAITING_APPROVAL` before
+    granting the bounded REPROFILE and falling back to the ordinary Human-escalation HOLD (with an accurate
+    reason) when it is set; a pending approval was always going to need the Human's attention regardless.
+  - **Verification:** 6 new tests (`test_mock6_patch_regression.py`: `evaluate_transition` unit coverage for
+    the OPEN-challenge-stays-open invariant, no-targets and low-confidence fallback, REPLAN/other candidates
+    unaffected, plus an orchestrator-level direct `_handle_challenge()` test driving the bound to exhaustion;
+    `test_rv4_reasoning_stabilization.py`: full-pipeline REDEFINE-after-REPROFILE success and the
+    WAITING_APPROVAL safety fallback). ruff / ruff format / mypy clean, 336/336 tests pass (6 new, no
+    regression). Live re-verification is the next RV-11 full re-measurement.
