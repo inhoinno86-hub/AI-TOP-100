@@ -1763,6 +1763,26 @@ def build_output(records_by_op: dict[str, list[dict[str, Any]]], out: OutputPlan
     return rows
 
 
+def output_completeness_check(
+    out: OutputPlan, ops: list[str], expected_by_op: dict[str, int | None], complete_by_op: dict[str, Any]
+) -> tuple[int | None, bool]:
+    """RV-7 (A-10 pattern): returns (expected_count, assumes_completeness) for VERIFY's completeness check.
+
+    A real join (>1 feeding op) keeps only rows every op has a matching key for — the row count is
+    *expected* to drop below any single feeding op's full result, that is the join doing its job, not a
+    pagination gap. So join completeness is judged by whether every feeding op itself paginated fully
+    (``complete_by_op``), never by comparing the (necessarily smaller) joined row count against one op's
+    ``expected_count``. If every feeding op was COMPLETE, the completeness check is skipped entirely
+    (``assumes_completeness=False``) — row count alone cannot fail it. If any op fell short, the check
+    stays on (as UNKNOWN) so a true pagination gap is still caught. A non-join (or single-op) output keeps
+    the original rule: expected_count comes from its one driving operation."""
+    driving = ops[0] if ops else None
+    if out.join and len(ops) > 1:
+        all_complete = all(complete_by_op.get(o) is ResultCompleteness.COMPLETE for o in ops)
+        return None, not all_complete
+    return (expected_by_op.get(driving) if driving else None), True
+
+
 def infer_schema(rows: list[dict[str, Any]]) -> dict[str, str]:
     names = {bool: "bool", int: "int", float: "float", str: "str"}
     schema: dict[str, str] = {}

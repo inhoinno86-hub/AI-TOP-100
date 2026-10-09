@@ -56,9 +56,13 @@ def normalize_scope_target(
         )
         return NormalizedScope(WILDCARD, kind, notes)
     if kind == "RESOURCE":
+        # RV-7: the grant covers the action wherever it runs through this resource — not only requests whose
+        # scope target happens to spell the resource's own id. intended_scope / requested_scope normally
+        # target a data asset / handoff id (a different id space than the resource/tool id); reading RESOURCE
+        # as "target == resource" made such a grant unmatchable against any real request (A-15 pattern).
         same = not raw or _canonical(raw, action, resource, known_ids) == resource
         notes = [] if same else [f"scope_target {scope_target!r} ignored: scope_kind RESOURCE"]
-        return NormalizedScope(resource, kind, notes)
+        return NormalizedScope(WILDCARD, kind, notes)
     if raw in ("", WILDCARD):
         if kind == "INTENDED_TARGET":
             return NormalizedScope(None, kind, refusal="scope_kind INTENDED_TARGET needs a scope_target id")

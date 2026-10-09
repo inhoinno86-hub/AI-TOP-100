@@ -26,7 +26,7 @@ from test_rv4_reasoning_stabilization import (
 )
 
 from aitop_harness.core.events import EventType
-from aitop_harness.core.scope import WILDCARD
+from aitop_harness.core.scope import WILDCARD, ScopeItem
 from aitop_harness.engine.autonomous import AutonomousConfig
 from aitop_harness.engine.define_repair import FRAMING_FINDING, FRAMING_OPTIONS
 from aitop_harness.engine.proposals import commit_revisions
@@ -58,8 +58,8 @@ def _adjusted(orch: Any, skill: str) -> list[str]:
         ("", " 'Pickup-Sched' ", "pickup-sched"),  # quotes + case of a known id
         ("", "*", WILDCARD),
         ("", "", WILDCARD),
-        ("RESOURCE", "", RESOURCE),
-        ("RESOURCE", RESOURCE, RESOURCE),
+        ("RESOURCE", "", WILDCARD),  # RV-7: RESOURCE covers the action through this resource, any target
+        ("RESOURCE", RESOURCE, WILDCARD),  # resource as scope_target still means ANY_TARGET
         ("ANY_TARGET", "", WILDCARD),
         ("INTENDED_TARGET", f"{ACTION}:DA-PICK", "DA-PICK"),
     ],
@@ -111,21 +111,33 @@ def _citing(target: str, kind: str = "") -> Any:
     return cite
 
 
-@pytest.mark.parametrize(
-    ("target", "kind"), [(f"{ACTION}:pickup-sched", ""), ("", "RESOURCE"), (f"pickup-sched/{ACTION}", "")]
-)
-def test_repair_authorization_in_equivalent_syntax_is_accepted_on_the_canonical_scope(
-    target: str, kind: str
-) -> None:
+@pytest.mark.parametrize("target", [f"{ACTION}:pickup-sched", f"pickup-sched/{ACTION}"])
+def test_repair_authorization_in_equivalent_syntax_is_accepted_on_the_canonical_scope(target: str) -> None:
     public, world, handlers, _ = scenario_d()
     world["inbox"] = world["inbox"][:1]
     _no_grant(handlers)
-    seen = _repairing_define(handlers, _citing(target, kind))
+    seen = _repairing_define(handlers, _citing(target, ""))
     orch, _, _, _ = run(public, world, handlers, human=["왜 지금 승인해야 해?", "승인합니다"])
     assert len(seen) == 1  # accepted on the first repair, no refusal round
     auth = [a for a in orch.ctx.problem.domain_authorizations.values() if a.action == ACTION]
     assert len(auth) == 1 and str(auth[0].authorized_scope.items[0]) == f"{ACTION}:{RESOURCE}"
     assert len(orch.ctx.events.of_type(EventType.PROTECTED_ACTION_EXECUTED)) == 1  # via the Human Gate only
+
+
+def test_repair_authorization_scope_kind_resource_covers_any_target() -> None:
+    """RV-7 (A-15 pattern): a RESOURCE grant must still match a request whose scope target is a data asset
+    id, not the resource's own id — intended_scope normally targets a data asset / handoff, a different id
+    space than the tool resource. Reading RESOURCE as target == resource made such a grant unmatchable."""
+    public, world, handlers, _ = scenario_d()
+    world["inbox"] = world["inbox"][:1]
+    _no_grant(handlers)
+    seen = _repairing_define(handlers, _citing("", "RESOURCE"))
+    orch, _, _, _ = run(public, world, handlers, human=["왜 지금 승인해야 해?", "승인합니다"])
+    assert len(seen) == 1
+    auth = [a for a in orch.ctx.problem.domain_authorizations.values() if a.action == ACTION]
+    assert len(auth) == 1
+    assert auth[0].authorized_scope.covers(ScopeItem(ACTION, "DA-SOME-OTHER-ID"))
+    assert len(orch.ctx.events.of_type(EventType.PROTECTED_ACTION_EXECUTED)) == 1
 
 
 @pytest.mark.parametrize("target", [f"{ACTION}:SH-CAR", "the carrier pickup schedule"])

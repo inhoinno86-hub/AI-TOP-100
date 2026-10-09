@@ -540,3 +540,59 @@ structural failure observed in RV-5, reproduced in both Model A and Model B arms
   the unknown" (the Harness correctly staying conservative). No session-limit recurrence across the live
   calls. Final Reliability Batch not rerun (this patch changes the frozen implementation group, invalidating
   freeze `cb353e9bdec99268`; rerunning both A/B arms needs separate user approval).
+
+## 10. RV-7 Release Gate HOLD Patches — IDR-RV7-01/02
+
+Instruction: user request to pursue §28 limitation 2 ("Release Gate HOLD on a completeness-dependent
+asset") and limitation 4 ("INVALID_METRIC repetition") toward Model B reliability, continuing without
+pausing for approval between fix→verify→reassess cycles. Result: `RV7_RELEASE_GATE_HOLD_RESULT.md`.
+
+A systematic re-audit of every Model B HOLD (6 runs: A-07, A-10, A-11, A-15, B-03-C, B-11-C) found the two
+named limitations actually covered **four independent mechanisms**, not one each:
+
+1. **IDR-RV7-01 — a multi-tool output without a shared join key silently concatenates, so most rows are
+   missing most fields.** (A-07, B-03-C, B-11-C — 3/6, the most common pattern.) `plan_execution`'s own
+   `output_join`/`output_key_fields` contract was fine; the Reasoner just never chose it when combining an
+   aggregate-statistic op with an individual-record op from a different tool (no shared key exists between
+   them). Fix: `reasoning/prompts.py`'s `plan_execution` instruction now says explicitly that multi-tool
+   data_ops need a shared `output_key_fields` to join on, and when no such key exists the ops must become
+   separate outputs rather than one concatenated one. No Core change — Reasoner guidance only.
+2. **IDR-RV7-02a — a join's row-count drop (the join doing its job) was scored as a completeness failure.**
+   (A-10.) `AutonomousOrchestrator.outputs()` compared a joined output's row count against its *driving*
+   operation's `expected_count`, but an inner join on key fields keeps only matching rows — strictly ≤ the
+   smaller side, by design, even when every feeding operation itself paginated completely. Fix: new
+   `engine/proposals.py:output_completeness_check` — for a real join (>1 feeding op), completeness is judged
+   by whether every feeding op's own pagination was COMPLETE (`complete_by_op`), skipping the row-count-based
+   check entirely when it was; a short-of-COMPLETE op still raises it (as UNKNOWN). Non-join outputs keep the
+   original rule unchanged.
+3. **IDR-RV7-02b — a `RESOURCE`-scoped domain authorization could not match a request whose scope target
+   is a data asset id.** (A-15.) `engine/scope_contract.py:normalize_scope_target` read `scope_kind=RESOURCE`
+   as "target == resource" (the tool/system id) — but `intended_scope` / `requested_scope` normally target a
+   data asset or handoff id, a different id space than the resource. Such a grant could never match any real
+   request for that action. Fix: `RESOURCE` now normalizes to `WILDCARD` (the action through this resource,
+   on any target) — matching the prompt's own documented meaning ("RESOURCE: the action on that resource");
+   `DomainAuthorization.resource` already enforces the resource constraint independently, so this does not
+   broaden what the grant covers, only which target spellings it can match.
+4. **A-11 (Core-made VOB, `removes and feasible` unmet) — investigated and NOT a defect.** The existing
+   `removes and feasible` gate on `blocking_review_candidates` (A4/RV-6) is deliberately shared with
+   `phases/design.py:DesignSession.feasibility()`'s agent-role classification, and an existing RV-5 test
+   (`test_narrow_scope_review_cannot_bypass_a_true_block[infeasible]`) requires exactly this behavior: when
+   no feasible root-cause remedy exists, the Problem's structural footing itself is in question, and a VOB
+   asking whether a *different* candidate remedy is even relevant to the symptom population is not safely
+   narrowable scope-review material — kept as-is.
+5. **INVALID_METRIC repetition (§28 limitation 4, originally observed only in RV-4/Model A) — confirmed NOT
+   reproduced in Model B.** All 20 Model B Mock #6 runs show `repair_success=1` with `same_finding_repetition
+   = 0` on every DEFINE Gate failure (`artifacts/model_ab/model_b/runs.json`) — the model swap itself already
+   resolved this limitation; no patch needed or applied for it.
+
+**Verification:** 6 new unit tests (`tests/test_rv7_release_hold_patches.py`) plus 3 existing tests in
+`tests/test_rv5_deterministic_patch.py` corrected (they asserted `RESOURCE → target == resource`, which was
+the bug, not a requirement — scenario_d's `push_pickup_schedule` happened to have `intended_scope` target ==
+resource, masking it). 325/325 total tests pass, ruff / ruff format / mypy clean. Live re-verification with
+Claude Sonnet 5 (not replay — fresh runs against the live reasoning loop): golden scenario C run twice
+(matching both B-03-C's and B-11-C's recorded HOLD) and one fresh Mock #6 "scoped" run (matching A-10's
+dependency shape) — all three completed with `VERIFY run failed=[]` and `release=RELEASE_WITH_KNOWN_LIMITATION,
+halt=None`, where the equivalent pre-patch runs HELD. A-15's authorization fix was verified at the unit level
+only (the construct is deterministic and not provider-dependent — `ScopeItem` matching does not call the
+Reasoner); A-07's specific multi-tool shape was not independently re-run live (same code path as B-03-C/
+B-11-C, verified there).

@@ -116,6 +116,7 @@ from .proposals import (
     finish_design,
     infer_schema,
     integrate_observation,
+    output_completeness_check,
     output_ops,
     preview_release_scope,
     reconsideration_candidates,
@@ -1456,14 +1457,17 @@ class AutonomousOrchestrator:
         for out in self.plan.outputs if self.plan else []:
             rows = build_output(self.records_by_op, out)
             ops = output_ops(self.records_by_op, out)
-            expected = self.expected_by_op.get(ops[0]) if ops else None
+            expected, assumes_completeness = output_completeness_check(
+                out, ops, self.expected_by_op, self.complete_by_op
+            )
             specs.append(
                 OutputSpec(
                     out.name,
                     rows,
                     schema=infer_schema(rows),
                     key_fields=list(out.key_fields),
-                    expected_count=expected,  # driving (first) operation defines the expected coverage
+                    expected_count=expected,
+                    assumes_completeness=assumes_completeness,
                 )
             )
         return specs

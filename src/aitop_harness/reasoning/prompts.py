@@ -177,8 +177,15 @@ dataset, give output_name, output_key_fields, output_join (true = inner-join the
 fields) and optional constant fields. Propose protected_actions ONLY for protected actions in the release
 scope; `resource` MUST be a tool_id from `mutating_tools` and the scope must reuse the release-scope item
 exactly. Give an honest why (citing evidence ids), side effect, reversibility and alternatives. A protected
-action is only proposed — a Human decides. output_join only joins operations whose records share the key
-fields.""",
+action is only proposed — a Human decides.
+If an output's data_ops come from more than one tool, set output_join=true with output_key_fields present in
+every one of those operations' records — the Harness inner-joins on those fields, keeping only rows every
+op has a matching key for. If no shared key field exists across those ops, do not combine them into one
+output: give each tool's data a separate output_name instead. output_join=false (or no key_fields) on
+multi-tool data_ops concatenates the raw records instead of joining them, so every row only has the fields
+its own source produced — the deliverable will then look incomplete even though nothing is actually
+missing. output_join only ever joins operations whose records already share the key fields; it never
+invents or guesses a shared key.""",
     "revise_evidence": """\
 The Harness detected that `challenge_evidence` contradicts premises of the active problem and proposed the
 listed evidence for re-interpretation. For each proposed evidence id, write the revised interpretation in
