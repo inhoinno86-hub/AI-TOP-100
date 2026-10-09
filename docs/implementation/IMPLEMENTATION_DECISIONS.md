@@ -670,6 +670,47 @@ OPERATOR_REASONER unchanged (PASS / 0). No session-limit recurrence.
   No hypothesis names, tool names, or domain terms are referenced; the instruction is phrased purely in
   terms of "a hypothesis about a changed rule/config" vs. "a catalog item describing that rule/config's
   change log" as an illustrative pattern, not a rule tied to this scenario.
-- **Verification:** ruff / ruff format / mypy clean, 330/330 existing tests pass (no regression). Live
-  re-verification (fresh Mock #6 "scoped" run under the new prompt) was in progress when this entry was
-  written; see `RV9_RELIABILITY_REMEASURE_RESULT.md` §4 and any later RV-10 entry for the outcome.
+- **Verification: IDR-RV9-01 had no live effect — it targeted the wrong mechanism.** The fresh Mock #6 live
+  re-run showed the Reasoner correctly following the new instruction (`stop_reason` named the exact
+  live hypothesis and the exact catalog item it would need), but reported that item as absent: Mock #6's
+  `CATALOG["discover"]` deliberately does not include `billing-config:validation_rule_changes` — it only
+  appears under `CATALOG["reprofile"]`, reachable only via a successful canonical challenge / REDEFINE
+  (`propose_transition` with `reprofile_targets`). `discover_actions` was never the bottleneck; see
+  IDR-RV9-02 below for the actual root cause this led to. The instruction itself is left in place (it is a
+  harmless, generically correct principle for scenarios where the matching item *is* reachable at the
+  current stage) but recorded as not responsible for any of the 7 Mock #6 failures.
+- **IDR-RV9-02 — `premise_check`'s `problem_invalidating` flag and its own `overall_assessment=CHALLENGED`
+  definition pointed the Reasoner in opposite directions.** Root cause of all 7 `REASONING_FAILURE` runs
+  (same 7 as IDR-RV9-01, confirmed identical to `aggregate.py`'s `missed_contradiction_runs`): in every run,
+  `premise_check` correctly judged a premise as `relation=PARTIALLY_CONTRADICTS`,
+  `affected_layer=PROBLEM_PREMISE`, `materiality=HIGH` — every condition `engine/premise.py:
+  validate_premise_check` requires to accept an invalidation — but set `problem_invalidating=false` anyway,
+  so `verdict.targets` stayed empty and neither `_revise()` nor `_handle_challenge()`/`propose_transition()`
+  (the only path that supplies `reprofile_targets`, which is what actually unlocks the reprofile-stage
+  catalog items IDR-RV9-01 was chasing) ever ran. The two runs that *did* reach the reprofile catalog
+  (A-13, A-15) got there via a successful canonical challenge, not a smarter `discover_actions` choice.
+  The old prompt text explained `overall_assessment=CHALLENGED` as "the problem may survive in a narrower
+  form", which models reading in good faith can take as "the premise is importantly wrong, but I will mark
+  it non-invalidating since the problem survives in some (narrower) form" — the Harness has no path to act
+  on that distinction, so the contradiction the model just found has no effect at all. `reasoning/prompts.py`
+  now says explicitly that "survives in a narrower form" IS invalidation of the current (too-broad)
+  definition, resolved by redefining narrower rather than by marking it non-invalidating, and spells out
+  the concrete rule `validate_premise_check` already enforces (PROBLEM_PREMISE + CONTRADICTS/
+  PARTIALLY_CONTRADICTS + HIGH/CRITICAL materiality implies `problem_invalidating=true`). No Core code
+  changed — `overall_assessment` itself is advisory text only (`engine/premise.py` records it but no Core
+  logic branches on it); the fix is entirely in how the prompt resolves the ambiguity for the Reasoner.
+- **Verification:** ruff / ruff format / mypy clean, 330/330 existing tests pass (no regression — the three
+  other `problem_invalidating`/`contradiction_assessment` literals in the test suite belong to different
+  skills, `revise_evidence` and `interpret_evidence`, confirmed unaffected). **Live re-verification confirmed
+  the fix.** A fresh Mock #6 "scoped" run (`/tmp/rv10_verify/mock6_premise`) — the same scenario that, under
+  IDR-RV9-01's re-verification, had stalled with "no billing-config ref present" — now had its third
+  `premise_check` call (triggered by E-12, a direct observation that 1184/1240 disputed ESTIMATED bills were
+  billing-import rejections of a delivered read) correctly mark `PR-ROOT`/`PR-CHAIN-3`
+  `problem_invalidating=true` under exactly the PROBLEM_PREMISE + CONTRADICTS/PARTIALLY_CONTRADICTS + HIGH
+  rule the new prompt text states. That drove `propose_transition` to REDEFINE with
+  `reprofile_targets: ["DA-RULES", ...]`, which opened `billing-config:validation_rule_changes` and let the
+  run converge its `root_problem` onto `hidden_ground_truth.json`'s `actual_root_problem` (BV-17, unit-scaling
+  mismatch, firmware v4.2, 2026-08-01) almost verbatim. The run itself hit its 2700s instrumentation timeout
+  during post-REDEFINE planning, before reaching Release — but the mechanism IDR-RV9-02 targets (CHALLENGED
+  silently failing to invalidate) is demonstrated fixed by this one call regardless. See
+  `RV9_RELIABILITY_REMEASURE_RESULT.md` §4 for the full transcript excerpt.

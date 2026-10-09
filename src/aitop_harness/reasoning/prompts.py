@@ -235,10 +235,17 @@ For EVERY premise (use its premise_id exactly):
   measured), SOLUTION_PATH (the problem stands; the planned way of solving it no longer works).
 - problem_invalidating=true only if, given the observation, the canonical root problem / causal mechanism can
   no longer be the right problem definition. A hypothesis contradiction or a solution-path change alone is not
-  problem invalidation.
+  problem invalidation. "The problem may survive in a narrower form" is NOT a reason to set this false: a
+  narrower-form survival IS invalidation of the current (too-broad) definition — it is resolved by redefining
+  the problem narrower, not by silently keeping the current definition unchanged. Concretely: if
+  affected_layer is PROBLEM_PREMISE and relation is CONTRADICTS or PARTIALLY_CONTRADICTS at HIGH or CRITICAL
+  materiality, problem_invalidating must be true — the Harness has no path to act on "the premise is
+  materially wrong but I'm marking it non-invalidating anyway", so marking it false there means the
+  contradiction you just found has no effect at all, not that the problem is protected from it.
 - evidence_refs: the new evidence id plus the committed evidence ids your judgement rests on.
-overall_assessment: STABLE (nothing material contradicted), CHALLENGED (material contradiction, the problem
-may survive in a narrower form), INVALIDATED (a premise the problem rests on is false), UNCERTAIN.
+overall_assessment: STABLE (nothing material contradicted), CHALLENGED (at least one premise above is
+problem_invalidating=true — expect the Harness to redefine, usually narrower, not to discard the whole
+problem), INVALIDATED (the problem's entire premise is false, not just one part), UNCERTAIN.
 Your output is advisory: the Harness validates it against committed state. Never invent premises or ids.""",
     "reconsider_protected_action": """\
 DESIGN reconsideration, asked at most once. A structural remedy that removes the root cause is feasible, the
