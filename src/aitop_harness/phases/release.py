@@ -59,6 +59,9 @@ class ReleaseGateResult:
     known_limitations: list[str] = field(default_factory=list)
     release_scope: list[ScopeItem] = field(default_factory=list)
     minimum_useful: MinimumUsefulAssessment | None = None
+    # RV-8: items a critical, non-BEFORE_PRODUCTION VOB intersects in this release scope (structured, so a
+    # bounded recovery can drop exactly these items instead of parsing hold_reasons text).
+    vob_blocked_items: list[ScopeItem] = field(default_factory=list)
 
 
 def assess_minimum_useful_release(
@@ -140,6 +143,7 @@ def evaluate_release_gate(
             hold.append(f"human review required: {item.reason}")
 
     # VOB blocking_scope ∩ release scope
+    vob_blocked: list[ScopeItem] = []
     for v in ps.open_vobs():
         hits = v.blocking_scope.intersect(scope)
         if v.required_before is RequiredBefore.BEFORE_PRODUCTION:
@@ -150,6 +154,7 @@ def evaluate_release_gate(
             continue
         if v.is_critical():
             hold.append(f"critical {v.id} intersects release scope at {[str(h) for h in hits]}")
+            vob_blocked += hits
         else:
             limits.append(f"{v.id} intersects release scope (non-critical): {v.unresolved_question}")
 
@@ -198,7 +203,7 @@ def evaluate_release_gate(
         decision = ReleaseDecision.RELEASE_WITH_KNOWN_LIMITATION
     else:
         decision = ReleaseDecision.RELEASE
-    result = ReleaseGateResult(decision, hold, limits, scope, mur)
+    result = ReleaseGateResult(decision, hold, limits, scope, mur, list(dict.fromkeys(vob_blocked)))
 
     with ctx.commit(f"Release Gate {decision.value}") as p:
         p.validation.release_decisions.append(decision)

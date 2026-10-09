@@ -95,6 +95,16 @@ def test_critical_vob_intersecting_release_scope_holds():
     assert res.decision is ReleaseDecision.HOLD
     assert any("VOB-2" in h for h in res.hold_reasons)
     assert any("RELEASE_BLOCKING_VOB" in s for s in ctx.supervision.live_summary)
+    # IDR-RV8-01: the structured field a bounded release-scope recovery would drop
+    assert res.vob_blocked_items == DETECT
+
+
+def test_vob_blocked_items_empty_when_nothing_critical_intersects():
+    ctx = _base()
+    with ctx.commit("vob") as ps:
+        ps.verification_obligations["VOB-1"] = _vob("VOB-1", Scope.of(("publish_mapping", "CM-7")))
+    res = evaluate_release_gate(ctx, run_verify(ctx, DETECT))
+    assert res.vob_blocked_items == []
 
 
 def test_unspecified_blocking_scope_is_conservative():

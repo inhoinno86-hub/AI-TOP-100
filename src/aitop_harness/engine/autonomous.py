@@ -148,6 +148,7 @@ class AutonomousConfig:
     premise_check_authority: str = "STRONG"  # STRONG (authoritative, complete, non-fallback) | AUTHORITATIVE
     protected_reconsideration: bool = True  # IDR-RV4-05
     blocking_scope_review: bool = True  # IDR-RV5-04
+    release_scope_recovery: bool = True  # IDR-RV8-01
     observer: Callable[[str, AutonomousOrchestrator], None] | None = None
 
 
@@ -196,6 +197,7 @@ class AutonomousOrchestrator:
         self.plan_count = 0
         self.replans = 0
         self.redefines = 0
+        self.release_scope_recovered = False
         self.report: VerifyReport | None = None
         self.release: ReleaseGateResult | None = None
         self.halt_reason: str | None = None
@@ -1472,8 +1474,9 @@ class AutonomousOrchestrator:
             )
         return specs
 
-    def _verify(self) -> None:
-        self._pace(BudgetSlot.VERIFY)
+    def _run_verify_checks(self) -> None:
+        """The deterministic inspection + VERIFY run itself, without any phase transition — reusable for
+        IDR-RV8-01's release-scope recovery, which re-verifies a narrowed scope while already in RELEASE."""
         sd = self.ctx.problem.solution_design
         scope = list(sd.release_scope) if sd else []
         # deterministic inspection of every data asset the release relies on, from results already collected
@@ -1494,8 +1497,59 @@ class AutonomousOrchestrator:
             layer1_passed=self.report.layer1_passed,
             failed=[c.name for c in self.report.failed()],
         )
+
+    def _verify(self) -> None:
+        self._pace(BudgetSlot.VERIFY)
+        self._run_verify_checks()
         self._observe("verified")
         self.ctl.advance()
+
+    def _try_release_scope_recovery(self) -> bool:
+        """IDR-RV8-01: a critical VOB discovered during EXECUTE (after release_scope was already fixed by
+        DESIGN) can intersect an item DESIGN had no way to know would be blocked — ``preview_release_scope``
+        only runs once, at DESIGN time. Rather than HOLD outright, drop exactly the blocked items from
+        release_scope / minimum_useful_scope (never narrowing the VOB, never touching protected actions —
+        those still need their own Mandatory Human Gate path) and re-run VERIFY/RELEASE once. Bounded to one
+        attempt per run; gives up (falls through to HOLD) if the hold has any other cause, nothing would be
+        left to release, or a blocked item is itself a protected action (that needs reconsideration, not a
+        silent drop)."""
+        pd = self.ctx.problem.problem_definition
+        sd = self.ctx.problem.solution_design
+        rel = self.release
+        if (
+            not self.cfg.release_scope_recovery
+            or self.release_scope_recovered
+            or pd is None
+            or sd is None
+            or rel is None
+            or not rel.vob_blocked_items
+            or any(
+                not h.startswith("critical ") or "intersects release scope" not in h for h in rel.hold_reasons
+            )
+            or any(i.action in pd.protected_actions for i in rel.vob_blocked_items)
+        ):
+            return False
+        dropped = list(dict.fromkeys(rel.vob_blocked_items))
+        narrowed_release = [i for i in sd.release_scope if i not in dropped]
+        if not narrowed_release:
+            return False
+        self.release_scope_recovered = True
+        with self.ctx.commit("release scope recovery: drop VOB-blocked items (IDR-RV8-01)") as p:
+            d = p.solution_design
+            assert d is not None
+            d.release_scope = narrowed_release
+            d.minimum_useful_scope = [i for i in d.minimum_useful_scope if i not in dropped]
+            d.unfinished_scope += [
+                f"known limitation: {i} dropped from release after EXECUTE revealed a critical open VOB "
+                f"blocking it (release scope recovery)"
+                for i in dropped
+            ]
+        self._step(
+            "HARNESS", "release scope recovery: dropped VOB-blocked items", dropped=[str(i) for i in dropped]
+        )
+        self._run_verify_checks()  # re-verify the narrowed scope; still in RELEASE, no phase transition
+        self._release()
+        return True
 
     def _release(self) -> None:
         sd = self.ctx.problem.solution_design
@@ -1504,6 +1558,8 @@ class AutonomousOrchestrator:
             self._hold("RELEASE without VERIFY report")
             return
         self.release = evaluate_release_gate(self.ctx, report, list(sd.release_scope) if sd else [])
+        if self.release.decision is ReleaseDecision.HOLD and self._try_release_scope_recovery():
+            return
         self._step(
             "HARNESS",
             f"Release Gate {self.release.decision.value}",

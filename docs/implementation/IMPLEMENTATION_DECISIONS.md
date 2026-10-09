@@ -596,3 +596,47 @@ halt=None`, where the equivalent pre-patch runs HELD. A-15's authorization fix w
 only (the construct is deterministic and not provider-dependent — `ScopeItem` matching does not call the
 Reasoner); A-07's specific multi-tool shape was not independently re-run live (same code path as B-03-C/
 B-11-C, verified there).
+
+## 11. RV-8 Release Scope Recovery — IDR-RV8-01
+
+Instruction: re-auditing the live re-measurement of the RV-7 patches surfaced a fifth, more fundamental
+mechanism behind Release Gate HOLD, found by tracing a fresh A-04-shaped HOLD in a new 35-run attempt
+(aborted once this was found, since it changes the Core and would need a clean re-measurement anyway).
+Result: `RV8_RELEASE_SCOPE_RECOVERY_RESULT.md`.
+
+- **IDR-RV8-01 — a critical VOB discovered during EXECUTE, after DESIGN already fixed release_scope, gets
+  one bounded chance to drop just the items it blocks instead of HOLDing outright.** Root cause:
+  `preview_release_scope` only runs once, at DESIGN time; nothing re-checks release_scope against VOBs
+  created later. In A-04/A-07/A-11/A-15 the Reasoner discovered the blocking fact only once EXECUTE actually
+  queried the relevant data (interpret_evidence on a previously-unseen tool/operation) — a VOB whose
+  existence DESIGN had no way to anticipate. `evaluate_release_gate` would HOLD the whole run even though
+  only one or two items were actually implicated.
+  - `phases/release.py:ReleaseGateResult` gained a structured `vob_blocked_items: list[ScopeItem]` field
+    (the exact items a critical, non-BEFORE_PRODUCTION VOB intersects in the current release scope) so a
+    recovery can act on exact items instead of parsing `hold_reasons` text.
+  - `engine/autonomous.py:AutonomousOrchestrator._try_release_scope_recovery` fires once per run (bounded by
+    `self.release_scope_recovered`), only when every hold reason is a "critical ... intersects release
+    scope" message (any other HOLD cause — a protected action still WAITING_APPROVAL, a failed completeness
+    check, an unresolved conflict — is untouched and still HOLDs), and only when none of the blocked items is
+    a protected action (a protected action needs its own Human Gate / reconsideration path, not a silent
+    scope cut). It drops exactly the blocked items from `release_scope` / `minimum_useful_scope`, records
+    each as a `known limitation` in `unfinished_scope` (never hidden), and re-runs VERIFY/RELEASE once on the
+    narrowed scope via a new `_run_verify_checks()` helper (the VERIFY body factored out of `_verify()` so
+    the recovery can re-verify without illegally re-advancing the phase controller out of RELEASE). If
+    dropping the blocked items would leave `release_scope` empty, recovery gives up and the run HOLDs as
+    before — it never releases an empty scope. **The VOB itself is never narrowed or resolved** — it stays
+    OPEN, stays visible in the ApprovalPacket / known limitations, and the Mandatory Human Gate for any
+    protected action is completely unaffected; this only decides what else can still ship around it.
+  - New config flag `AutonomousConfig.release_scope_recovery` (default `True`) can disable it for an exact
+    pre-RV-8 comparison run.
+- **Verification:** 2 new unit tests directly on `evaluate_release_gate` (`vob_blocked_items` populated
+  correctly / empty when nothing critical intersects, `test_phase_j_verify_release.py`) plus 4 new end-to-end
+  tests on `scenario_d` (`test_rv7_release_hold_patches.py`): a VOB discovered mid-EXECUTE that blocks a
+  non-protected release item is dropped and the run still releases with the VOB visibly still open; a VOB
+  that blocks a protected action is refused (falls through to a plain HOLD, `release_scope_recovered`
+  stays `False`); and two give-up paths (nothing left after the drop) confirmed both end-to-end and by
+  calling `_try_release_scope_recovery()` directly against a hand-built `ReleaseGateResult`. 330/330 total
+  tests pass, ruff / ruff format / mypy clean. Not yet re-verified live or against the full 35-run batch —
+  the in-progress Model B re-measurement (freeze `5bcc9611ebf1c962`, RV-7-only) was stopped before IDR-RV8-01
+  landed, specifically so the next full re-measurement reflects RV-6 + RV-7 + RV-8-01 together rather than
+  needing a second rerun.
