@@ -18,6 +18,17 @@ Mock #6 rules
 Classes: COMPLETE_SUCCESS, COMPLETE_WITH_KNOWN_LIMITATION, HOLD_VALID, REASONING_FAILURE, PROVIDER_FAILURE,
 CORE_INTEGRATION_FAILURE, TIMEOUT, INTERRUPTED, INVALID_RUN.
 
+cls-3.3 (RV-15): two additions after RV-10..14 kept flagging REASONING_FAILURE on runs whose
+``final_problem`` paraphrased the BV-17 mechanism in wordings ``_MECH`` didn't anticipate.
+(1) ``_sep`` additionally treats ``+`` as a separator — "billing import + validation step" is "import
+validation" with an explicit "both of these" conjunction, not a different mechanism. (2) ``names_mechanism``
+adds a "billing import" + {calculation, processing, rule, defect} co-occurrence rule — the model
+repeatedly phrased the same import-stage defect as "calculation" or "processing" rather than
+"validation", and none of the ground truth's wrong hypotheses (H-SLOW, H-READS, H-TARIFF) use "import" at
+all, so this does not pull in an incorrect answer. Two remaining false negatives that drop "import"
+entirely ("billing-processing defect", "billing-calculation... error") are left unmatched rather than
+keying off "billing" alone, which would be too broad.
+
 cls-3.2 (RV-13): a halt from a benign Controller guard rejection (``IllegalTransitionError`` /
 ``ProtectedActionBlocked`` — e.g. "VOBs required before design finalization open") is HOLD_VALID, not
 CORE_INTEGRATION_FAILURE, once generic core safety is already confirmed clean. ``StateIntegrityError`` /
@@ -49,7 +60,7 @@ from typing import Any
 
 from common import core_safety, load, read_jsonl, reasoning_stats
 
-CLASSIFIER_VERSION = "cls-3.2"
+CLASSIFIER_VERSION = "cls-3.3"
 
 _MECH = (
     "bv-17",
@@ -107,17 +118,28 @@ def canon_text(text: str | None) -> str:
 
 
 def _sep(text: str) -> str:
-    """Separator spelling: '-' / '_' / '/' / whitespace between words are one notation (the keyword list
-    already lists e.g. 'unit scal' + 'unit-scal' and 'high consumption' + 'high_consumption' for that
+    """Separator spelling: '-' / '_' / '/' / '+' / whitespace between words are one notation (the keyword
+    list already lists e.g. 'unit scal' + 'unit-scal' and 'high consumption' + 'high_consumption' for that
     reason). cls-3.1 (RV-11): added '/' — "billing import/validation defect" is a common way to phrase
     "import validation defect" and was being missed by the slash alone, undercounting correct runs that
-    worded the mechanism this way."""
-    return re.sub(r"[\s_/-]+", " ", text)
+    worded the mechanism this way. cls-3.3 (RV-15): added '+' for the same reason — "billing import +
+    validation step" is "import validation" with an explicit "both of these" conjunction, not a different
+    mechanism."""
+    return re.sub(r"[\s_/+-]+", " ", text)
 
 
 def names_mechanism(text: str | None) -> bool:
     t = _sep(canon_text(text))
-    return any(_sep(k) in t for k in _MECH) or ("reject" in t and ("import" in t or "validation" in t))
+    return (
+        any(_sep(k) in t for k in _MECH)
+        or ("reject" in t and ("import" in t or "validation" in t))
+        # cls-3.3 (RV-15): "billing import" paired with any word for "something is processed wrong there"
+        # (calculation / processing / rule, not just "validation") — RV-10..14 repeatedly saw the model
+        # phrase the same BV-17 mechanism as "billing import/calculation step" or "billing-import rule
+        # defect" etc.; "import" alone is not required to co-occur with "billing" elsewhere because no
+        # wrong hypothesis in the ground truth (H-SLOW/H-READS/H-TARIFF) uses "import" at all.
+        or ("billing import" in t and any(w in t for w in ("calculation", "processing", "rule", "defect")))
+    )
 
 
 def _halt_class(halt: str | None, failed_calls: list[str]) -> str:

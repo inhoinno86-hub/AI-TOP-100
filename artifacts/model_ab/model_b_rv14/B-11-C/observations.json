@@ -1,0 +1,1431 @@
+{
+ "scenario": "C",
+ "result": {
+  "release_decision": "RELEASE_WITH_KNOWN_LIMITATION",
+  "halt_reason": null,
+  "phase": "RELEASE",
+  "execution_status": "RELEASED",
+  "problem_ref": "PD-1@v1",
+  "operator_reasoner_calls": 0,
+  "trace_actors": [
+   "ENVIRONMENT",
+   "HARNESS",
+   "REASONER"
+  ],
+  "wall_seconds": 696.1
+ },
+ "human": [],
+ "problem": {
+  "id": "PD-1",
+  "version": 1,
+  "requested_solution": "Build a chatbot so customers get instant answers about refund status (initial request from SH-SUP, CL-01), premised on the belief that support reply speed is the bottleneck.",
+  "symptoms": [
+   "Customers report waiting indefinitely for answers about refund status (CL-01/CL-02, E-03)",
+   "Refund-status support tickets persist despite support agents replying within SLA (median 2.0h vs 24h, E-02)",
+   "Sampled refund records in payment-db show FAILED_IBAN_FORMAT rather than completing (E-01)"
+  ],
+  "root_problem": "Refund-status support tickets are driven by refunds failing during processing in payment-db due to invalid IBAN format (5 of 5 sampled refunds show status FAILED_IBAN_FORMAT, E-01), not by slow support response, since agents already reply within SLA (median 2.0h vs 24h across 900 tickets, E-02). Customers perceive endless waiting because the underlying refund never completes, which the requester misattributes as a response-speed problem (E-03, contradicted by E-01/E-02).",
+  "evidence_refs": [
+   "E-01",
+   "E-02",
+   "E-03"
+  ],
+  "intended_scope": [
+   {
+    "action": "quantify_iban_failure_impact",
+    "target": "DA-PAY"
+   },
+   {
+    "action": "correlate_tickets_with_failures",
+    "target": "DA-TCK"
+   },
+   {
+    "action": "assess_refund_pipeline_defect",
+    "target": "P-REF"
+   }
+  ],
+  "protected_actions": [],
+  "depends_on_mappings": [],
+  "depends_on_handoffs": [],
+  "depends_on_exports": [],
+  "required_tools": [
+   "payment-db",
+   "ticket-db"
+  ],
+  "success_criteria": [
+   "SC-ROOT-CAUSE-CONFIRMED",
+   "SC-SLA-MAINTAINED",
+   "SC-IBAN-FAILURE-ELIMINATED"
+  ],
+  "metric_ids": [
+   "M-IBAN-FAILURE-RATE",
+   "M-SUPPORT-RESPONSE-DURATION",
+   "M-TICKET-IBAN-CORRELATION"
+  ],
+  "status": "ACTIVE",
+  "gate_result": "CONDITIONAL_PASS",
+  "invalidated_by": [],
+  "supersedes": null,
+  "superseded_by": null,
+  "challenges": []
+ },
+ "framing_hypotheses": [
+  "H-SLOW-SUPPORT-RESPONSE"
+ ],
+ "final_premise_hypotheses": [
+  "H-IBAN-FORMAT-FAILURE"
+ ],
+ "release": {
+  "decision": "RELEASE_WITH_KNOWN_LIMITATION",
+  "hold": [],
+  "limitations": [
+   "DEFINE Gate CONDITIONAL_PASS (deferred items tracked as VOBs)",
+   "VOB-U-FAILURE-SCALE open; blocking_scope outside release scope",
+   "VOB-R-2 open (required before production): Is the IBAN validation defect purely in payment-db logic, or does it depend on the bank-api settlement_status integration, which is currently DEGRADED with ACCESS_DENIED?",
+   "tool bank-api UNAVAILABLE",
+   "unfinished: Have payments engineering correct the IBAN-format validation logic in the refund pipeline (P-REF) so malformed IBANs are caught/corrected pre-processing instead of causing FAILED_IBAN_FORMAT (H-IBAN-FORMAT-FAILURE, E-01).",
+   "unfinished: known limitation: The current IBAN-failure baseline rests on a 5-record sample with UNKNOWN completeness in payment-db, so the true population failure rate is not yet established.",
+   "unfinished: known limitation: No join key links specific tickets to specific failed refunds (A-TICKET-FAILURE-LINKAGE), so any correlation remains inferential even at scale",
+   "unfinished: known limitation: payment-db completeness is UNKNOWN (A-SAMPLE-REPRESENTATIVENESS), limiting confidence that the 5/5 FAILED_IBAN_FORMAT sample generalizes",
+   "unfinished: known limitation: bank-api access is DEGRADED/ACCESS_DENIED with no fallback path, leaving U-BANK-API-DEPENDENCY unresolved for the defect assessment",
+   "unfinished: known limitation: Already-stuck refunds R-0..R-4 still require remediation outside this session since no write/deploy tool is available"
+  ]
+ },
+ "reasoning": [
+  {
+   "reasoning_id": "R-1",
+   "skill": "hypothesis_init",
+   "status": "SUCCESS",
+   "provider": "claude-cli",
+   "model": "sonnet",
+   "input_state_version": 0,
+   "schema_version": "1.0",
+   "order": 1,
+   "attempts": 1,
+   "input_digest": "4c0bd54e50fee51b",
+   "evidence_refs": [],
+   "confidence": 0.55,
+   "errors": [],
+   "output": null,
+   "fallback_used": null
+  },
+  {
+   "reasoning_id": "R-2",
+   "skill": "discover_actions",
+   "status": "SUCCESS",
+   "provider": "claude-cli",
+   "model": "sonnet",
+   "input_state_version": 2,
+   "schema_version": "1.0",
+   "order": 2,
+   "attempts": 1,
+   "input_digest": "9d5f3b3c212448ba",
+   "evidence_refs": [
+    "H-REFUND-PROCESSING-BACKLOG",
+    "H-SLOW-SUPPORT-RESPONSE",
+    "H-SUPPORT-LACKS-REFUND-VISIBIL",
+    "H-TICKET-VOLUME-SURGE"
+   ],
+   "confidence": null,
+   "errors": [],
+   "output": null,
+   "fallback_used": null
+  },
+  {
+   "reasoning_id": "R-3",
+   "skill": "interpret_evidence",
+   "status": "SUCCESS",
+   "provider": "claude-cli",
+   "model": "sonnet",
+   "input_state_version": 2,
+   "schema_version": "1.0",
+   "order": 3,
+   "attempts": 1,
+   "input_digest": "ed5418771002761b",
+   "evidence_refs": [
+    "CL-01",
+    "E-01",
+    "H-IBAN-FORMAT-FAILURE",
+    "H-REFUND-PROCESSING-BACKLOG",
+    "H-SLOW-SUPPORT-RESPONSE",
+    "H-SLOW-SUPPORT-RESPONSE.",
+    "H-SUPPORT-LACKS-REFUND-VISIBIL",
+    "H-TICKET-VOLUME-SURGE"
+   ],
+   "confidence": 0.78,
+   "errors": [],
+   "output": null,
+   "fallback_used": null
+  },
+  {
+   "reasoning_id": "R-4",
+   "skill": "interpret_evidence",
+   "status": "SUCCESS",
+   "provider": "claude-cli",
+   "model": "sonnet",
+   "input_state_version": 5,
+   "schema_version": "1.0",
+   "order": 4,
+   "attempts": 1,
+   "input_digest": "f74f9b8fb65708d0",
+   "evidence_refs": [
+    "E-02",
+    "H-IBAN-FORMAT-FAILURE",
+    "H-REFUND-PROCESSING-BACKLOG",
+    "H-SLOW-SUPPORT-RESPONSE",
+    "H-SUPPORT-LACKS-REFUND-VISIBIL",
+    "H-TICKET-VOLUME-SURGE"
+   ],
+   "confidence": 0.8,
+   "errors": [],
+   "output": null,
+   "fallback_used": null
+  },
+  {
+   "reasoning_id": "R-5",
+   "skill": "interpret_evidence",
+   "status": "SUCCESS",
+   "provider": "claude-cli",
+   "model": "sonnet",
+   "input_state_version": 7,
+   "schema_version": "1.0",
+   "order": 5,
+   "attempts": 1,
+   "input_digest": "80d1ebd3e57b2dea",
+   "evidence_refs": [
+    "CL-01",
+    "E-01",
+    "E-02",
+    "E-02.",
+    "H-IBAN-FORMAT-FAILURE",
+    "H-REFUND-PROCESSING-BACKLOG",
+    "H-SLOW-SUPPORT-RESPONSE",
+    "H-SUPPORT-LACKS-REFUND-VISIBIL",
+    "H-TICKET-VOLUME-SURGE"
+   ],
+   "confidence": 0.85,
+   "errors": [],
+   "output": null,
+   "fallback_used": null
+  },
+  {
+   "reasoning_id": "R-6",
+   "skill": "discover_actions",
+   "status": "SUCCESS",
+   "provider": "claude-cli",
+   "model": "sonnet",
+   "input_state_version": 9,
+   "schema_version": "1.0",
+   "order": 6,
+   "attempts": 1,
+   "input_digest": "4d66fb4f1700486b",
+   "evidence_refs": [
+    "E-01",
+    "H-IBAN-FORMAT-FAILURE",
+    "H-REFUND-PROCESSING-BACKLOG",
+    "H-SLOW-SUPPORT-RESPONSE",
+    "H-SUPPORT-LACKS-REFUND-VISIBIL",
+    "H-TICKET-VOLUME-SURGE."
+   ],
+   "confidence": null,
+   "errors": [],
+   "output": null,
+   "fallback_used": null
+  },
+  {
+   "reasoning_id": "R-7",
+   "skill": "discover_actions",
+   "status": "SUCCESS",
+   "provider": "claude-cli",
+   "model": "sonnet",
+   "input_state_version": 9,
+   "schema_version": "1.0",
+   "order": 7,
+   "attempts": 1,
+   "input_digest": "07a3cf1a134f943d",
+   "evidence_refs": [
+    "H-IBAN-FORMAT-FAILURE",
+    "H-REFUND-PROCESSING-BACKLOG",
+    "H-SUPPORT-LACKS-REFUND-VISIBIL",
+    "H-TICKET-VOLUME-SURGE"
+   ],
+   "confidence": null,
+   "errors": [],
+   "output": null,
+   "fallback_used": null
+  },
+  {
+   "reasoning_id": "R-8",
+   "skill": "assess_hypotheses",
+   "status": "SUCCESS",
+   "provider": "claude-cli",
+   "model": "sonnet",
+   "input_state_version": 9,
+   "schema_version": "1.0",
+   "order": 8,
+   "attempts": 1,
+   "input_digest": "93e7abf289a133ac",
+   "evidence_refs": [
+    "CL-01",
+    "E-01",
+    "E-01.",
+    "E-02",
+    "E-03",
+    "H-IBAN-FORMAT-FAILURE",
+    "H-REFUND-PROCESSING-BACKLOG",
+    "H-SLOW-SUPPORT-RESPONSE"
+   ],
+   "confidence": null,
+   "errors": [],
+   "output": null,
+   "fallback_used": null
+  },
+  {
+   "reasoning_id": "R-9",
+   "skill": "define_problem",
+   "status": "SUCCESS",
+   "provider": "claude-cli",
+   "model": "sonnet",
+   "input_state_version": 11,
+   "schema_version": "1.0",
+   "order": 9,
+   "attempts": 1,
+   "input_digest": "210c9679a43431c5",
+   "evidence_refs": [
+    "CL-01",
+    "CL-02",
+    "E-01",
+    "E-01.",
+    "E-02",
+    "E-03",
+    "H-IBAN-FORMAT-FAILURE",
+    "H-REFUND-PROCESSING-BACKLOG",
+    "H-SLOW-SUPPORT-RESPONSE",
+    "H-SUPPORT-LACKS-REFUND-VISIBIL",
+    "H-TICKET-VOLUME-SURGE"
+   ],
+   "confidence": 0.72,
+   "errors": [],
+   "output": null,
+   "fallback_used": null
+  },
+  {
+   "reasoning_id": "R-10",
+   "skill": "structural_remedy",
+   "status": "SUCCESS",
+   "provider": "claude-cli",
+   "model": "sonnet",
+   "input_state_version": 14,
+   "schema_version": "1.0",
+   "order": 10,
+   "attempts": 1,
+   "input_digest": "865539f7d3cc035e",
+   "evidence_refs": [
+    "A-SAMPLE-REPRESENTATIVENESS",
+    "A-TICKET-FAILURE-LINKAGE",
+    "CL-01",
+    "CL-02",
+    "E-01",
+    "E-02",
+    "E-03",
+    "H-IBAN-FORMAT-FAILURE",
+    "H-SLOW-SUPPORT-RESPONSE",
+    "M-TICKET-IBAN-CORRELATION",
+    "U-BANK-API-DEPENDENCY",
+    "VOB-U-FAILURE-SCALE"
+   ],
+   "confidence": 0.72,
+   "errors": [],
+   "output": null,
+   "fallback_used": null
+  },
+  {
+   "reasoning_id": "R-11",
+   "skill": "agent_design",
+   "status": "SUCCESS",
+   "provider": "claude-cli",
+   "model": "sonnet",
+   "input_state_version": 14,
+   "schema_version": "1.0",
+   "order": 11,
+   "attempts": 1,
+   "input_digest": "4ef5440ade9f51b1",
+   "evidence_refs": [
+    "A-SAMPLE-REPRESENTATIVENESS",
+    "A-TICKET-FAILURE-LINKAGE",
+    "E-01",
+    "E-02",
+    "M-IBAN-FAILURE-RATE",
+    "M-SUPPORT-RESPONSE-DURATION",
+    "M-TICKET-IBAN-CORRELATION",
+    "SC-IBAN-FAILURE-ELIMINATED",
+    "SC-SLA-MAINTAINED",
+    "U-BANK-API-DEPENDENCY",
+    "U-FAILURE-SCALE",
+    "VOB-U-FAILURE-SCALE"
+   ],
+   "confidence": 0.68,
+   "errors": [],
+   "output": null,
+   "fallback_used": null
+  },
+  {
+   "reasoning_id": "R-12",
+   "skill": "plan_execution",
+   "status": "SUCCESS",
+   "provider": "claude-cli",
+   "model": "sonnet",
+   "input_state_version": 17,
+   "schema_version": "1.0",
+   "order": 12,
+   "attempts": 1,
+   "input_digest": "6c00088b0d492bee",
+   "evidence_refs": [
+    "E-01",
+    "H-IBAN-FORMAT-FAILURE",
+    "H-IBAN-FORMAT-FAILURE.",
+    "U-BANK-API-DEPENDENCY",
+    "VOB-R-2"
+   ],
+   "confidence": null,
+   "errors": [],
+   "output": null,
+   "fallback_used": null
+  },
+  {
+   "reasoning_id": "R-13",
+   "skill": "semantic_judge",
+   "status": "SUCCESS",
+   "provider": "claude-cli",
+   "model": "sonnet",
+   "input_state_version": 18,
+   "schema_version": "1.0",
+   "order": 13,
+   "attempts": 1,
+   "input_digest": "866cc5460c88261b",
+   "evidence_refs": [
+    "A-IBAN-CAUSE-LOCATION",
+    "A-SAMPLE-REPRESENTATIVENESS",
+    "A-TICKET-FAILURE-LINKAGE",
+    "CL-01",
+    "CL-01.",
+    "CL-02",
+    "E-01",
+    "E-02",
+    "E-03",
+    "H-SLOW-SUPPORT-RESPONSE",
+    "U-BANK-API-DEPENDENCY",
+    "U-SAMPLE-SIZE-VALIDITY"
+   ],
+   "confidence": null,
+   "errors": [],
+   "output": null,
+   "fallback_used": null
+  },
+  {
+   "reasoning_id": "R-14",
+   "skill": "release_summary",
+   "status": "SUCCESS",
+   "provider": "claude-cli",
+   "model": "sonnet",
+   "input_state_version": 20,
+   "schema_version": "1.0",
+   "order": 14,
+   "attempts": 1,
+   "input_digest": "2a5863a474c47385",
+   "evidence_refs": [
+    "A-SAMPLE-REPRESENTATIVENESS",
+    "A-TICKET-FAILURE-LINKAGE",
+    "CL-01",
+    "CL-02",
+    "E-01",
+    "E-02",
+    "E-03",
+    "H-IBAN-FORMAT-FAILURE",
+    "H-REFUND-PROCESSING-BACKLOG",
+    "H-SLOW-SUPPORT-RESPONSE",
+    "H-SLOW-SUPPORT-RESPONSE.",
+    "H-SUPPORT-LACKS-REFUND-VISIBIL",
+    "H-TICKET-VOLUME-SURGE",
+    "M-TICKET-IBAN-CORRELATION",
+    "U-BANK-API-DEPENDENCY",
+    "U-FAILURE-SCALE",
+    "U-SAMPLE-SIZE-VALIDITY",
+    "VOB-R-2",
+    "VOB-U-FAILURE-SCALE",
+    "VOB-U-FAILURE-SCALE."
+   ],
+   "confidence": null,
+   "errors": [],
+   "output": null,
+   "fallback_used": null
+  }
+ ],
+ "proposals": {
+  "R-1": {
+   "skill": "hypothesis_init",
+   "status": "SUCCESS",
+   "output": {
+    "framing_assertion": {
+     "key": "refund_status_delay.root_cause",
+     "value": "support_response_speed",
+     "rationale": "SH-SUP's request to 'build a chatbot so customers stop waiting for answers about refunds' asserts that the delay customers experience is caused by slow support responses, which SH-SUP's noted bias ('frames everything as response speed') makes a claim to verify, not a fact."
+    },
+    "hypotheses": [
+     {
+      "key": "SLOW_SUPPORT_RESPONSE",
+      "statement": "Support agents take too long to reply to refund-status inquiries, so a chatbot that answers instantly would resolve the backlog.",
+      "origin": "REQUESTER_FRAMING",
+      "decision_impact": "HIGH",
+      "rationale": "This is SH-SUP's stated framing (role: support lead, potential_bias: frames everything as response speed) behind the initial_request to build a chatbot; it drives directly toward a chatbot solution if true.",
+      "discriminating_evidence": [
+       "ticket-db response-time records (tool_surface entry 'tickets + response times')",
+       "DA-TCK (tickets data asset) timestamps on inquiry vs. first reply"
+      ]
+     },
+     {
+      "key": "REFUND_PROCESSING_BACKLOG",
+      "statement": "The underlying refund processing itself (P-REF) is slow or backlogged in payment-db, so customers contact support repeatedly asking about status that support cannot speed up.",
+      "origin": "ALTERNATIVE",
+      "decision_impact": "CRITICAL",
+      "rationale": "If true, a chatbot would only deflect inquiries without fixing the actual cause of customer waiting, and the real fix is process P-REF or payment-db throughput, not a support-facing tool.",
+      "discriminating_evidence": [
+       "DA-PAY (refund payments, AUTHORITATIVE) processing/completion timestamps",
+       "payment-db tool_surface entry describing refund payments",
+       "P-REF process steps/pain_points if populated"
+      ]
+     },
+     {
+      "key": "TICKET_VOLUME_SURGE",
+      "statement": "Ticket volume for refund inquiries has risen beyond support capacity, so the backlog is a staffing/capacity issue rather than a per-ticket speed issue.",
+      "origin": "ALTERNATIVE",
+      "decision_impact": "MEDIUM",
+      "rationale": "If volume, not speed-per-ticket, is the driver, a chatbot might help as a triage/deflection measure but the root fix would be staffing or workflow capacity in ORG-1, not instant answers.",
+      "discriminating_evidence": [
+       "ticket-db records of ticket counts over time (tool_surface entry 'tickets + response times')",
+       "DA-TCK volume trend relative to known resourcing (if captured)"
+      ]
+     },
+     {
+      "key": "SUPPORT_LACKS_REFUND_VISIBILITY",
+      "statement": "Support agents lack timely access to authoritative refund-payment status (DA-PAY), so they cannot answer customer questions quickly regardless of effort, pointing to a data/integration gap rather than agent speed or process delay.",
+      "origin": "ALTERNATIVE",
+      "decision_impact": "HIGH",
+      "rationale": "If support simply cannot see payment-db status when handling a ticket, the fix is integrating DA-PAY into the support workflow, which is a different solution than a customer-facing chatbot.",
+      "discriminating_evidence": [
+       "DA-PAY source/authority metadata (payment-db, AUTHORITATIVE) vs. whether tickets (DA-TCK) reference payment status at resolution",
+       "P-REF process actors/systems linking refund process to payment-db"
+      ]
+     }
+    ],
+    "confidence": 0.55
+   }
+  },
+  "R-2": {
+   "skill": "discover_actions",
+   "status": "SUCCESS",
+   "output": {
+    "actions": [
+     {
+      "catalog_ref": "ticket-db:response_times",
+      "question": "What do ticket response-time (and volume) records in ticket-db show for refund-status inquiries over the recent period?",
+      "decision_impact": 0.8,
+      "uncertainty": 0.7,
+      "discriminative_power": 0.8,
+      "answerability": 0.9,
+      "process_data_handoff_impact": 0.3,
+      "action_proximity": 0.6,
+      "constraint_risk": 0.1,
+      "estimated_cost_minutes": 15,
+      "expected_information_gain": "Reveals whether agent reply latency or ticket volume is actually elevated, directly testing the response-speed and volume-surge framings against raw ticket-db records.",
+      "decision_impact_rationale": "If response times/volume are normal, it rules out H-SLOW-SUPPORT-RESPONSE and H-TICKET-VOLUME-SURGE and redirects the next decision toward the payment-side or visibility hypotheses instead of building a chatbot.",
+      "discriminates_hypotheses": [
+       "H-SLOW-SUPPORT-RESPONSE",
+       "H-TICKET-VOLUME-SURGE"
+      ],
+      "resolves_unknowns": [],
+      "addresses": [],
+      "why_now": "DA-TCK is already flagged AUTHORITATIVE but completeness UNKNOWN; this is the only catalog item that names the exact ticket-level mechanism (response speed, volume) these two still-live hypotheses claim."
+     },
+     {
+      "catalog_ref": "payment-db:refund_failures",
+      "question": "Does payment-db's refund_failures data show refunds stuck, failing, or backlogged in processing (P-REF)?",
+      "decision_impact": 0.9,
+      "uncertainty": 0.8,
+      "discriminative_power": 0.85,
+      "answerability": 0.85,
+      "process_data_handoff_impact": 0.5,
+      "action_proximity": 0.6,
+      "constraint_risk": 0.1,
+      "estimated_cost_minutes": 15,
+      "expected_information_gain": "Directly checks whether refund processing itself is backlogged/failing, which is the exact mechanism H-REFUND-PROCESSING-BACKLOG (CRITICAL impact) claims.",
+      "decision_impact_rationale": "A confirmed processing backlog would reject the chatbot-as-fix framing entirely and point the decision toward fixing P-REF instead, which is the highest-impact hypothesis in play.",
+      "discriminates_hypotheses": [
+       "H-REFUND-PROCESSING-BACKLOG"
+      ],
+      "resolves_unknowns": [],
+      "addresses": [],
+      "why_now": "This is the only catalog item describing refund_failures, the literal mechanism the highest-impact live hypothesis names; it has not yet been queried."
+     },
+     {
+      "catalog_ref": "bank-api:settlement_status",
+      "question": "What does bank-api settlement_status show about delays in settling refund payments relative to customer inquiries?",
+      "decision_impact": 0.7,
+      "uncertainty": 0.6,
+      "discriminative_power": 0.6,
+      "answerability": 0.7,
+      "process_data_handoff_impact": 0.4,
+      "action_proximity": 0.5,
+      "constraint_risk": 0.15,
+      "estimated_cost_minutes": 20,
+      "expected_information_gain": "Provides corroborating evidence on whether delays originate upstream at the bank settlement step, further testing H-REFUND-PROCESSING-BACKLOG from a different data source than refund_failures.",
+      "decision_impact_rationale": "If settlements are delayed at the bank layer, it strengthens the processing-backlog hypothesis and confirms a chatbot would not resolve the root cause.",
+      "discriminates_hypotheses": [
+       "H-REFUND-PROCESSING-BACKLOG"
+      ],
+      "resolves_unknowns": [],
+      "addresses": [],
+      "why_now": "Settlement status is an external, authoritative signal on refund processing delay distinct from payment-db's internal failure log, useful to triangulate the same critical hypothesis."
+     },
+     {
+      "catalog_ref": "interview:SH-SUP",
+      "question": "Does support have timely, direct access to authoritative refund-payment status (DA-PAY) when answering customer inquiries, or are they blind to it?",
+      "decision_impact": 0.75,
+      "uncertainty": 0.6,
+      "discriminative_power": 0.6,
+      "answerability": 0.5,
+      "process_data_handoff_impact": 0.3,
+      "action_proximity": 0.5,
+      "constraint_risk": 0.2,
+      "estimated_cost_minutes": 20,
+      "expected_information_gain": "Clarifies whether agents' delays stem from lacking visibility into DA-PAY (an integration gap) rather than agent speed, the mechanism H-SUPPORT-LACKS-REFUND-VISIBIL claims.",
+      "decision_impact_rationale": "If support genuinely lacks refund-status access, the fix is a data/integration gap, not a chatbot or staffing change, redirecting the recommended next step.",
+      "discriminates_hypotheses": [
+       "H-SUPPORT-LACKS-REFUND-VISIBIL"
+      ],
+      "resolves_unknowns": [],
+      "addresses": [],
+      "why_now": "SH-SUP is the only source that can speak to agents' day-to-day access to refund data; note stakeholder bias toward framing everything as response speed, so answerability is capped lower."
+     }
+    ],
+    "stop": false,
+    "stop_reason": "All four live hypotheses (H-REFUND-PROCESSING-BACKLOG, H-SLOW-SUPPORT-RESPONSE, H-SUPPORT-LACKS-REFUND-VISIBIL, H-TICKET-VOLUME-SURGE) each have an unexecuted catalog item that most directly names their claimed mechanism; none have been queried yet, so discovery should proceed rather than stop."
+   }
+  },
+  "R-3": {
+   "skill": "interpret_evidence",
+   "status": "SUCCESS",
+   "output": {
+    "assertion_key": "refund_status_delay.root_cause",
+    "assertion_value": "iban_format_failures",
+    "interpretation": "payment-db shows 5 of 5 sampled refund records FAILED with status FAILED_IBAN_FORMAT, indicating refunds are actually failing in processing due to a data-validation defect (bad IBAN format), not merely being slow or awaiting agent response. This points to a payment-pipeline defect as a driver of refund-status tickets, independent of support agent speed.",
+    "hypothesis_effects": [
+     {
+      "hypothesis": "H-REFUND-PROCESSING-BACKLOG",
+      "effect": "SUPPORTS",
+      "rationale": "Confirms the refund process (P-REF) in payment-db has real upstream failures that support cannot speed up, consistent with a backlog/processing-fault cause rather than agent slowness."
+     },
+     {
+      "hypothesis": "H-SLOW-SUPPORT-RESPONSE",
+      "effect": "CONTRADICTS",
+      "rationale": "The delay traces to refunds failing with FAILED_IBAN_FORMAT in payment-db, not to how fast agents reply, so a faster-response chatbot would not fix failed refunds."
+     },
+     {
+      "hypothesis": "H-SUPPORT-LACKS-REFUND-VISIBIL",
+      "effect": "NEUTRAL",
+      "rationale": "The observation shows refunds are failing, not that support lacks visibility into refund status; it does not speak to agents' access to DA-PAY."
+     },
+     {
+      "hypothesis": "H-TICKET-VOLUME-SURGE",
+      "effect": "NEUTRAL",
+      "rationale": "No ticket-volume or capacity data is present in this payment-db record set."
+     }
+    ],
+    "new_hypotheses": [
+     {
+      "key": "H-IBAN-FORMAT-FAILURE",
+      "statement": "Refunds are failing in payment-db due to invalid/incompatible IBAN format, generating customer status inquiries that support cannot resolve because the underlying refund never completes.",
+      "decision_impact": "CRITICAL",
+      "rationale": "All 5 sampled refund_failures records show FAILED_IBAN_FORMAT, a concrete processing fault distinct from mere slowness, that would explain repeated customer contact about refund status."
+     }
+    ],
+    "fact_candidates": [
+     {
+      "statement": "5 of 5 sampled refund records in payment-db have status FAILED_IBAN_FORMAT.",
+      "assertion_key": "refund_failures.iban_format_count",
+      "value": 5,
+      "evidence_refs": [
+       "E-01"
+      ]
+     }
+    ],
+    "unknown_resolutions": [],
+    "authorization_candidates": [],
+    "contradiction_assessment": {
+     "relation": "UNRELATED",
+     "target_type": "NONE",
+     "target_refs": [],
+     "materiality": "LOW",
+     "problem_invalidating": false,
+     "rationale": "No problem_definition is present in the input to assess premises against; the observation's conflict is captured instead as a contradiction of claim CL-01 and hypothesis H-SLOW-SUPPORT-RESPONSE."
+    },
+    "vob_proposals": [
+     {
+      "unresolved_question": "What fraction of refund-status support tickets correspond to refunds that actually failed with FAILED_IBAN_FORMAT (or other payment-db failures), versus refunds that are merely pending/slow?",
+      "decision_impact": "CRITICAL",
+      "required_before": "BEFORE_DESIGN_FINALIZATION",
+      "blocking_scope": [
+       {
+        "action": "design_chatbot_scope",
+        "target": "P-REF"
+       }
+      ],
+      "entire_solution": true,
+      "validation_method": "Cross-reference ticket-db tickets tagged refund-status with payment-db refund_failures records by refund/ticket identifiers to measure overlap.",
+      "required_evidence": [
+       "ticket-db:response_times results linked to failed refund IDs",
+       "payment-db failure-rate across full refund population, not just the sampled 5"
+      ],
+      "linked_unknown": "",
+      "rationale": "If most support tickets trace to actual payment failures rather than response latency, a chatbot would not address the root cause, so this must be confirmed before committing to that solution design."
+     }
+    ],
+    "follow_up_actions": [
+     "ticket-db:response_times",
+     "bank-api:settlement_status",
+     "interview:SH-SUP"
+    ],
+    "confidence": 0.78
+   }
+  },
+  "R-4": {
+   "skill": "interpret_evidence",
+   "status": "SUCCESS",
+   "output": {
+    "assertion_key": "refund_status_delay.root_cause",
+    "assertion_value": "support_response_within_sla",
+    "claim_assertion_key": "",
+    "claim_assertion_value": "",
+    "interpretation": "Ticket-db shows support agents reply with a median of 2.0 hours against a 24-hour SLA across 900 tickets, i.e. response speed is well within SLA, not a backlog of slow replies.",
+    "hypothesis_effects": [
+     {
+      "hypothesis": "H-SLOW-SUPPORT-RESPONSE",
+      "effect": "CONTRADICTS",
+      "rationale": "A median reply time of 2.0 hours against a 24-hour SLA shows agents are not slow, undermining the premise that a chatbot is needed to beat sluggish human replies."
+     },
+     {
+      "hypothesis": "H-IBAN-FORMAT-FAILURE",
+      "effect": "NEUTRAL",
+      "rationale": "Ticket response-time metrics say nothing about payment-db IBAN validation failures."
+     },
+     {
+      "hypothesis": "H-REFUND-PROCESSING-BACKLOG",
+      "effect": "NEUTRAL",
+      "rationale": "Fast ticket replies do not confirm or deny whether the underlying refund process itself (P-REF) is backlogged in payment-db."
+     },
+     {
+      "hypothesis": "H-SUPPORT-LACKS-REFUND-VISIBIL",
+      "effect": "NEUTRAL",
+      "rationale": "The metric only measures reply speed, not whether agents have authoritative refund-status data when they do reply."
+     },
+     {
+      "hypothesis": "H-TICKET-VOLUME-SURGE",
+      "effect": "NEUTRAL",
+      "rationale": "900 tickets is a single snapshot with no historical baseline, so it cannot establish a volume surge."
+     }
+    ],
+    "new_hypotheses": [],
+    "fact_candidates": [
+     {
+      "statement": "Ticket-db reports 900 tickets with a median response time of 2.0 hours against a 24-hour SLA.",
+      "assertion_key": "ticket_response_time_median_hours",
+      "value": 2,
+      "evidence_refs": [
+       "E-02"
+      ]
+     }
+    ],
+    "unknown_resolutions": [],
+    "authorization_candidates": [],
+    "contradiction_assessment": {
+     "relation": "UNRELATED",
+     "target_type": "NONE",
+     "target_refs": [],
+     "materiality": "LOW",
+     "problem_invalidating": false,
+     "rationale": "No problem_definition is present in the current state to assess this observation against."
+    },
+    "vob_proposals": [],
+    "follow_up_actions": [
+     "interview:SH-SUP"
+    ],
+    "confidence": 0.8
+   }
+  },
+  "R-5": {
+   "skill": "interpret_evidence",
+   "status": "SUCCESS",
+   "output": {
+    "assertion_key": "",
+    "assertion_value": "",
+    "claim_assertion_key": "refund_status_delay.root_cause",
+    "claim_assertion_value": "support_response_speed",
+    "confidence": 0.85,
+    "interpretation": "SH-SUP (the original requester) restates in interview the same chatbot-framing claim already recorded as CL-01, offering no new evidence beyond the stakeholder's belief that response speed is the problem. This claim is already contradicted by E-01 (IBAN format failures) and E-02 (support within SLA), consistent with SH-SUP's noted bias of framing everything as response speed.",
+    "hypothesis_effects": [
+     {
+      "hypothesis": "H-SLOW-SUPPORT-RESPONSE",
+      "effect": "SUPPORTS",
+      "rationale": "Reiterates the stakeholder belief underlying this hypothesis, but is non-authoritative and adds no new weight against the existing contradictions from E-01/E-02."
+     },
+     {
+      "hypothesis": "H-IBAN-FORMAT-FAILURE",
+      "effect": "NEUTRAL",
+      "rationale": "The statement does not address refund processing or IBAN validity."
+     },
+     {
+      "hypothesis": "H-REFUND-PROCESSING-BACKLOG",
+      "effect": "NEUTRAL",
+      "rationale": "The statement does not speak to backlog in payment-db processing."
+     },
+     {
+      "hypothesis": "H-SUPPORT-LACKS-REFUND-VISIBIL",
+      "effect": "NEUTRAL",
+      "rationale": "The statement describes customer wait time, not whether support agents have data visibility."
+     },
+     {
+      "hypothesis": "H-TICKET-VOLUME-SURGE",
+      "effect": "NEUTRAL",
+      "rationale": "The statement makes no claim about ticket volume or capacity."
+     }
+    ],
+    "new_hypotheses": [],
+    "fact_candidates": [],
+    "unknown_resolutions": [],
+    "authorization_candidates": [],
+    "contradiction_assessment": {
+     "relation": "UNRELATED",
+     "target_type": "NONE",
+     "target_refs": [],
+     "materiality": "LOW",
+     "problem_invalidating": false,
+     "rationale": "No problem_definition is present in state to assess this stakeholder statement against."
+    },
+    "vob_proposals": [],
+    "follow_up_actions": []
+   }
+  },
+  "R-6": {
+   "skill": "discover_actions",
+   "status": "SUCCESS",
+   "output": {
+    "actions": [
+     {
+      "catalog_ref": "bank-api:settlement_status",
+      "question": "What is the current settlement status (success/failure/backlog) for the sampled refund payments in bank-api, and does it corroborate the IBAN-format failure pattern or reveal a separate settlement backlog?",
+      "decision_impact": 0.75,
+      "uncertainty": 0.7,
+      "discriminative_power": 0.7,
+      "answerability": 0.55,
+      "process_data_handoff_impact": 0.2,
+      "action_proximity": 0.5,
+      "constraint_risk": 0.15,
+      "estimated_cost_minutes": 15,
+      "expected_information_gain": "Clarifies whether refund failures seen in payment-db (E-01) stem from bank-side settlement rejection consistent with IBAN format defects, or instead reflect a separate settlement backlog/delay mechanism.",
+      "decision_impact_rationale": "Settlement status is the authoritative upstream signal for whether refunds are failing (format defect) vs merely delayed (backlog), which are CRITICAL-impact hypotheses pointing to very different fixes (data-validation fix vs capacity/pipeline fix).",
+      "discriminates_hypotheses": [
+       "H-IBAN-FORMAT-FAILURE",
+       "H-REFUND-PROCESSING-BACKLOG"
+      ],
+      "resolves_unknowns": [],
+      "addresses": [],
+      "why_now": "This is the only remaining catalog item (bank-api:settlement_status) and bank-api's tool_health is still UNKNOWN; it is the sole untested source that could directly confirm or separate the two CRITICAL root-cause hypotheses before further action is taken."
+     }
+    ],
+    "stop": false,
+    "stop_reason": "One untried catalog item (bank-api:settlement_status) remains that directly bears on the CRITICAL hypotheses H-IBAN-FORMAT-FAILURE and H-REFUND-PROCESSING-BACKLOG, so discovery should continue rather than stop; no catalog item exists for H-SLOW-SUPPORT-RESPONSE, H-SUPPORT-LACKS-REFUND-VISIBIL, or H-TICKET-VOLUME-SURGE."
+   }
+  },
+  "R-7": {
+   "skill": "discover_actions",
+   "status": "SUCCESS",
+   "output": {
+    "actions": [],
+    "stop": true,
+    "stop_reason": "The catalog is empty, so no information-gathering action can be proposed regardless of which hypotheses (H-IBAN-FORMAT-FAILURE, H-REFUND-PROCESSING-BACKLOG, H-SUPPORT-LACKS-REFUND-VISIBIL, H-TICKET-VOLUME-SURGE) remain live; there is no catalog item to check any of them against."
+   }
+  },
+  "R-8": {
+   "skill": "assess_hypotheses",
+   "status": "SUCCESS",
+   "output": {
+    "rationale": "Evaluated linked evidence per hypothesis. E-01 (AUTHORITATIVE, COMPLETE) directly supports the IBAN-failure hypothesis and, per its own interpretation, actively contradicts the backlog/slow-processing framing. E-02 (AUTHORITATIVE, COMPLETE) shows support response is well within SLA, contradicting the slow-support-response hypothesis alongside E-01. The visibility-gap and ticket-volume hypotheses have no linked evidence, so they remain CANDIDATE and are not reported.",
+    "updates": [
+     {
+      "hypothesis": "H-IBAN-FORMAT-FAILURE",
+      "status": "SUPPORTED",
+      "rationale": "E-01 is authoritative, complete evidence directly showing 5/5 sampled refunds failed with FAILED_IBAN_FORMAT, matching the hypothesis; no evidence contradicts it specifically.",
+      "evidence_refs": [
+       "E-01"
+      ]
+     },
+     {
+      "hypothesis": "H-REFUND-PROCESSING-BACKLOG",
+      "status": "REJECTED",
+      "rationale": "E-01's own interpretation states the failures are due to a data-validation defect, not slowness/backlog, directly contradicting this hypothesis despite being listed as 'supporting'.",
+      "evidence_refs": [
+       "E-01"
+      ]
+     },
+     {
+      "hypothesis": "H-SLOW-SUPPORT-RESPONSE",
+      "status": "REJECTED",
+      "rationale": "E-02 shows median 2.0h response against 24h SLA across 900 tickets (well within SLA), and E-01 shows refunds fail at the payment layer rather than due to slow agent replies; the only supporting item, E-03, is a non-authoritative restatement of the already-contradicted claim CL-01 from a stakeholder with noted bias.",
+      "evidence_refs": [
+       "E-01",
+       "E-02",
+       "E-03"
+      ]
+     }
+    ],
+    "ready_to_define": true
+   }
+  },
+  "R-9": {
+   "skill": "define_problem",
+   "status": "SUCCESS",
+   "output": {
+    "root_problem": "Refund-status support tickets are driven by refunds failing during processing in payment-db due to invalid IBAN format (5 of 5 sampled refunds show status FAILED_IBAN_FORMAT, E-01), not by slow support response, since agents already reply within SLA (median 2.0h vs 24h across 900 tickets, E-02). Customers perceive endless waiting because the underlying refund never completes, which the requester misattributes as a response-speed problem (E-03, contradicted by E-01/E-02).",
+    "requested_solution": "Build a chatbot so customers get instant answers about refund status (initial request from SH-SUP, CL-01), premised on the belief that support reply speed is the bottleneck.",
+    "symptoms": [
+     "Customers report waiting indefinitely for answers about refund status (CL-01/CL-02, E-03)",
+     "Refund-status support tickets persist despite support agents replying within SLA (median 2.0h vs 24h, E-02)",
+     "Sampled refund records in payment-db show FAILED_IBAN_FORMAT rather than completing (E-01)"
+    ],
+    "affected_process": "refund processing (P-REF)",
+    "causal_chain": [
+     "Customer submits a refund request whose IBAN fails payment-db validation, producing status FAILED_IBAN_FORMAT (E-01).",
+     "Because this processing step fails, the refund never completes and no resolving status reaches the customer.",
+     "The customer, seeing no completed refund, opens or follows up on a support ticket asking about refund status.",
+     "Support agents reply within SLA (median 2.0h vs 24h across 900 tickets, E-02) but cannot resolve the ticket because the defect is in payment-db processing, not in agent responsiveness.",
+     "The customer continues to experience the refund as stuck and reports 'waiting forever', which the requester reframes as a response-speed issue (E-03) despite E-01/E-02 contradicting that framing."
+    ],
+    "premise_hypotheses": [
+     "H-IBAN-FORMAT-FAILURE"
+    ],
+    "evidence_refs": [
+     "E-01",
+     "E-02",
+     "E-03"
+    ],
+    "assumptions": [
+     {
+      "key": "sample_representativeness",
+      "statement": "The 5-record payment-db sample in E-01 is assumed representative of the broader refund failure rate rather than an unusual small subset.",
+      "evidence_refs": [
+       "E-01"
+      ],
+      "risk_if_wrong": "MEDIUM"
+     },
+     {
+      "key": "ticket_failure_linkage",
+      "statement": "Refund-status tickets measured in ticket-db (E-02) are assumed to substantially be the same population affected by the IBAN failures in payment-db (E-01); no direct join evidence links specific tickets to specific failed refunds.",
+      "evidence_refs": [
+       "E-01",
+       "E-02"
+      ],
+      "risk_if_wrong": "HIGH"
+     },
+     {
+      "key": "iban_cause_location",
+      "statement": "IBAN format failures are assumed to stem from a data-validation defect in the refund pipeline rather than from isolated, uncorrectable customer input errors.",
+      "evidence_refs": [
+       "E-01"
+      ],
+      "risk_if_wrong": "MEDIUM"
+     }
+    ],
+    "unknowns": [
+     {
+      "key": "failure_scale",
+      "question": "What proportion of all refund-status tickets, beyond the 5-record sample, are attributable to IBAN-format failures versus other candidate causes (processing backlog, visibility gap, volume surge)?",
+      "criticality": "HIGH",
+      "decision_impact": "Determines whether remediation should target IBAN validation specifically or a broader fix, since H-REFUND-PROCESSING-BACKLOG, H-SUPPORT-LACKS-REFUND-VISIBIL and H-TICKET-VOLUME-SURGE remain untested CANDIDATE hypotheses.",
+      "affects_scope": [
+       {
+        "action": "quantify_iban_failure_impact",
+        "target": "DA-PAY"
+       },
+       {
+        "action": "correlate_tickets_with_failures",
+        "target": "DA-TCK"
+       }
+      ],
+      "resolution_path": "Query the full population of refund failures in payment-db and join against ticket-db ticket reasons.",
+      "safe_placeholder": "Scope analysis to confirmed IBAN failures only; do not expand into backlog/capacity remediation until correlation is measured."
+     },
+     {
+      "key": "bank_api_dependency",
+      "question": "Is the IBAN validation defect purely in payment-db logic, or does it depend on the bank-api settlement_status integration, which is currently DEGRADED with ACCESS_DENIED?",
+      "criticality": "MEDIUM",
+      "decision_impact": "If bank-api access is implicated, the fix location shifts from payment-db validation rules to restoring bank-api settlement_status access.",
+      "affects_scope": [
+       {
+        "action": "assess_refund_pipeline_defect",
+        "target": "P-REF"
+       }
+      ],
+      "resolution_path": "Investigate the cause of the bank-api ACCESS_DENIED condition and check whether it affects the same refund records seen in E-01.",
+      "safe_placeholder": "Treat the IBAN-format fix as payment-db-side only until a bank-api dependency is confirmed or excluded."
+     },
+     {
+      "key": "sample_size_validity",
+      "question": "Does the 100% IBAN-format failure rate observed in 5 sampled records hold at scale given payment-db completeness is UNKNOWN?",
+      "criticality": "MEDIUM",
+      "decision_impact": "A skewed small sample could overstate or understate the defect's contribution to the support backlog, misdirecting remediation priority and metrics baselines.",
+      "affects_scope": [
+       {
+        "action": "quantify_iban_failure_impact",
+        "target": "DA-PAY"
+       }
+      ],
+      "resolution_path": "Pull a larger or complete sample from payment-db and recompute the failure rate and completeness.",
+      "safe_placeholder": "Report the current iban_failure_rate as a provisional estimate pending larger-sample confirmation."
+     }
+    ],
+    "metrics": [
+     {
+      "key": "iban_failure_rate",
+      "name": "Rate of sampled refunds failing with FAILED_IBAN_FORMAT",
+      "metric_type": "RATE",
+      "numerator": "refund records with status FAILED_IBAN_FORMAT",
+      "denominator": "total refund records sampled in payment-db",
+      "population": "payment-db refund records",
+      "current_value": 1,
+      "current_value_evidence_refs": [
+       "E-01"
+      ]
+     },
+     {
+      "key": "support_response_duration",
+      "name": "Median support ticket response time versus SLA",
+      "metric_type": "DURATION",
+      "start_event": "ticket opened",
+      "end_event": "agent first reply",
+      "measurement_window": "900 tickets (ticket-db)",
+      "current_value": 2,
+      "current_value_evidence_refs": [
+       "E-02"
+      ],
+      "target_value": 24
+     },
+     {
+      "key": "ticket_iban_correlation",
+      "name": "Share of refund-status tickets linked to an IBAN-format refund failure",
+      "metric_type": "RATE",
+      "numerator": "tickets whose associated refund record has status FAILED_IBAN_FORMAT",
+      "denominator": "all refund-status tickets in ticket-db",
+      "population": "ticket-db refund-status tickets"
+     }
+    ],
+    "success_criteria": [
+     {
+      "key": "root_cause_confirmed",
+      "statement": "Confirm at representative scale that refund-status tickets correlate with IBAN-format refund failures rather than slow support response.",
+      "kind": "MUST",
+      "metric": "ticket_iban_correlation",
+      "threshold": "measured and documented at full/larger sample scale",
+      "validation_method": "Join a larger or complete payment-db failure sample against ticket-db refund-status tickets and compute the correlation rate."
+     },
+     {
+      "key": "sla_maintained",
+      "statement": "Support response time remains within the 24-hour SLA while the IBAN defect is investigated and remediated.",
+      "kind": "TARGET",
+      "metric": "support_response_duration",
+      "threshold": "<=24h median",
+      "validation_method": "Recompute ticket-db median response time during/after remediation and compare to the 2.0h baseline (E-02)."
+     },
+     {
+      "key": "iban_failure_eliminated",
+      "statement": "IBAN-format refund failures are reduced toward zero after the underlying validation defect is fixed.",
+      "kind": "TARGET",
+      "metric": "iban_failure_rate",
+      "threshold": "approaching 0%, down from the measured baseline",
+      "validation_method": "Re-query payment-db refund_failures after remediation and compare FAILED_IBAN_FORMAT rate to the E-01 baseline."
+     },
+     {
+      "key": "sample_limitation",
+      "statement": "The current IBAN-failure baseline rests on a 5-record sample with UNKNOWN completeness in payment-db, so the true population failure rate is not yet established.",
+      "kind": "KNOWN_LIMITATION",
+      "metric": "iban_failure_rate",
+      "threshold": "n/a",
+      "validation_method": "Expand the payment-db sample and establish completeness before finalizing remediation scope."
+     }
+    ],
+    "intended_scope": [
+     {
+      "action": "quantify_iban_failure_impact",
+      "target": "DA-PAY"
+     },
+     {
+      "action": "correlate_tickets_with_failures",
+      "target": "DA-TCK"
+     },
+     {
+      "action": "assess_refund_pipeline_defect",
+      "target": "P-REF"
+     }
+    ],
+    "protected_actions": [],
+    "required_tools": [
+     "payment-db",
+     "ticket-db"
+    ],
+    "depends_on_handoffs": [],
+    "constraint_refs": [],
+    "rejected_framings": [
+     {
+      "hypothesis": "H-SLOW-SUPPORT-RESPONSE",
+      "why": "Status is REJECTED and contradicted by E-01 (refunds are failing in processing, not merely delayed) and E-02 (median reply 2.0h is well within the 24h SLA), so a chatbot targeting response speed would not address the actual cause."
+     }
+    ],
+    "confidence": 0.72,
+    "authorization_candidates": [],
+    "repair_resolution": [],
+    "framing_resolution": [],
+    "vob_reevaluation": []
+   }
+  },
+  "R-10": {
+   "skill": "structural_remedy",
+   "status": "SUCCESS",
+   "output": {
+    "root_cause": "Refund-status tickets are driven by refunds failing in payment-db processing due to invalid IBAN format (5/5 sampled records FAILED_IBAN_FORMAT, E-01), not by slow support response (median 2.0h vs 24h SLA across 900 tickets, E-02); SH-SUP's chatbot framing (CL-01/CL-02, E-03) is contradicted by E-01/E-02 (H-SLOW-SUPPORT-RESPONSE REJECTED, H-IBAN-FORMAT-FAILURE SUPPORTED).",
+    "remedies": [
+     {
+      "key": "fix-iban-validation-defect",
+      "description": "Have payments engineering correct the IBAN-format validation logic in the refund pipeline (P-REF) so malformed IBANs are caught/corrected pre-processing instead of causing FAILED_IBAN_FORMAT (H-IBAN-FORMAT-FAILURE, E-01).",
+      "removes_root_cause": true,
+      "feasible_in_contest_time": false,
+      "constraint_feasible": false,
+      "feasibility_rationale": "tool_surface exposes only read_only payment-db and ticket-db; no write/deploy tool is available this session, and an engineering code fix is outside the 225-minute remaining budget.",
+      "residual_gap": "Until the pipeline fix ships, FAILED_IBAN_FORMAT refunds and resulting tickets continue; already-stuck refunds (R-0..R-4) still need remediation."
+     },
+     {
+      "key": "reassign-ownership-and-reject-chatbot",
+      "description": "Redirect the initial request from a support chatbot (CL-01) to a payments-engineering defect ticket, since H-SLOW-SUPPORT-RESPONSE is REJECTED by E-01/E-02 and H-IBAN-FORMAT-FAILURE is SUPPORTED.",
+      "removes_root_cause": false,
+      "feasible_in_contest_time": true,
+      "constraint_feasible": true,
+      "feasibility_rationale": "Producing an ownership-redirection recommendation is a documentation/decision output requiring no further tool calls, within remaining 225-minute budget.",
+      "residual_gap": "Redirecting ownership does not itself fix FAILED_IBAN_FORMAT refunds; still requires engineering follow-through outside this session."
+     },
+     {
+      "key": "resolve-failure-scale-vob",
+      "description": "Query payment-db and ticket-db at full scale (beyond the 5-record sample) to resolve the blocking VOB-U-FAILURE-SCALE and compute M-TICKET-IBAN-CORRELATION before committing to remediation scope.",
+      "removes_root_cause": false,
+      "feasible_in_contest_time": true,
+      "constraint_feasible": true,
+      "feasibility_rationale": "payment-db and ticket-db are AUTHORITATIVE, HEALTHY, read-only tools already in tool_surface, so a larger-scale query/join fits remaining time and tool access.",
+      "residual_gap": "No direct join key links specific tickets to specific failed refunds (A-TICKET-FAILURE-LINKAGE), and payment-db completeness is UNKNOWN (A-SAMPLE-REPRESENTATIVENESS), so correlation may remain inferential even at scale."
+     },
+     {
+      "key": "escalate-bank-api-access",
+      "description": "Escalate the DEGRADED/ACCESS_DENIED bank-api settlement_status integration to its owning team to determine whether IBAN validation depends on it (U-BANK-API-DEPENDENCY).",
+      "removes_root_cause": false,
+      "feasible_in_contest_time": false,
+      "constraint_feasible": false,
+      "feasibility_rationale": "The recovery_decision log shows a HOLD on bank-api with stop_reason NOT_TRANSIENT and no fallback path, meaning this session has no tool path to restore access.",
+      "residual_gap": "U-BANK-API-DEPENDENCY stays OPEN; whether the defect is purely payment-db logic or also involves bank-api remains unresolved."
+     }
+    ],
+    "why_agent_needed": "Because no direct join key links tickets to specific failed refunds (A-TICKET-FAILURE-LINKAGE) and payment-db completeness is UNKNOWN, resolving VOB-U-FAILURE-SCALE and assessing the P-REF defect (assess_refund_pipeline_defect) requires judgment-based correlation and interpretation beyond a deterministic query, plus drafting the payments-engineering handoff.",
+    "confidence": 0.72
+   }
+  },
+  "R-11": {
+   "skill": "agent_design",
+   "status": "SUCCESS",
+   "output": {
+    "deterministic_rules_cover_cases": false,
+    "llm_reasoning_adds_value": true,
+    "autonomous_iteration_adds_value": true,
+    "residual_exceptions": true,
+    "detection_needed": true,
+    "why_agent": "No direct join key links tickets to specific failed refunds (A-TICKET-FAILURE-LINKAGE) and payment-db completeness is UNKNOWN (A-SAMPLE-REPRESENTATIVENESS), so correlating evidence and assessing the P-REF defect requires judgment-based interpretation beyond deterministic queries, plus drafting a payments-engineering handoff.",
+    "bridge_sunset_condition": "Sunset once payments engineering ships the IBAN-validation fix to P-REF and M-IBAN-FAILURE-RATE falls toward 0% per SC-IBAN-FAILURE-ELIMINATED, confirmed by re-querying payment-db.",
+    "deterministic_components": [
+     "payment-db refund_failures status aggregation query",
+     "ticket-db response_time and ticket-volume aggregate query",
+     "Computation of M-IBAN-FAILURE-RATE and M-SUPPORT-RESPONSE-DURATION from raw query outputs"
+    ],
+    "release_scope": [
+     {
+      "action": "assess_refund_pipeline_defect",
+      "target": "P-REF"
+     }
+    ],
+    "minimum_useful_scope": [
+     {
+      "action": "assess_refund_pipeline_defect",
+      "target": "P-REF"
+     }
+    ],
+    "scope_dependencies": [
+     {
+      "action": "assess_refund_pipeline_defect",
+      "depends_on": [
+       "DA-PAY"
+      ]
+     }
+    ],
+    "role_suggestion": [
+     "BRIDGE",
+     "CONTROL_DETECTION"
+    ],
+    "capabilities": [
+     "Query payment-db for refund failure status counts",
+     "Query ticket-db for response times and ticket volumes",
+     "Interpret correlation between ticket and refund-failure data despite missing join key",
+     "Draft a payments-engineering defect assessment and ownership-handoff recommendation"
+    ],
+    "llm_required_for": [
+     "Interpreting ambiguous ticket-to-refund correlation absent a direct join key (A-TICKET-FAILURE-LINKAGE)",
+     "Assessing whether the IBAN defect depends on the DEGRADED bank-api integration under incomplete evidence",
+     "Drafting the payments-engineering defect handoff narrative"
+    ],
+    "tools": [
+     "payment-db (read-only)",
+     "ticket-db (read-only)"
+    ],
+    "authority_boundary": [
+     "Cannot modify or deploy code to the P-REF refund pipeline (no write/deploy tool in tool_surface)",
+     "Cannot access bank-api (DEGRADED, ACCESS_DENIED, HOLD with stop_reason NOT_TRANSIENT, no fallback)",
+     "Cannot create or close tickets (ticket-db is read_only)",
+     "Cannot release quantify_iban_failure_impact:DA-PAY or correlate_tickets_with_failures:DA-TCK while VOB-U-FAILURE-SCALE remains OPEN"
+    ],
+    "human_gate": [],
+    "termination": "Terminates once the payments-engineering defect handoff/ownership recommendation is drafted and the VOB-U-FAILURE-SCALE evidence package is handed to the harness for review; the agent takes no further autonomous action on scope blocked by open VOBs.",
+    "validation": [
+     "Cross-check drafted handoff claims against E-01 and E-02 evidence for consistency before submission",
+     "Compare any full-scale query results against the M-IBAN-FAILURE-RATE baseline before treating VOB-U-FAILURE-SCALE as closeable",
+     "Confirm SC-SLA-MAINTAINED continues to hold (ticket-db median response time vs 24h SLA) during the bridge period"
+    ],
+    "known_limitations": [
+     "No join key links specific tickets to specific failed refunds (A-TICKET-FAILURE-LINKAGE), so any correlation remains inferential even at scale",
+     "payment-db completeness is UNKNOWN (A-SAMPLE-REPRESENTATIVENESS), limiting confidence that the 5/5 FAILED_IBAN_FORMAT sample generalizes",
+     "bank-api access is DEGRADED/ACCESS_DENIED with no fallback path, leaving U-BANK-API-DEPENDENCY unresolved for the defect assessment",
+     "Already-stuck refunds R-0..R-4 still require remediation outside this session since no write/deploy tool is available"
+    ],
+    "vob_proposals": [
+     {
+      "unresolved_question": "What proportion of all refund-status tickets, beyond the 5-record sample, are attributable to IBAN-format failures versus other candidate causes (processing backlog, visibility gap, volume surge)?",
+      "decision_impact": "HIGH",
+      "required_before": "BEFORE_RELEASE",
+      "blocking_scope": [
+       {
+        "action": "quantify_iban_failure_impact",
+        "target": "DA-PAY"
+       },
+       {
+        "action": "correlate_tickets_with_failures",
+        "target": "DA-TCK"
+       }
+      ],
+      "entire_solution": false,
+      "validation_method": "Run payment-db refund_failures and ticket-db queries at full scale (not the 5-record sample), join to compute M-TICKET-IBAN-CORRELATION, and compare against the E-01 baseline rate.",
+      "required_evidence": [
+       "Full-scale payment-db refund_failures query output",
+       "Computed M-TICKET-IBAN-CORRELATION value from a full-scale join"
+      ],
+      "linked_unknown": "U-FAILURE-SCALE",
+      "rationale": "VOB-U-FAILURE-SCALE explicitly blocks these two intended-scope items pending resolution, and the underlying A-TICKET-FAILURE-LINKAGE and A-SAMPLE-REPRESENTATIVENESS assumptions remain untested."
+     },
+     {
+      "unresolved_question": "Is the IBAN validation defect purely in payment-db logic, or does it depend on the bank-api settlement_status integration, which is currently DEGRADED with ACCESS_DENIED?",
+      "decision_impact": "MEDIUM",
+      "required_before": "BEFORE_PRODUCTION",
+      "blocking_scope": [
+       {
+        "action": "assess_refund_pipeline_defect",
+        "target": "P-REF"
+       }
+      ],
+      "entire_solution": false,
+      "validation_method": "Once bank-api access is restored or a fallback path exists, escalate to the owning team to confirm whether IBAN validation logic depends on the settlement_status integration before the production code fix is scoped.",
+      "required_evidence": [
+       "bank-api owning-team confirmation of dependency status",
+       "Restored bank-api access or a documented fallback path"
+      ],
+      "linked_unknown": "U-BANK-API-DEPENDENCY",
+      "rationale": "SR-ESCALATE-BANK-API-ACCESS is infeasible this session (bank-api is on HOLD with stop_reason NOT_TRANSIENT and no fallback), leaving open whether the production fix must also address bank-api."
+     }
+    ],
+    "confidence": 0.68
+   }
+  },
+  "R-12": {
+   "skill": "plan_execution",
+   "status": "SUCCESS",
+   "output": {
+    "work_items": [
+     {
+      "key": "WI-DEFECT-ASSESSMENT",
+      "description": "Produce the refund-pipeline defect assessment deliverable for P-REF using the already-run payment-db refund_failures data (E-01), documenting the IBAN-format validation defect as the supported root cause.",
+      "work_class": "CORE_FEATURE",
+      "est_minutes": 20,
+      "scope_items": [
+       {
+        "action": "assess_refund_pipeline_defect",
+        "target": "P-REF"
+       }
+      ],
+      "root_problem_aligned": true,
+      "release_blocking": true,
+      "data_ops": [
+       "payment-db:refund_failures"
+      ],
+      "output_name": "refund_pipeline_defect_assessment",
+      "output_key_fields": [
+       "refund"
+      ],
+      "output_join": false,
+      "output_constant_fields": [
+       {
+        "field": "root_cause_hypothesis",
+        "value": "H-IBAN-FORMAT-FAILURE"
+       }
+      ]
+     },
+     {
+      "key": "WI-BANKAPI-DEPENDENCY-CHECK",
+      "description": "Attempt to resolve VOB-R-2/U-BANK-API-DEPENDENCY by querying bank-api settlement_status to determine whether the IBAN validation defect depends on the bank-api integration before the P-REF assessment can go to production.",
+      "work_class": "RELEASE_BLOCKING_VERIFICATION",
+      "est_minutes": 10,
+      "scope_items": [
+       {
+        "action": "assess_refund_pipeline_defect",
+        "target": "P-REF"
+       }
+      ],
+      "root_problem_aligned": true,
+      "release_blocking": true,
+      "data_ops": [
+       "bank-api:settlement_status"
+      ],
+      "output_name": "",
+      "output_key_fields": [],
+      "output_join": false,
+      "output_constant_fields": []
+     }
+    ],
+    "protected_actions": [],
+    "rationale": "Release_scope contains only assess_refund_pipeline_defect:P-REF, which per scope_dependencies needs DA-PAY (payment-db); WI-DEFECT-ASSESSMENT packages the already-executed E-01 refund_failures data into the deliverable supporting H-IBAN-FORMAT-FAILURE. VOB-R-2 blocks this same scope item BEFORE_PRODUCTION pending the bank-api dependency question (U-BANK-API-DEPENDENCY), so WI-BANKAPI-DEPENDENCY-CHECK is proposed as a verification attempt via the catalog's bank-api:settlement_status op, noting bank-api is currently DEGRADED/ACCESS_DENIED with a prior NOT_TRANSIENT HOLD and no fallback (seq 61), so it may fail again. No protected_actions are proposed because mutating_tools is empty, so no tool_id exists to serve as resource for any protected action in the release scope."
+   }
+  },
+  "R-13": {
+   "skill": "semantic_judge",
+   "status": "SUCCESS",
+   "output": {
+    "checks": [
+     {
+      "name": "root_problem_alignment",
+      "status": "PASS",
+      "detail": "Release scope (assess_refund_pipeline_defect:P-REF) matches the active root_problem in PD-1, which attributes tickets to IBAN-format refund failures (E-01) rather than slow support response (E-02), correctly diverging from the original chatbot request CL-01.",
+      "refs": [
+       "E-01",
+       "E-02",
+       "CL-01",
+       "PD-1"
+      ]
+     },
+     {
+      "name": "original_request_deviation_justified",
+      "status": "PASS",
+      "detail": "The chatbot solution requested by SH-SUP (CL-01/CL-02) is explicitly rejected via H-SLOW-SUPPORT-RESPONSE (REJECTED, contradicted by E-01/E-02) and the solution design remedy SR-REASSIGN-OWNERSHIP-AND-REJEC documents this redirection rather than silently ignoring it.",
+      "refs": [
+       "CL-01",
+       "CL-02",
+       "H-SLOW-SUPPORT-RESPONSE",
+       "E-01",
+       "E-02"
+      ]
+     },
+     {
+      "name": "evidence_interpretation_consistency",
+      "status": "PASS",
+      "detail": "E-01's causal claim (IBAN defect) is kept distinct from the stronger causal assumption A-IBAN-CAUSE-LOCATION, which is explicitly filed as an ACTIVE assumption rather than asserted as fact, avoiding overstatement.",
+      "refs": [
+       "E-01",
+       "A-IBAN-CAUSE-LOCATION"
+      ]
+     },
+     {
+      "name": "limitations_honestly_stated",
+      "status": "PASS",
+      "detail": "solution_design.unfinished_scope explicitly discloses sample-size/completeness limits, the unresolved bank-api dependency, the missing ticket-to-refund join, and that stuck refunds R-0..R-4 still need remediation, matching the underlying assumptions/unknowns.",
+      "refs": [
+       "A-SAMPLE-REPRESENTATIVENESS",
+       "A-TICKET-FAILURE-LINKAGE",
+       "U-BANK-API-DEPENDENCY",
+       "U-SAMPLE-SIZE-VALIDITY"
+      ]
+     },
+     {
+      "name": "conflict_bookkeeping_lag",
+      "status": "WARN",
+      "detail": "Conflicts C-1 through C-7 on assertion refund_status_delay.root_cause remain status OPEN even though CL-01 is CONTRADICTED and H-SLOW-SUPPORT-RESPONSE is REJECTED, so the formal conflict ledger has not been closed out to match the resolved claim/hypothesis state.",
+      "refs": [
+       "C-1",
+       "C-2",
+       "C-3",
+       "C-4",
+       "C-5",
+       "CL-01",
+       "H-SLOW-SUPPORT-RESPONSE"
+      ]
+     },
+     {
+      "name": "claim_status_inconsistency",
+      "status": "WARN",
+      "detail": "CL-02 carries the same support-response-speed assertion as CL-01 and is also contradicted by E-01/E-02 (mirrored in E-03's interpretation), yet CL-02 is still marked UNVERIFIED rather than CONTRADICTED, a minor internal inconsistency in claim status.",
+      "refs": [
+       "CL-01",
+       "CL-02",
+       "E-01",
+       "E-02",
+       "E-03"
+      ]
+     }
+    ]
+   }
+  },
+  "R-14": {
+   "skill": "release_summary",
+   "status": "SUCCESS",
+   "output": {
+    "key_points": [
+     "The original request (CL-01, from stakeholder SH-SUP) was to build a chatbot because 'customers wait forever' for refund-status answers, framing the issue as slow support response (CL-02, E-03).",
+     "Investigation found this framing is contradicted: ticket-db shows 900 tickets with a median 2.0h response time against a 24h SLA, i.e. support is well within SLA (E-02/F-02), rejecting H-SLOW-SUPPORT-RESPONSE.",
+     "Instead, payment-db shows 5 of 5 sampled refund records FAILED with status FAILED_IBAN_FORMAT (E-01/F-01), supporting H-IBAN-FORMAT-FAILURE: refunds are failing to process due to an IBAN validation defect in the refund pipeline (P-REF), and customers are asking about refunds that never actually complete.",
+     "The problem definition (PD-1) was revised accordingly: the root problem is a payment-pipeline validation defect, not a response-speed issue; this passed the DEFINE gate as CONDITIONAL_PASS with the deferred item VOB-U-FAILURE-SCALE.",
+     "What was released: the refund-pipeline defect assessment deliverable for P-REF (work item W-WI-DEFECT-ASSESSMENT, status DONE), documenting the IBAN-format validation defect as the supported root cause, using the already-run payment-db data (E-01).",
+     "The release decision is RELEASE_WITH_KNOWN_LIMITATION: the defect assessment is released, but production use is conditioned on the open limitations listed below, and no fix, scale-up query, or stuck-refund remediation was performed in this session.",
+     "A dependency check against bank-api (to resolve whether the IBAN defect depends on bank-api's settlement_status integration, VOB-R-2/U-BANK-API-DEPENDENCY) could not run because the bank-api tool is UNAVAILABLE/DEGRADED with ACCESS_DENIED and no fallback path; this was logged as a HOLD (not a transient failure).",
+     "Several candidate hypotheses (H-REFUND-PROCESSING-BACKLOG, H-SUPPORT-LACKS-REFUND-VISIBIL, H-TICKET-VOLUME-SURGE) remain unresolved candidates and were not confirmed or ruled out."
+    ],
+    "limitations_explained": [
+     "DEFINE Gate result was CONDITIONAL_PASS, not a full pass: the critical unknown U-FAILURE-SCALE was deferred into VOB-U-FAILURE-SCALE rather than resolved.",
+     "VOB-U-FAILURE-SCALE (HIGH impact, required before release) is still OPEN: it asks what proportion of all refund-status tickets, beyond the 5-record sample, are due to IBAN failures versus other causes; its blocking scope (quantify_iban_failure_impact, correlate_tickets_with_failures) is outside this release's scope.",
+     "VOB-R-2 (required before production) is still OPEN: whether the IBAN defect is purely a payment-db logic issue or also depends on the bank-api settlement_status integration is unresolved, because that check could not be run.",
+     "The bank-api tool is UNAVAILABLE/DEGRADED (ACCESS_DENIED), with no fallback path, so U-BANK-API-DEPENDENCY and VOB-R-2 could not be investigated in this session.",
+     "The IBAN-failure baseline (5 of 5 FAILED_IBAN_FORMAT, E-01) rests on a 5-record sample from payment-db whose completeness is UNKNOWN (per A-SAMPLE-REPRESENTATIVENESS and U-SAMPLE-SIZE-VALIDITY), so the true population-wide failure rate is not established.",
+     "There is no join key linking specific support tickets to specific failed refunds (A-TICKET-FAILURE-LINKAGE), so the correlation between IBAN failures and ticket volume remains inferential even if the sample is scaled up; M-TICKET-IBAN-CORRELATION has no current value.",
+     "The actual remedy -- having payments engineering fix the IBAN validation logic in P-REF -- was not performed; it was identified as a remedy (SR-FIX-IBAN-VALIDATION-DEFECT) but marked not feasible in contest time.",
+     "The already-stuck refunds R-0 through R-4 (observed FAILED_IBAN_FORMAT in E-01) still require remediation outside this session, since no write or deploy tool was available to correct them."
+    ],
+    "summary": "The stakeholder SH-SUP initially requested a chatbot (CL-01/CL-02) believing customers wait too long because support is slow. Evidence contradicted this: ticket-db shows support replies within SLA (median 2.0h vs 24h, E-02), while payment-db shows 5 of 5 sampled refunds FAILED with status FAILED_IBAN_FORMAT (E-01), supporting the hypothesis that an IBAN-format validation defect in the refund pipeline (P-REF) is the real root cause, not response speed (H-SLOW-SUPPORT-RESPONSE was REJECTED; H-IBAN-FORMAT-FAILURE was SUPPORTED). The problem definition was reframed around this defect and passed the DEFINE gate as CONDITIONAL_PASS. The deliverable released is the refund-pipeline defect assessment for P-REF, documenting the IBAN-format defect as root cause, with decision RELEASE_WITH_KNOWN_LIMITATION. The release carries this label because a required pre-production verification (whether the defect depends on the bank-api settlement_status integration, VOB-R-2) could not be completed -- the bank-api tool is UNAVAILABLE/ACCESS_DENIED with no fallback -- and a required pre-release scale verification (VOB-U-FAILURE-SCALE) remains open outside this release's scope. No actual fix, scale-up query, or remediation of stuck refunds was performed."
+   }
+  }
+ }
+}

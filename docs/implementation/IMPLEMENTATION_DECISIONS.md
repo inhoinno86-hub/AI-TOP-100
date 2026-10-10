@@ -807,3 +807,24 @@ OPERATOR_REASONER unchanged (PASS / 0). No session-limit recurrence.
     `HOLD_VALID` while `StateIntegrityError`/`ScopeNarrowingRejected` and the open-challenge "Reasoner
     proposed REPROFILE... Human decides" message are unaffected; ruff clean on the touched lines; 336/336
     tests pass (no regression).
+
+- **IDR-RV15-01 (`cls-3.3`) — `_MECH` kept missing common paraphrases of "import validation".** RV-14 (run
+  with no code change from RV-13, a pure repeat-measurement data point) hit 3 fresh `REASONING_FAILURE`
+  cases whose `final_problem` stated the correct BV-17 mechanism in wording `_MECH` didn't anticipate.
+  Pulling every historical false negative across RV-10..RV-14 (12 cases total) showed two repeating
+  patterns rather than one-offs: (1) `+` as a separator — "billing import **+** validation step" is the
+  same gap `/` was in `cls-3.1`, just a different punctuation choice for "both of these apply"; (2)
+  "validation" swapped for "calculation" / "processing" / "rule" / "defect" while still naming "billing
+  import" as the stage — the model paraphrases which word describes the defect at that stage far more than
+  it varies naming the stage itself. 10 of 12 historical cases reclassify correctly under the fix; the
+  remaining 2 drop "import" entirely ("billing-processing defect", "billing-calculation... error") and are
+  left unmatched rather than keying off "billing" alone, which would risk pulling in an unrelated statement.
+  Checked for false-positive risk against the ground truth's wrong hypotheses (H-SLOW, H-READS, H-TARIFF,
+  `hidden_ground_truth.json`'s `ideal_initial_hypotheses`) — none use the word "import", so "billing
+  import" + {calculation, processing, rule, defect} co-occurrence cannot pull in an incorrect answer from
+  this scenario's hypothesis space. Same category of fix as `cls-3.1`/`cls-3.2` (evaluator precision);
+  `CLASSIFIER_VERSION` bumped `cls-3.2` → `cls-3.3`, effective starting with the next freeze (RV-15).
+  - **Verification:** re-ran `names_mechanism` against all 12 historical false-negative texts (10/12 now
+    match, the 2 "billing"-only cases correctly still don't); synthetic false-positive probes against
+    paraphrased wrong-hypothesis text (slow response, missed reads, tariff change, unrelated use of
+    "import") all still return `False`; ruff clean on touched lines; 336/336 tests pass (no regression).

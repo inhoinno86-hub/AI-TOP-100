@@ -1,0 +1,1969 @@
+{
+ "scenario": "D",
+ "result": {
+  "release_decision": "RELEASE_WITH_KNOWN_LIMITATION",
+  "halt_reason": null,
+  "phase": "RELEASE",
+  "execution_status": "RELEASED",
+  "problem_ref": "PD-1@v1",
+  "operator_reasoner_calls": 0,
+  "trace_actors": [
+   "ENVIRONMENT",
+   "HARNESS",
+   "REASONER"
+  ],
+  "wall_seconds": 1075.8
+ },
+ "human": [],
+ "problem": {
+  "id": "PD-1",
+  "version": 1,
+  "requested_solution": "Build a chatbot that tells customers why their parcel is late (initial request from SH-CX, CL-01).",
+  "symptoms": [
+   "300 of 1000 orders (30%) recorded late at the 'handover' stage per order-db (E-02).",
+   "290 orders were released by the warehouse only after carrier pickup had already occurred (E-04).",
+   "Carrier pickups show a median delay of 2.0 hours across 60 recorded pickups (E-01).",
+   "Customer experience stakeholder requests a chatbot because customers are not told why their parcel is late (CL-01)."
+  ],
+  "root_problem": "30% of orders (300/1000) are recorded late specifically at the ORG-1→ORG-CAR handover stage (E-02) because the warehouse RELEASE-BATCH release job fails on most of its runs (21 of 30, E-04), causing 290 orders to be released into the carrier handoff only after the scheduled pickup has already occurred (E-04) — an unreliable ORG-1→ORG-CAR parcel handoff (H-PICK), not merely a carrier-side scheduling or communication/visibility issue.",
+  "evidence_refs": [
+   "E-01",
+   "E-02",
+   "E-03",
+   "E-04"
+  ],
+  "intended_scope": [
+   {
+    "action": "diagnose_release_batch_failures",
+    "target": "DA-WMS"
+   },
+   {
+    "action": "track_handoff_delivery_status",
+    "target": "H-PICK"
+   },
+   {
+    "action": "correlate_pickup_timing",
+    "target": "DA-PICK"
+   },
+   {
+    "action": "communicate_delay_reason",
+    "target": "SH-CX"
+   },
+   {
+    "action": "push_pickup_schedule",
+    "target": "SH-CAR"
+   }
+  ],
+  "protected_actions": [
+   "push_pickup_schedule"
+  ],
+  "depends_on_mappings": [],
+  "depends_on_handoffs": [
+   "H-PICK"
+  ],
+  "depends_on_exports": [],
+  "required_tools": [
+   "order-db",
+   "pickup-log",
+   "wms-jobs",
+   "pickup-sched"
+  ],
+  "success_criteria": [
+   "SC-LATE-RATE",
+   "SC-RELEASE-FAIL",
+   "SC-CUSTOMER-INFO"
+  ],
+  "metric_ids": [
+   "M-LATE-HANDOVER-RATE",
+   "M-RELEASE-BATCH-FAILURE-RATE",
+   "M-PICKUP-DELAY-DURATION",
+   "M-ORDERS-RELEASED-AFTER-PICKUP"
+  ],
+  "status": "ACTIVE",
+  "gate_result": "CONDITIONAL_PASS",
+  "invalidated_by": [],
+  "supersedes": null,
+  "superseded_by": null,
+  "challenges": []
+ },
+ "framing_hypotheses": [
+  "H-VISIBILITY-GAP"
+ ],
+ "final_premise_hypotheses": [
+  "H-HANDOFF-FAILURE"
+ ],
+ "release": {
+  "decision": "RELEASE_WITH_KNOWN_LIMITATION",
+  "hold": [],
+  "limitations": [
+   "DEFINE Gate CONDITIONAL_PASS (deferred items tracked as VOBs)",
+   "VOB-U-CARRIER-CONTRIBUTION open; blocking_scope outside release scope",
+   "VOB-U-RELEASE-FAILURE-ROOT-CAUSE open; blocking_scope outside release scope",
+   "VOB-R-3 intersects release scope (non-critical): Does the UNKNOWN completeness of DA-ORD/DA-PICK/DA-WMS (U-DATA-COMPLETENESS) materially distort the 30%/70% rates feeding customer-facing delay explanations?",
+   "unfinished: Re-engineer the RELEASE-BATCH job (automated retry/rerun, capacity or config fix) to eliminate the 70% failure rate (E-04) that releases orders only after pickup has occurred.",
+   "unfinished: known limitation: The completeness of DA-ORD, DA-PICK and DA-WMS is unverified, so current rate baselines may be imprecise.",
+   "unfinished: known limitation: Does not fix the 70% RELEASE-BATCH failure rate itself; U-RELEASE-FAILURE-ROOT-CAUSE (CRITICAL) remains open per VOB-U-RELEASE-FAILURE-ROOT-CAUSE.",
+   "unfinished: known limitation: Cannot confirm or rule out carrier-side scheduling contribution (U-CARRIER-CONTRIBUTION, HIGH, open), so explanations must avoid attributing lateness solely to carrier pickup delay.",
+   "unfinished: known limitation: Completeness of DA-ORD/DA-PICK/DA-WMS is UNKNOWN (U-DATA-COMPLETENESS), which may bias both correlation output and customer explanations."
+  ]
+ },
+ "reasoning": [
+  {
+   "reasoning_id": "R-1",
+   "skill": "hypothesis_init",
+   "status": "SUCCESS",
+   "provider": "claude-cli",
+   "model": "sonnet",
+   "input_state_version": 0,
+   "schema_version": "1.0",
+   "order": 1,
+   "attempts": 1,
+   "input_digest": "4ba648d8cc3e9073",
+   "evidence_refs": [
+    "H-PICK"
+   ],
+   "confidence": 0.55,
+   "errors": [],
+   "output": null,
+   "fallback_used": null
+  },
+  {
+   "reasoning_id": "R-2",
+   "skill": "discover_actions",
+   "status": "SUCCESS",
+   "provider": "claude-cli",
+   "model": "sonnet",
+   "input_state_version": 2,
+   "schema_version": "1.0",
+   "order": 2,
+   "attempts": 1,
+   "input_digest": "78049f4a5b73655a",
+   "evidence_refs": [
+    "H-CARRIER-SCHEDULE-FRICTION",
+    "H-HANDOFF-FAILURE",
+    "H-ORDER-DATA-INACCURACY",
+    "H-PICK",
+    "H-PICK.",
+    "H-VISIBILITY-GAP",
+    "H-WAREHOUSE-DELAY"
+   ],
+   "confidence": null,
+   "errors": [],
+   "output": null,
+   "fallback_used": null
+  },
+  {
+   "reasoning_id": "R-3",
+   "skill": "interpret_evidence",
+   "status": "SUCCESS",
+   "provider": "claude-cli",
+   "model": "sonnet",
+   "input_state_version": 2,
+   "schema_version": "1.0",
+   "order": 3,
+   "attempts": 1,
+   "input_digest": "d4882955c09a6d0a",
+   "evidence_refs": [
+    "E-01",
+    "H-CARRIER-SCHEDULE-FRICTION",
+    "H-HANDOFF-FAILURE",
+    "H-ORDER-DATA-INACCURACY",
+    "H-VISIBILITY-GAP",
+    "H-WAREHOUSE-DELAY"
+   ],
+   "confidence": 0.75,
+   "errors": [],
+   "output": null,
+   "fallback_used": null
+  },
+  {
+   "reasoning_id": "R-4",
+   "skill": "interpret_evidence",
+   "status": "SUCCESS",
+   "provider": "claude-cli",
+   "model": "sonnet",
+   "input_state_version": 4,
+   "schema_version": "1.0",
+   "order": 4,
+   "attempts": 1,
+   "input_digest": "024de6e011996596",
+   "evidence_refs": [
+    "E-02",
+    "H-CARRIER-SCHEDULE-FRICTION",
+    "H-HANDOFF-FAILURE",
+    "H-ORDER-DATA-INACCURACY",
+    "H-PICK",
+    "H-VISIBILITY-GAP",
+    "H-WAREHOUSE-DELAY"
+   ],
+   "confidence": 0.8,
+   "errors": [],
+   "output": null,
+   "fallback_used": null
+  },
+  {
+   "reasoning_id": "R-5",
+   "skill": "discover_actions",
+   "status": "SUCCESS",
+   "provider": "claude-cli",
+   "model": "sonnet",
+   "input_state_version": 6,
+   "schema_version": "1.0",
+   "order": 5,
+   "attempts": 1,
+   "input_digest": "bfaf8c4448b388e5",
+   "evidence_refs": [
+    "H-CARRIER-SCHEDULE-FRICTION",
+    "H-HANDOFF-FAILURE",
+    "H-ORDER-DATA-INACCURACY",
+    "H-PICK",
+    "H-VISIBILITY-GAP",
+    "H-WAREHOUSE-DELAY"
+   ],
+   "confidence": null,
+   "errors": [],
+   "output": null,
+   "fallback_used": null
+  },
+  {
+   "reasoning_id": "R-6",
+   "skill": "interpret_evidence",
+   "status": "SUCCESS",
+   "provider": "claude-cli",
+   "model": "sonnet",
+   "input_state_version": 6,
+   "schema_version": "1.0",
+   "order": 6,
+   "attempts": 1,
+   "input_digest": "c9fa27ba3b98da9e",
+   "evidence_refs": [
+    "E-01",
+    "E-02",
+    "H-CARRIER-SCHEDULE-FRICTION",
+    "H-HANDOFF-FAILURE",
+    "H-ORDER-DATA-INACCURACY",
+    "H-VISIBILITY-GAP",
+    "H-WAREHOUSE-DELAY"
+   ],
+   "confidence": 0.5,
+   "errors": [],
+   "output": null,
+   "fallback_used": null
+  },
+  {
+   "reasoning_id": "R-7",
+   "skill": "interpret_evidence",
+   "status": "SUCCESS",
+   "provider": "claude-cli",
+   "model": "sonnet",
+   "input_state_version": 8,
+   "schema_version": "1.0",
+   "order": 7,
+   "attempts": 1,
+   "input_digest": "5c88c3158ad29b94",
+   "evidence_refs": [
+    "CL-02",
+    "E-02",
+    "E-03",
+    "E-04",
+    "H-CARRIER-SCHEDULE-FRICTION",
+    "H-HANDOFF-FAILURE",
+    "H-ORDER-DATA-INACCURACY",
+    "H-PICK",
+    "H-VISIBILITY-GAP",
+    "H-WAREHOUSE-DELAY"
+   ],
+   "confidence": 0.75,
+   "errors": [],
+   "output": null,
+   "fallback_used": null
+  },
+  {
+   "reasoning_id": "R-8",
+   "skill": "discover_actions",
+   "status": "SUCCESS",
+   "provider": "claude-cli",
+   "model": "sonnet",
+   "input_state_version": 10,
+   "schema_version": "1.0",
+   "order": 8,
+   "attempts": 1,
+   "input_digest": "13733890b259e3e5",
+   "evidence_refs": [
+    "H-CARRIER-SCHEDULE-FRICTION",
+    "H-HANDOFF-FAILURE",
+    "H-ORDER-DATA-INACCURACY",
+    "H-VISIBILITY-GAP",
+    "H-WAREHOUSE-DELAY"
+   ],
+   "confidence": null,
+   "errors": [],
+   "output": null,
+   "fallback_used": null
+  },
+  {
+   "reasoning_id": "R-9",
+   "skill": "assess_hypotheses",
+   "status": "SUCCESS",
+   "provider": "claude-cli",
+   "model": "sonnet",
+   "input_state_version": 10,
+   "schema_version": "1.0",
+   "order": 9,
+   "attempts": 1,
+   "input_digest": "c1a4719b0bd904ad",
+   "evidence_refs": [
+    "E-01",
+    "E-02",
+    "E-03",
+    "E-04",
+    "H-CARRIER-SCHEDULE-FRICTION",
+    "H-HANDOFF-FAILURE",
+    "H-ORDER-DATA-INACCURACY",
+    "H-VISIBILITY-GAP",
+    "H-WAREHOUSE-DELAY"
+   ],
+   "confidence": null,
+   "errors": [],
+   "output": null,
+   "fallback_used": null
+  },
+  {
+   "reasoning_id": "R-10",
+   "skill": "define_problem",
+   "status": "SUCCESS",
+   "provider": "claude-cli",
+   "model": "sonnet",
+   "input_state_version": 12,
+   "schema_version": "1.0",
+   "order": 10,
+   "attempts": 1,
+   "input_digest": "8c5b77a8d679e0d8",
+   "evidence_refs": [
+    "A-PICKUP-DELAY-DOWNSTREAM",
+    "A-RELEASE-PROXIMATE-CAUSE",
+    "CL-01",
+    "E-01",
+    "E-02",
+    "E-03",
+    "E-04",
+    "E-04.",
+    "H-CARRIER-SCHEDULE-FRICTION",
+    "H-HANDOFF-FAILURE",
+    "H-ORDER-DATA-INACCURACY",
+    "H-PICK",
+    "H-VISIBILITY-GAP",
+    "H-WAREHOUSE-DELAY",
+    "SC-CUSTOMER-INFO",
+    "SC-DATA-COMPLETENESS",
+    "SC-LATE-RATE",
+    "SC-RELEASE-FAIL",
+    "U-CARRIER-CONTRIBUTION",
+    "U-DATA-COMPLETENESS",
+    "U-RELEASE-FAILURE-ROOT-CAUSE"
+   ],
+   "confidence": 0.68,
+   "errors": [],
+   "output": null,
+   "fallback_used": null
+  },
+  {
+   "reasoning_id": "R-11",
+   "skill": "interpret_evidence",
+   "status": "SUCCESS",
+   "provider": "claude-cli",
+   "model": "sonnet",
+   "input_state_version": 14,
+   "schema_version": "1.0",
+   "order": 11,
+   "attempts": 1,
+   "input_digest": "7eb6b587b3a9d23f",
+   "evidence_refs": [
+    "E-05",
+    "H-CARRIER-SCHEDULE-FRICTION",
+    "H-HANDOFF-FAILURE",
+    "H-PICK",
+    "H-VISIBILITY-GAP",
+    "H-WAREHOUSE-DELAY"
+   ],
+   "confidence": 0.75,
+   "errors": [],
+   "output": null,
+   "fallback_used": null
+  },
+  {
+   "reasoning_id": "R-12",
+   "skill": "structural_remedy",
+   "status": "SUCCESS",
+   "provider": "claude-cli",
+   "model": "sonnet",
+   "input_state_version": 18,
+   "schema_version": "1.0",
+   "order": 12,
+   "attempts": 1,
+   "input_digest": "091fa0c51fb31732",
+   "evidence_refs": [
+    "E-02",
+    "E-04",
+    "H-HANDOFF-FAILURE",
+    "H-ORDER-DATA-INACCURACY",
+    "H-PICK",
+    "U-RELEASE-FAILURE-ROOT-CAUSE",
+    "VOB-U-RELEASE-FAILURE-ROOT-CAUSE"
+   ],
+   "confidence": 0.72,
+   "errors": [],
+   "output": null,
+   "fallback_used": null
+  },
+  {
+   "reasoning_id": "R-13",
+   "skill": "agent_design",
+   "status": "SUCCESS",
+   "provider": "claude-cli",
+   "model": "sonnet",
+   "input_state_version": 18,
+   "schema_version": "1.0",
+   "order": 13,
+   "attempts": 1,
+   "input_digest": "650dd0c14ea84ff3",
+   "evidence_refs": [
+    "E-04",
+    "H-CARRIER-SCHEDULE-FRICTION",
+    "H-HANDOFF-FAILURE",
+    "H-PICK",
+    "M-LATE-HANDOVER-RATE",
+    "M-RELEASE-BATCH-FAILURE-RATE",
+    "SC-CUSTOMER-INFO",
+    "U-CARRIER-CONTRIBUTION",
+    "U-DATA-COMPLETENESS",
+    "U-RELEASE-FAILURE-ROOT-CAUSE",
+    "VOB-U-RELEASE-FAILURE-ROOT-CAUSE",
+    "VOB-U-RELEASE-FAILURE-ROOT-CAUSE."
+   ],
+   "confidence": 0.72,
+   "errors": [],
+   "output": null,
+   "fallback_used": null
+  },
+  {
+   "reasoning_id": "R-14",
+   "skill": "plan_execution",
+   "status": "SUCCESS",
+   "provider": "claude-cli",
+   "model": "sonnet",
+   "input_state_version": 21,
+   "schema_version": "1.0",
+   "order": 14,
+   "attempts": 1,
+   "input_digest": "ddb08247c6fdd3d0",
+   "evidence_refs": [
+    "E-01",
+    "E-02",
+    "E-04",
+    "H-PICK",
+    "U-CARRIER-CONTRIBUTION",
+    "VOB-R-3"
+   ],
+   "confidence": null,
+   "errors": [],
+   "output": null,
+   "fallback_used": null
+  },
+  {
+   "reasoning_id": "R-15",
+   "skill": "interpret_evidence",
+   "status": "SUCCESS",
+   "provider": "claude-cli",
+   "model": "sonnet",
+   "input_state_version": 21,
+   "schema_version": "1.0",
+   "order": 15,
+   "attempts": 1,
+   "input_digest": "894fef65a181c03b",
+   "evidence_refs": [
+    "E-02",
+    "E-04",
+    "E-06",
+    "H-CARRIER-SCHEDULE-FRICTION",
+    "H-HANDOFF-FAILURE",
+    "H-PICK",
+    "H-VISIBILITY-GAP",
+    "H-WAREHOUSE-DELAY"
+   ],
+   "confidence": 0.6,
+   "errors": [],
+   "output": null,
+   "fallback_used": null
+  },
+  {
+   "reasoning_id": "R-16",
+   "skill": "premise_check",
+   "status": "SUCCESS",
+   "provider": "claude-cli",
+   "model": "sonnet",
+   "input_state_version": 23,
+   "schema_version": "1.0",
+   "order": 16,
+   "attempts": 1,
+   "input_digest": "357df64a28f40937",
+   "evidence_refs": [
+    "A-PICKUP-DELAY-DOWNSTREAM",
+    "A-RELEASE-PROXIMATE-CAUSE",
+    "E-01",
+    "E-02",
+    "E-03",
+    "E-04",
+    "E-06",
+    "H-HANDOFF-FAILURE"
+   ],
+   "confidence": 0.72,
+   "errors": [],
+   "output": null,
+   "fallback_used": null
+  },
+  {
+   "reasoning_id": "R-17",
+   "skill": "semantic_judge",
+   "status": "SUCCESS",
+   "provider": "claude-cli",
+   "model": "sonnet",
+   "input_state_version": 27,
+   "schema_version": "1.0",
+   "order": 17,
+   "attempts": 1,
+   "input_digest": "bc65e6ad81666812",
+   "evidence_refs": [
+    "CL-01",
+    "CL-02",
+    "E-02",
+    "E-04",
+    "E-06",
+    "H-CARRIER-SCHEDULE-FRICTION",
+    "H-HANDOFF-FAILURE",
+    "H-ORDER-DATA-INACCURACY",
+    "U-RELEASE-FAILURE-ROOT-CAUSE",
+    "VOB-R-3"
+   ],
+   "confidence": null,
+   "errors": [],
+   "output": null,
+   "fallback_used": null
+  },
+  {
+   "reasoning_id": "R-18",
+   "skill": "release_summary",
+   "status": "SUCCESS",
+   "provider": "claude-cli",
+   "model": "sonnet",
+   "input_state_version": 29,
+   "schema_version": "1.0",
+   "order": 18,
+   "attempts": 1,
+   "input_digest": "055ad1b116b963cf",
+   "evidence_refs": [
+    "CL-01",
+    "CL-02",
+    "E-01",
+    "E-02",
+    "E-03",
+    "E-04",
+    "E-05",
+    "E-06",
+    "H-CARRIER-SCHEDULE-FRICTION",
+    "H-HANDOFF-FAILURE",
+    "H-ORDER-DATA-INACCURACY",
+    "H-PICK",
+    "H-VISIBILITY-GAP",
+    "U-CARRIER-CONTRIBUTION",
+    "U-DATA-COMPLETENESS",
+    "U-RELEASE-FAILURE-ROOT-CAUSE",
+    "VOB-R-3",
+    "VOB-U-CARRIER-CONTRIBUTION",
+    "VOB-U-CARRIER-CONTRIBUTION.",
+    "VOB-U-RELEASE-FAILURE-ROOT-CAUSE"
+   ],
+   "confidence": null,
+   "errors": [],
+   "output": null,
+   "fallback_used": null
+  }
+ ],
+ "proposals": {
+  "R-1": {
+   "skill": "hypothesis_init",
+   "status": "SUCCESS",
+   "output": {
+    "framing_assertion": {
+     "key": "late_shipment_cause.known_and_communicable",
+     "value": true,
+     "rationale": "The initial request ('Build a chatbot that tells customers why their parcel is late') presupposes the cause of each delay is already determinable from existing systems and only needs to be surfaced to customers, rather than investigated or fixed."
+    },
+    "hypotheses": [
+     {
+      "key": "VISIBILITY_GAP",
+      "statement": "Delay causes are already captured correctly in existing systems (orders, pickup log, WMS); the only problem is customers cannot see this information, so a chatbot surfacing it resolves the complaint.",
+      "origin": "REQUESTER_FRAMING",
+      "decision_impact": "HIGH",
+      "rationale": "This is SH-CX's framing and determines whether a read-only explainability chatbot is sufficient or whether deeper operational issues must be fixed first.",
+      "discriminating_evidence": [
+       "DA-ORD completeness UNKNOWN",
+       "DA-PICK completeness UNKNOWN",
+       "DA-WMS completeness UNKNOWN",
+       "H-PICK delivery_status UNKNOWN",
+       "H-PICK semantic_validity UNKNOWN"
+      ]
+     },
+     {
+      "key": "WAREHOUSE_DELAY",
+      "statement": "Shipments are actually late because warehouse processing (job completion) in ORG-1 is slow or backlogged, independent of any communication gap.",
+      "origin": "ALTERNATIVE",
+      "decision_impact": "CRITICAL",
+      "rationale": "If true, the real fix is a warehouse process/capacity change, not a chatbot, and the chatbot would just report the same operational delay to customers without resolving it.",
+      "discriminating_evidence": [
+       "DA-WMS (warehouse job log, ORG-1)"
+      ]
+     },
+     {
+      "key": "HANDOFF_FAILURE",
+      "statement": "Lateness stems from breakdowns in the ORG-1 to ORG-CAR parcel handoff (H-PICK) itself, where delivery status and semantic validity of the handoff are not reliably tracked or confirmed.",
+      "origin": "ALTERNATIVE",
+      "decision_impact": "CRITICAL",
+      "rationale": "If the handoff itself is unreliable (status/validity UNKNOWN), no single org's data can explain lateness to a customer and the fix is a cross-org handoff/data-quality fix, not a chatbot.",
+      "discriminating_evidence": [
+       "H-PICK delivery_status UNKNOWN",
+       "H-PICK semantic_validity UNKNOWN",
+       "DA-PICK (pickup log, ORG-CAR)"
+      ]
+     },
+     {
+      "key": "CARRIER_SCHEDULE_FRICTION",
+      "statement": "Lateness is driven by carrier-side pickup scheduling friction, where pickup schedule changes require carrier confirmation (K-SCHED) and this approval step introduces delay or mismatch versus planned pickups.",
+      "origin": "ALTERNATIVE",
+      "decision_impact": "HIGH",
+      "rationale": "If the root cause is coordination latency around the human-approval constraint on push_pickup_schedule, the fix involves process/approval-flow changes with ORG-CAR rather than a customer-facing chatbot.",
+      "discriminating_evidence": [
+       "K-SCHED (approval_required, runtime_confirmation_required)",
+       "DA-PICK (pickup log, ORG-CAR)"
+      ]
+     },
+     {
+      "key": "ORDER_DATA_INACCURACY",
+      "statement": "Parcels are not actually late, but inaccuracies or incompleteness in order records (DA-ORD) create false 'lateness' signals or incorrect expectations for customers.",
+      "origin": "ALTERNATIVE",
+      "decision_impact": "MEDIUM",
+      "rationale": "If order data itself is unreliable, a chatbot built on it would propagate incorrect explanations, so the fix is data-quality remediation on DA-ORD before any customer-facing tool.",
+      "discriminating_evidence": [
+       "DA-ORD completeness UNKNOWN",
+       "DA-ORD authority AUTHORITATIVE despite UNKNOWN completeness"
+      ]
+     }
+    ],
+    "confidence": 0.55
+   }
+  },
+  "R-2": {
+   "skill": "discover_actions",
+   "status": "SUCCESS",
+   "output": {
+    "actions": [
+     {
+      "catalog_ref": "wms-jobs:release_batch_runs",
+      "question": "What do warehouse batch release job runs show about processing speed and backlog in ORG-1 (DA-WMS)?",
+      "decision_impact": 0.85,
+      "uncertainty": 0.75,
+      "discriminative_power": 0.8,
+      "answerability": 0.9,
+      "process_data_handoff_impact": 0.5,
+      "action_proximity": 0.5,
+      "constraint_risk": 0.1,
+      "estimated_cost_minutes": 15,
+      "expected_information_gain": "Reveals whether warehouse job completion is slow or backlogged, directly testing the warehouse-delay mechanism.",
+      "decision_impact_rationale": "If warehouse jobs are backlogged this is a CRITICAL-impact root cause requiring operational fix, not just a chatbot; changes next-decision path entirely.",
+      "discriminates_hypotheses": [
+       "H-WAREHOUSE-DELAY"
+      ],
+      "resolves_unknowns": [
+       "DA-WMS.completeness=UNKNOWN"
+      ],
+      "addresses": [],
+      "why_now": "This is the catalog item that most directly names the exact mechanism (warehouse job/batch release) claimed by the still-live, CRITICAL-impact H-WAREHOUSE-DELAY hypothesis, and it has not yet been run."
+     },
+     {
+      "catalog_ref": "pickup-log:pickup_delays",
+      "question": "What do recorded pickup delays and delivery-status/semantic-validity entries in DA-PICK show about carrier-side pickup scheduling and the ORG-1 to ORG-CAR handoff (H-PICK)?",
+      "decision_impact": 0.8,
+      "uncertainty": 0.8,
+      "discriminative_power": 0.8,
+      "answerability": 0.9,
+      "process_data_handoff_impact": 0.6,
+      "action_proximity": 0.5,
+      "constraint_risk": 0.2,
+      "estimated_cost_minutes": 15,
+      "expected_information_gain": "Shows whether delays trace to carrier scheduling friction (K-SCHED confirmation) or to the handoff itself being unreliable/untracked.",
+      "decision_impact_rationale": "Directly tests two CRITICAL/HIGH-impact hypotheses about carrier confirmation friction and handoff breakdown, which lead to different remediation actions.",
+      "discriminates_hypotheses": [
+       "H-CARRIER-SCHEDULE-FRICTION",
+       "H-HANDOFF-FAILURE"
+      ],
+      "resolves_unknowns": [
+       "DA-PICK.completeness=UNKNOWN",
+       "H-PICK.delivery_status=UNKNOWN",
+       "H-PICK.semantic_validity=UNKNOWN"
+      ],
+      "addresses": [],
+      "why_now": "This is the catalog item most directly naming the pickup/handoff mechanism claimed by both the still-live carrier-schedule-friction and handoff-failure hypotheses; not yet run."
+     },
+     {
+      "catalog_ref": "order-db:late_orders_by_stage",
+      "question": "At which stage of order processing do late orders (DA-ORD) accumulate delay, and is the order data itself complete and accurate?",
+      "decision_impact": 0.75,
+      "uncertainty": 0.75,
+      "discriminative_power": 0.7,
+      "answerability": 0.9,
+      "process_data_handoff_impact": 0.5,
+      "action_proximity": 0.4,
+      "constraint_risk": 0.1,
+      "estimated_cost_minutes": 15,
+      "expected_information_gain": "Clarifies whether lateness is a real stage-based delay (warehouse/carrier) or an artifact of inaccurate order records, and whether existing systems already capture the cause.",
+      "decision_impact_rationale": "Resolves whether the chatbot problem is a data-accuracy issue versus a real operational delay, changing which hypothesis to pursue next.",
+      "discriminates_hypotheses": [
+       "H-ORDER-DATA-INACCURACY",
+       "H-WAREHOUSE-DELAY",
+       "H-VISIBILITY-GAP"
+      ],
+      "resolves_unknowns": [
+       "DA-ORD.completeness=UNKNOWN"
+      ],
+      "addresses": [],
+      "why_now": "Most directly named catalog item for inspecting order-record accuracy claimed by H-ORDER-DATA-INACCURACY, and also stage-locates delay relevant to H-WAREHOUSE-DELAY/H-VISIBILITY-GAP; not yet run."
+     },
+     {
+      "catalog_ref": "interview:SH-LOG",
+      "question": "From the logistics lead's perspective, where do handoff/scheduling breakdowns with the carrier typically occur, and is the existing cause information already accurate but simply not surfaced to customers?",
+      "decision_impact": 0.7,
+      "uncertainty": 0.7,
+      "discriminative_power": 0.6,
+      "answerability": 0.7,
+      "process_data_handoff_impact": 0.4,
+      "action_proximity": 0.4,
+      "constraint_risk": 0.3,
+      "estimated_cost_minutes": 30,
+      "expected_information_gain": "Provides operational-practice context on handoff reliability and K-SCHED approval friction that raw logs may not fully capture, plus a direct check of the pure-visibility-gap hypothesis.",
+      "decision_impact_rationale": "Logistics lead has firsthand authority context on K-SCHED approval friction and handoff tracking practice, which could confirm or rule out two CRITICAL/HIGH hypotheses and the visibility-gap hypothesis before any protected scheduling action is considered.",
+      "discriminates_hypotheses": [
+       "H-HANDOFF-FAILURE",
+       "H-CARRIER-SCHEDULE-FRICTION",
+       "H-VISIBILITY-GAP"
+      ],
+      "resolves_unknowns": [
+       "H-PICK.semantic_validity=UNKNOWN",
+       "H-PICK.delivery_status=UNKNOWN"
+      ],
+      "addresses": [],
+      "why_now": "Logistics lead is the stakeholder most directly tied to the K-SCHED constraint and the handoff process named by the live hypotheses; no other catalog item captures practitioner judgment on handoff reliability or pure visibility gap."
+     }
+    ],
+    "stop": true,
+    "stop_reason": "All four catalog items have been proposed and each still-live hypothesis (H-WAREHOUSE-DELAY, H-CARRIER-SCHEDULE-FRICTION, H-HANDOFF-FAILURE, H-ORDER-DATA-INACCURACY, H-VISIBILITY-GAP) has been matched to the catalog item most directly naming its claimed mechanism; no catalog item remains unaddressed."
+   }
+  },
+  "R-3": {
+   "skill": "interpret_evidence",
+   "status": "SUCCESS",
+   "output": {
+    "assertion_key": "pickup_delay_median_hours",
+    "assertion_value": 2,
+    "confidence": 0.75,
+    "interpretation": "Pickup-log data shows a median pickup delay of 2.0 hours across 60 pickups, confirming measurable delay exists at the carrier pickup stage and that this delay is already captured as structured data in an existing system.",
+    "hypothesis_effects": [
+     {
+      "hypothesis": "H-CARRIER-SCHEDULE-FRICTION",
+      "effect": "SUPPORTS",
+      "rationale": "Observation confirms a quantifiable delay (median 2.0h over 60 pickups) at the carrier pickup stage, consistent with scheduling friction contributing to lateness."
+     },
+     {
+      "hypothesis": "H-HANDOFF-FAILURE",
+      "effect": "NEUTRAL",
+      "rationale": "The metric describes delay magnitude, not handoff delivery status or semantic validity, so it does not bear on handoff breakdown."
+     },
+     {
+      "hypothesis": "H-WAREHOUSE-DELAY",
+      "effect": "NEUTRAL",
+      "rationale": "This observation concerns the carrier pickup stage, not warehouse job processing speed."
+     },
+     {
+      "hypothesis": "H-ORDER-DATA-INACCURACY",
+      "effect": "NEUTRAL",
+      "rationale": "The pickup delay metric does not speak to accuracy or completeness of order records."
+     },
+     {
+      "hypothesis": "H-VISIBILITY-GAP",
+      "effect": "SUPPORTS",
+      "rationale": "The delay cause is already quantified and captured in the pickup-log system, consistent with the idea that the underlying cause data exists and only needs surfacing."
+     }
+    ],
+    "new_hypotheses": [],
+    "fact_candidates": [
+     {
+      "statement": "Median pickup delay across 60 recorded pickups is 2.0 hours.",
+      "assertion_key": "pickup_delay_median_hours",
+      "value": 2,
+      "evidence_refs": [
+       "E-01"
+      ]
+     }
+    ],
+    "unknown_resolutions": [],
+    "authorization_candidates": [],
+    "contradiction_assessment": {
+     "relation": "UNRELATED",
+     "target_type": "NONE",
+     "target_refs": [],
+     "materiality": "LOW",
+     "problem_invalidating": false,
+     "rationale": "No problem_definition is present in the current state to assess this observation against."
+    },
+    "vob_proposals": [],
+    "follow_up_actions": [
+     "order-db:late_orders_by_stage"
+    ]
+   }
+  },
+  "R-4": {
+   "skill": "interpret_evidence",
+   "status": "SUCCESS",
+   "output": {
+    "assertion_key": "late_rate_handover_stage",
+    "assertion_value": 0.3,
+    "confidence": 0.8,
+    "interpretation": "order-db shows 300 of 1000 orders (30%) recorded as late specifically at the \"handover\" stage, pinpointing the ORG-1→ORG-CAR handoff point as where lateness is concentrated rather than an undifferentiated system-wide delay.",
+    "hypothesis_effects": [
+     {
+      "hypothesis": "H-HANDOFF-FAILURE",
+      "effect": "SUPPORTS",
+      "rationale": "Lateness is recorded specifically at the handover stage, consistent with the handoff (H-PICK) between ORG-1 and ORG-CAR being where delay occurs."
+     },
+     {
+      "hypothesis": "H-CARRIER-SCHEDULE-FRICTION",
+      "effect": "SUPPORTS",
+      "rationale": "The handover stage aligns with the carrier pickup point governed by K-SCHED confirmation, consistent with carrier-side scheduling friction causing the delay."
+     },
+     {
+      "hypothesis": "H-WAREHOUSE-DELAY",
+      "effect": "CONTRADICTS",
+      "rationale": "The late orders are attributed to the handover stage rather than an internal warehouse processing stage, which does not support slow/backlogged warehouse job completion as the driver."
+     },
+     {
+      "hypothesis": "H-ORDER-DATA-INACCURACY",
+      "effect": "NEUTRAL",
+      "rationale": "The record is a stage-level lateness count and does not speak to whether order records themselves are inaccurate."
+     },
+     {
+      "hypothesis": "H-VISIBILITY-GAP",
+      "effect": "NEUTRAL",
+      "rationale": "The record confirms order-db stores a lateness-by-stage breakdown, but does not establish that this reveals a communicable root cause rather than just a symptom location."
+     }
+    ],
+    "new_hypotheses": [],
+    "fact_candidates": [
+     {
+      "statement": "300 of 1000 orders (30%) are recorded as late at the \"handover\" stage per order-db.",
+      "assertion_key": "late_rate_handover_stage",
+      "value": 0.3,
+      "evidence_refs": [
+       "E-02"
+      ]
+     }
+    ],
+    "unknown_resolutions": [],
+    "authorization_candidates": [],
+    "contradiction_assessment": {
+     "relation": "UNRELATED",
+     "target_type": "NONE",
+     "target_refs": [],
+     "materiality": "LOW",
+     "problem_invalidating": false,
+     "rationale": "No problem_definition is present in state to assess this observation against."
+    },
+    "vob_proposals": [
+     {
+      "unresolved_question": "Is handover-stage lateness driven by carrier confirmation delay (K-SCHED/H-CARRIER-SCHEDULE-FRICTION) or by warehouse-side readiness/handoff breakdown (H-WAREHOUSE-DELAY/H-HANDOFF-FAILURE)?",
+      "decision_impact": "HIGH",
+      "required_before": "BEFORE_DESIGN_FINALIZATION",
+      "blocking_scope": [
+       {
+        "action": "generate_customer_explanation",
+        "target": "chatbot"
+       }
+      ],
+      "entire_solution": true,
+      "validation_method": "Correlate handover-stage late order timestamps with carrier confirmation records (pickup-log) and warehouse job completion timestamps (wms-jobs) to attribute root cause before finalizing chatbot explanation content.",
+      "required_evidence": [
+       "pickup-log timestamps for the same late orders",
+       "wms-jobs job completion timestamps for the same late orders"
+      ],
+      "linked_unknown": "",
+      "rationale": "Attributing the handover-stage lateness correctly is necessary before designing what explanation the chatbot gives customers, since the cause determines message content and any required carrier/warehouse remediation."
+     }
+    ],
+    "follow_up_actions": [
+     "interview:SH-LOG"
+    ]
+   }
+  },
+  "R-5": {
+   "skill": "discover_actions",
+   "status": "SUCCESS",
+   "output": {
+    "actions": [
+     {
+      "catalog_ref": "interview:SH-LOG",
+      "question": "Ask SH-LOG (logistics lead) to describe where parcels actually stall between warehouse release and carrier pickup, and whether the ORG-1→ORG-CAR handoff (H-PICK) is reliably confirmed.",
+      "decision_impact": 0.65,
+      "uncertainty": 0.7,
+      "discriminative_power": 0.6,
+      "answerability": 0.6,
+      "process_data_handoff_impact": 0.55,
+      "action_proximity": 0.4,
+      "constraint_risk": 0.1,
+      "estimated_cost_minutes": 20,
+      "expected_information_gain": "Could reveal whether delay originates in warehouse job backlog, handoff confirmation gaps, or carrier scheduling friction, since direct WMS job data is currently inaccessible (ACCESS_PENDING).",
+      "decision_impact_rationale": "Logistics lead's account substitutes for blocked wms-jobs access and could confirm or rule out CRITICAL-impact hypotheses (handoff failure, warehouse delay) that currently have no direct evidence.",
+      "discriminates_hypotheses": [
+       "H-WAREHOUSE-DELAY",
+       "H-HANDOFF-FAILURE",
+       "H-CARRIER-SCHEDULE-FRICTION"
+      ],
+      "resolves_unknowns": [],
+      "addresses": [],
+      "why_now": "wms-jobs:release_batch_runs failed with ACCESS_PENDING (not transient per recovery log) and no alternate tool path exists for warehouse-internal process detail, leaving H-WAREHOUSE-DELAY and H-HANDOFF-FAILURE untested; this is the only remaining catalog item that can speak to them."
+     }
+    ],
+    "stop": true,
+    "stop_reason": "Only one catalog item remains (interview:SH-LOG); it has been proposed to address the still-live CRITICAL/HIGH hypotheses (H-WAREHOUSE-DELAY, H-HANDOFF-FAILURE, H-CARRIER-SCHEDULE-FRICTION) that lack direct evidence since wms-jobs access is blocked. No catalog item remains to test H-ORDER-DATA-INACCURACY or H-VISIBILITY-GAP further, so discovery is exhausted."
+   }
+  },
+  "R-6": {
+   "skill": "interpret_evidence",
+   "status": "SUCCESS",
+   "output": {
+    "assertion_key": "late_shipment_root_cause",
+    "assertion_value": "carrier_pickup_delay",
+    "claim_assertion_key": "late_shipment_root_cause",
+    "claim_assertion_value": "carrier_pickup_delay",
+    "confidence": 0.5,
+    "interpretation": "SH-LOG (logistics lead) attributes parcel lateness causally to the carrier's pickup delay, echoing the ~2-hour magnitude already measured in E-01 but adding only an unverified stakeholder claim, not new authoritative data. It offers no information on the handoff-tracking, order-data-accuracy, warehouse-processing, or customer-visibility angles raised by other hypotheses.",
+    "hypothesis_effects": [
+     {
+      "hypothesis": "H-CARRIER-SCHEDULE-FRICTION",
+      "effect": "SUPPORTS",
+      "rationale": "Stakeholder directly attributes lateness to carrier pickup delay, aligning with this hypothesis' carrier-side friction narrative."
+     },
+     {
+      "hypothesis": "H-HANDOFF-FAILURE",
+      "effect": "NEUTRAL",
+      "rationale": "Claim speaks to pickup timing, not to handoff tracking/semantic-validity breakdowns, so it neither confirms nor refutes this hypothesis."
+     },
+     {
+      "hypothesis": "H-ORDER-DATA-INACCURACY",
+      "effect": "CONTRADICTS",
+      "rationale": "Stakeholder asserts parcels are genuinely late due to a real pickup delay, inconsistent with lateness being a false signal from inaccurate order records."
+     },
+     {
+      "hypothesis": "H-VISIBILITY-GAP",
+      "effect": "SUPPORTS",
+      "rationale": "Reinforces that the delay cause (carrier pickup) is already known internally, consistent with the idea that the gap is customer visibility rather than an undiscovered cause."
+     },
+     {
+      "hypothesis": "H-WAREHOUSE-DELAY",
+      "effect": "CONTRADICTS",
+      "rationale": "Attributes lateness to the carrier pickup stage, not warehouse processing, reinforcing the existing E-02 contradiction of this hypothesis."
+     }
+    ],
+    "new_hypotheses": [],
+    "fact_candidates": [],
+    "unknown_resolutions": [],
+    "authorization_candidates": [],
+    "contradiction_assessment": {
+     "relation": "UNRELATED",
+     "target_type": "NONE",
+     "target_refs": [],
+     "materiality": "LOW",
+     "problem_invalidating": false,
+     "rationale": "No problem_definition is present in state to assess this observation against."
+    },
+    "vob_proposals": [],
+    "follow_up_actions": []
+   }
+  },
+  "R-7": {
+   "skill": "interpret_evidence",
+   "status": "SUCCESS",
+   "output": {
+    "assertion_key": "orders_released_after_pickup_count",
+    "assertion_value": 290,
+    "claim_assertion_key": "",
+    "claim_assertion_value": "",
+    "confidence": 0.75,
+    "interpretation": "wms-jobs' RELEASE-BATCH job data shows 21 of 30 runs failed (70% failure rate) and 290 orders were released only after the carrier pickup had already occurred, revealing a concrete warehouse-side process failure mode (release-batch unreliability causing orders to miss the physical pickup window) distinct from carrier-side scheduling or mere data/visibility issues.",
+    "hypothesis_effects": [
+     {
+      "hypothesis": "H-WAREHOUSE-DELAY",
+      "effect": "SUPPORTS",
+      "rationale": "High RELEASE-BATCH failure rate (21/30) and 290 orders released after pickup already happened show warehouse processing is backlogged/unreliable, independent of any carrier or communication issue."
+     },
+     {
+      "hypothesis": "H-HANDOFF-FAILURE",
+      "effect": "SUPPORTS",
+      "rationale": "Orders being released after the physical pickup already occurred is itself a concrete handoff breakdown, consistent with the handoff (H-PICK) not being reliably tracked or confirmed."
+     },
+     {
+      "hypothesis": "H-CARRIER-SCHEDULE-FRICTION",
+      "effect": "NEUTRAL",
+      "rationale": "The observation concerns internal WMS release-batch job failures and release timing, and says nothing about carrier confirmation friction (K-SCHED)."
+     },
+     {
+      "hypothesis": "H-ORDER-DATA-INACCURACY",
+      "effect": "CONTRADICTS",
+      "rationale": "A 70% job failure rate and orders released after pickup are genuine operational breakdowns, not symptoms of inaccurate/incomplete order records producing a false lateness signal."
+     },
+     {
+      "hypothesis": "H-VISIBILITY-GAP",
+      "effect": "NEUTRAL",
+      "rationale": "This confirms the warehouse job log does capture this data, but it reveals an actual process failure rather than speaking to whether surfacing it to customers resolves the complaint."
+     }
+    ],
+    "new_hypotheses": [],
+    "fact_candidates": [
+     {
+      "statement": "wms-jobs RELEASE-BATCH job: 30 runs, 21 failed, and 290 orders were released after the pickup had already occurred.",
+      "assertion_key": "orders_released_after_pickup_count",
+      "value": 290,
+      "evidence_refs": [
+       "E-04"
+      ]
+     }
+    ],
+    "unknown_resolutions": [],
+    "authorization_candidates": [],
+    "contradiction_assessment": {
+     "relation": "UNRELATED",
+     "target_type": "NONE",
+     "target_refs": [],
+     "materiality": "LOW",
+     "problem_invalidating": false,
+     "rationale": "No problem_definition is present in state to assess this observation against."
+    },
+    "vob_proposals": [
+     {
+      "unresolved_question": "Is warehouse RELEASE-BATCH job failure/late release (290 orders released after pickup) the dominant driver of handover lateness (E-02), rather than carrier pickup delay (E-03/CL-02)?",
+      "decision_impact": "HIGH",
+      "required_before": "BEFORE_DESIGN_FINALIZATION",
+      "blocking_scope": [],
+      "entire_solution": false,
+      "validation_method": "Cross-reference order-db late-at-handover orders against wms-jobs RELEASE-BATCH failed-run timestamps to quantify overlap.",
+      "required_evidence": [
+       "Order-level mapping of late-at-handover orders to RELEASE-BATCH run outcomes"
+      ],
+      "linked_unknown": "",
+      "rationale": "E-04 shows a strong warehouse-side failure mode competing with the carrier-pickup-delay narrative (CL-02/E-03) for explaining the same handover lateness symptom (E-02), so the chatbot's cause messaging should not be finalized until root cause attribution is resolved."
+     }
+    ],
+    "follow_up_actions": []
+   }
+  },
+  "R-8": {
+   "skill": "discover_actions",
+   "status": "SUCCESS",
+   "output": {
+    "actions": [],
+    "stop": true,
+    "stop_reason": "Catalog is empty, so no additional information-gathering action can be proposed; all remaining live hypotheses (H-CARRIER-SCHEDULE-FRICTION, H-HANDOFF-FAILURE, H-ORDER-DATA-INACCURACY, H-VISIBILITY-GAP, H-WAREHOUSE-DELAY) have no catalog item left that could discriminate them."
+   }
+  },
+  "R-9": {
+   "skill": "assess_hypotheses",
+   "status": "SUCCESS",
+   "output": {
+    "rationale": "Evaluated each hypothesis strictly on its linked evidence. H-HANDOFF-FAILURE's linked evidence (E-02, E-04, both AUTHORITATIVE/COMPLETE tool data) consistently shows lateness concentrated at the handover stage and orders released only after pickup already occurred, with no contradiction, warranting SUPPORTED. H-ORDER-DATA-INACCURACY has zero supporting evidence and is contradicted by E-03 and E-04, which show a real physical delay/process failure rather than a data-recording artifact, warranting REJECTED. H-CARRIER-SCHEDULE-FRICTION's linked evidence shows delay/handover-stage lateness exist but none address the specific K-SCHED approval-friction mechanism, so it stays CANDIDATE. H-WAREHOUSE-DELAY has genuine mixed support (E-04) and contradiction (E-02, E-03), so it stays CANDIDATE. H-VISIBILITY-GAP's linked evidence (E-01 partial, E-03 weak stakeholder claim) is insufficient to confirm the broad \"all causes already captured, only visibility missing\" claim, so it stays CANDIDATE.",
+    "ready_to_define": true,
+    "updates": [
+     {
+      "hypothesis": "H-HANDOFF-FAILURE",
+      "status": "SUPPORTED",
+      "rationale": "Authoritative, complete tool evidence shows 30% of orders late specifically at the handover stage and 290 orders released only after pickup already occurred, consistently pointing to a handoff breakdown with no contradicting evidence linked.",
+      "evidence_refs": [
+       "E-02",
+       "E-04"
+      ]
+     },
+     {
+      "hypothesis": "H-ORDER-DATA-INACCURACY",
+      "status": "REJECTED",
+      "rationale": "No supporting evidence is linked, and the hypothesis is contradicted by E-04 (a real physical process failure: orders released after pickup) and E-03 (an attributed real-world cause), undermining the claim that lateness is merely a data-recording artifact.",
+      "evidence_refs": [
+       "E-03",
+       "E-04"
+      ]
+     }
+    ]
+   }
+  },
+  "R-10": {
+   "skill": "define_problem",
+   "status": "SUCCESS",
+   "output": {
+    "root_problem": "30% of orders (300/1000) are recorded late specifically at the ORG-1→ORG-CAR handover stage (E-02) because the warehouse RELEASE-BATCH release job fails on most of its runs (21 of 30, E-04), causing 290 orders to be released into the carrier handoff only after the scheduled pickup has already occurred (E-04) — an unreliable ORG-1→ORG-CAR parcel handoff (H-PICK), not merely a carrier-side scheduling or communication/visibility issue.",
+    "requested_solution": "Build a chatbot that tells customers why their parcel is late (initial request from SH-CX, CL-01).",
+    "symptoms": [
+     "300 of 1000 orders (30%) recorded late at the 'handover' stage per order-db (E-02).",
+     "290 orders were released by the warehouse only after carrier pickup had already occurred (E-04).",
+     "Carrier pickups show a median delay of 2.0 hours across 60 recorded pickups (E-01).",
+     "Customer experience stakeholder requests a chatbot because customers are not told why their parcel is late (CL-01)."
+    ],
+    "affected_process": "P-SHIP (order to delivery)",
+    "causal_chain": [
+     "The warehouse RELEASE-BATCH job has a high failure rate: 21 of 30 runs failed (E-04).",
+     "Failed/delayed RELEASE-BATCH runs cause 290 orders to be released into the ORG-1→ORG-CAR handoff only after the carrier pickup has already occurred (E-04).",
+     "This release-after-pickup pattern manifests as orders being recorded late specifically at the 'handover' stage, affecting 30% (300/1000) of orders (E-02).",
+     "The resulting unreliable handoff (H-PICK) leaves customers without a correct, system-confirmed delay reason, prompting the request for a chatbot (CL-01)."
+    ],
+    "premise_hypotheses": [
+     "H-HANDOFF-FAILURE"
+    ],
+    "evidence_refs": [
+     "E-01",
+     "E-02",
+     "E-03",
+     "E-04"
+    ],
+    "assumptions": [
+     {
+      "key": "A-RELEASE-PROXIMATE-CAUSE",
+      "statement": "RELEASE-BATCH job failures are the proximate cause of orders missing the pickup window rather than a coincidental correlation with carrier pickup timing.",
+      "evidence_refs": [
+       "E-04"
+      ],
+      "risk_if_wrong": "HIGH"
+     },
+     {
+      "key": "A-PICKUP-DELAY-DOWNSTREAM",
+      "statement": "The 2.0h median pickup delay (E-01) is largely a downstream consequence of late order release rather than an independent carrier-side scheduling issue.",
+      "evidence_refs": [
+       "E-01",
+       "E-04"
+      ],
+      "risk_if_wrong": "MEDIUM"
+     }
+    ],
+    "unknowns": [
+     {
+      "key": "U-CARRIER-CONTRIBUTION",
+      "question": "Does carrier-side pickup scheduling friction (K-SCHED) independently contribute to handover lateness beyond what RELEASE-BATCH failures explain?",
+      "criticality": "HIGH",
+      "decision_impact": "Determines whether a pickup schedule change (push_pickup_schedule) is needed in addition to fixing the warehouse release process.",
+      "affects_scope": [
+       {
+        "action": "push_pickup_schedule",
+        "target": "SH-CAR"
+       }
+      ],
+      "resolution_path": "Correlate pickup-log timestamps against wms-jobs release timing before and after RELEASE-BATCH remediation to isolate residual carrier-side delay.",
+      "safe_placeholder": "Prioritize fixing RELEASE-BATCH reliability first and monitor the handover late-rate; do not change the carrier pickup schedule until residual delay is confirmed."
+     },
+     {
+      "key": "U-DATA-COMPLETENESS",
+      "question": "Completeness of order-db, pickup-log and wms-jobs is marked UNKNOWN (DA-ORD, DA-PICK, DA-WMS) — could this understate or overstate the measured 30% late-handover rate and 70% RELEASE-BATCH failure rate?",
+      "criticality": "MEDIUM",
+      "decision_impact": "Affects whether current rate metrics can be trusted as a baseline for success criteria or customer-facing explanations.",
+      "affects_scope": [
+       {
+        "action": "communicate_delay_reason",
+        "target": "SH-CX"
+       }
+      ],
+      "resolution_path": "Run a completeness audit on DA-ORD, DA-PICK and DA-WMS before locking final SLA thresholds.",
+      "safe_placeholder": "Report current rates with an explicit data-completeness caveat and avoid committing to hard numeric SLAs until the audit completes."
+     },
+     {
+      "key": "U-RELEASE-FAILURE-ROOT-CAUSE",
+      "question": "What specifically causes the 21 of 30 RELEASE-BATCH run failures (e.g. capacity, configuration, upstream data issue)?",
+      "criticality": "CRITICAL",
+      "decision_impact": "The remediation design for the warehouse process depends entirely on knowing the failure mode, not just the failure count.",
+      "affects_scope": [
+       {
+        "action": "diagnose_release_batch_failures",
+        "target": "DA-WMS"
+       }
+      ],
+      "resolution_path": "Inspect wms-jobs failure/error detail beyond the aggregate run counts already captured in E-04.",
+      "safe_placeholder": "Continue surfacing already-known delay reasons (handoff/pickup status) to customers while the warehouse team investigates RELEASE-BATCH failure causes separately."
+     }
+    ],
+    "metrics": [
+     {
+      "key": "late_handover_rate",
+      "name": "Late orders at handover stage rate",
+      "metric_type": "RATE",
+      "numerator": "orders recorded late at the handover stage",
+      "denominator": "total orders",
+      "population": "orders in order-db",
+      "current_value": 0.3,
+      "current_value_evidence_refs": [
+       "E-02"
+      ]
+     },
+     {
+      "key": "release_batch_failure_rate",
+      "name": "RELEASE-BATCH job failure rate",
+      "metric_type": "RATE",
+      "numerator": "failed RELEASE-BATCH runs",
+      "denominator": "total RELEASE-BATCH runs",
+      "population": "wms-jobs RELEASE-BATCH runs",
+      "current_value": 0.7,
+      "current_value_evidence_refs": [
+       "E-04"
+      ]
+     },
+     {
+      "key": "pickup_delay_duration",
+      "name": "Median carrier pickup delay",
+      "metric_type": "DURATION",
+      "start_event": "scheduled pickup time",
+      "end_event": "actual pickup time",
+      "current_value": 2,
+      "current_value_evidence_refs": [
+       "E-01"
+      ]
+     },
+     {
+      "key": "orders_released_after_pickup",
+      "name": "Orders released after pickup already occurred",
+      "metric_type": "COUNT",
+      "current_value": 290,
+      "current_value_evidence_refs": [
+       "E-04"
+      ]
+     }
+    ],
+    "success_criteria": [
+     {
+      "key": "SC-LATE-RATE",
+      "statement": "The late-at-handover rate decreases from the 30% baseline after RELEASE-BATCH remediation.",
+      "kind": "MUST",
+      "metric": "late_handover_rate",
+      "threshold": "< 30% (baseline E-02)",
+      "validation_method": "Recompute order-db.late_orders_by_stage after remediation and compare to the 30% baseline."
+     },
+     {
+      "key": "SC-RELEASE-FAIL",
+      "statement": "The RELEASE-BATCH job failure rate decreases substantially from the 70% baseline.",
+      "kind": "MUST",
+      "metric": "release_batch_failure_rate",
+      "threshold": "< 70% (baseline E-04)",
+      "validation_method": "Recompute wms-jobs.release_batch_runs after remediation and compare to the 21/30 baseline."
+     },
+     {
+      "key": "SC-CUSTOMER-INFO",
+      "statement": "Any customer-facing delay explanation matches the underlying order-db/pickup-log/wms-jobs data for that order.",
+      "kind": "TARGET",
+      "metric": "",
+      "threshold": "sampled responses match source system data",
+      "validation_method": "Sample chatbot/customer-facing explanations and cross-check against order-db, pickup-log and wms-jobs records for the same orders."
+     },
+     {
+      "key": "SC-DATA-COMPLETENESS",
+      "statement": "The completeness of DA-ORD, DA-PICK and DA-WMS is unverified, so current rate baselines may be imprecise.",
+      "kind": "KNOWN_LIMITATION",
+      "metric": "",
+      "threshold": "n/a",
+      "validation_method": "Run a data completeness audit on DA-ORD, DA-PICK and DA-WMS and restate baselines if materially different."
+     }
+    ],
+    "intended_scope": [
+     {
+      "action": "diagnose_release_batch_failures",
+      "target": "DA-WMS"
+     },
+     {
+      "action": "track_handoff_delivery_status",
+      "target": "H-PICK"
+     },
+     {
+      "action": "correlate_pickup_timing",
+      "target": "DA-PICK"
+     },
+     {
+      "action": "communicate_delay_reason",
+      "target": "SH-CX"
+     },
+     {
+      "action": "push_pickup_schedule",
+      "target": "SH-CAR"
+     }
+    ],
+    "protected_actions": [
+     "push_pickup_schedule"
+    ],
+    "required_tools": [
+     "order-db",
+     "pickup-log",
+     "wms-jobs",
+     "pickup-sched"
+    ],
+    "depends_on_handoffs": [
+     "H-PICK"
+    ],
+    "constraint_refs": [
+     "K-SCHED"
+    ],
+    "rejected_framings": [
+     {
+      "hypothesis": "H-CARRIER-SCHEDULE-FRICTION",
+      "why": "Rests mainly on the non-authoritative stakeholder claim E-03 and remains CANDIDATE; the authoritative RELEASE-BATCH failure data (E-04) better explains the lateness as a warehouse-side release failure, with the measured pickup delay (E-01) more plausibly a downstream consequence than an independent carrier scheduling-friction cause."
+     },
+     {
+      "hypothesis": "H-ORDER-DATA-INACCURACY",
+      "why": "Marked REJECTED and directly contradicted by E-03 and E-04, which show parcels are genuinely delayed by a verified process failure, not a data-recording artifact."
+     },
+     {
+      "hypothesis": "H-VISIBILITY-GAP",
+      "why": "This is the premise underlying the requested chatbot solution (CL-01); it is contradicted by E-04 showing a genuine, unresolved process failure, so a visibility-only fix would not address the measured handoff breakdown."
+     },
+     {
+      "hypothesis": "H-WAREHOUSE-DELAY",
+      "why": "Contradicted by E-02 and E-03; evidence shows the problem is a handoff-stage failure tied to RELEASE-BATCH timing relative to pickup (E-04), not generic undifferentiated warehouse processing slowness."
+     }
+    ],
+    "framing_resolution": [],
+    "repair_resolution": [],
+    "authorization_candidates": [],
+    "vob_reevaluation": [],
+    "confidence": 0.68
+   }
+  },
+  "R-11": {
+   "skill": "interpret_evidence",
+   "status": "SUCCESS",
+   "output": {
+    "assertion_key": "push_pickup_schedule_authority",
+    "assertion_value": "SH-CAR",
+    "authorization_candidates": [
+     {
+      "action": "push_pickup_schedule",
+      "resource": "pickup-sched",
+      "authority_holder": "SH-CAR",
+      "scope_target": "SH-CAR",
+      "scope_kind": "INTENDED_TARGET",
+      "conditions": [
+       "Pickup schedule changes may only run after SH-CAR confirms, per carrier contract §3."
+      ],
+      "rationale": "The carrier contract (E-05) formalizes that SH-CAR's confirmation gates execution of pickup schedule changes, matching the approval_required actor already recorded in constraint K-SCHED."
+     }
+    ],
+    "claim_assertion_key": "",
+    "claim_assertion_value": "",
+    "confidence": 0.75,
+    "contradiction_assessment": {
+     "relation": "SUPPORTS",
+     "target_type": "SOLUTION_PATH",
+     "target_refs": [
+      "K-SCHED"
+     ],
+     "materiality": "LOW",
+     "problem_invalidating": false,
+     "rationale": "The document confirms, rather than contradicts, the existing K-SCHED constraint that SH-CAR confirmation gates the push_pickup_schedule protected action in the intended solution scope; it does not touch the root-problem causal chain about RELEASE-BATCH failures."
+    },
+    "fact_candidates": [
+     {
+      "statement": "Carrier contract §3 requires SH-CAR confirmation before pickup schedule changes are executed.",
+      "assertion_key": "push_pickup_schedule_authority",
+      "value": "SH-CAR",
+      "evidence_refs": [
+       "E-05"
+      ]
+     }
+    ],
+    "follow_up_actions": [],
+    "hypothesis_effects": [
+     {
+      "hypothesis": "H-CARRIER-SCHEDULE-FRICTION",
+      "effect": "SUPPORTS",
+      "rationale": "The contract confirms a mandatory carrier-confirmation step before schedule changes, corroborating the procedural precondition the hypothesis cites as a potential source of friction."
+     },
+     {
+      "hypothesis": "H-HANDOFF-FAILURE",
+      "effect": "NEUTRAL",
+      "rationale": "The document addresses authority over schedule changes, not the tracking/delivery-status reliability of the H-PICK handoff itself."
+     },
+     {
+      "hypothesis": "H-WAREHOUSE-DELAY",
+      "effect": "NEUTRAL",
+      "rationale": "The document concerns carrier-side approval authority, not ORG-1 warehouse processing speed."
+     },
+     {
+      "hypothesis": "H-VISIBILITY-GAP",
+      "effect": "NEUTRAL",
+      "rationale": "The document is about who authorizes schedule changes, not about whether delay causes are already captured and merely unseen by customers."
+     }
+    ],
+    "interpretation": "The carrier contract document establishes that any pickup schedule change can only be executed after SH-CAR explicitly confirms it, formalizing in writing the approval authority already encoded in constraint K-SCHED for the push_pickup_schedule protected action.",
+    "new_hypotheses": [],
+    "unknown_resolutions": [],
+    "vob_proposals": []
+   }
+  },
+  "R-12": {
+   "skill": "structural_remedy",
+   "status": "SUCCESS",
+   "output": {
+    "root_cause": "The RELEASE-BATCH warehouse job fails on 21 of 30 runs (70%, E-04), causing 290 orders to be released into the ORG-1→ORG-CAR handoff only after carrier pickup already occurred, which concentrates lateness at the handover stage (30% of orders, E-02) — an unreliable warehouse release process, not primarily a carrier-side scheduling or customer-visibility issue (H-HANDOFF-FAILURE supported; H-ORDER-DATA-INACCURACY rejected). The specific technical cause of the RELEASE-BATCH failures (capacity, configuration, or upstream data) remains an open critical unknown (U-RELEASE-FAILURE-ROOT-CAUSE).",
+    "remedies": [
+     {
+      "key": "fix-release-batch-reliability",
+      "description": "Re-engineer the RELEASE-BATCH job (automated retry/rerun, capacity or config fix) to eliminate the 70% failure rate (E-04) that releases orders only after pickup has occurred.",
+      "removes_root_cause": true,
+      "feasible_in_contest_time": false,
+      "constraint_feasible": true,
+      "feasibility_rationale": "ORG-1 owns DA-WMS/wms-jobs with no external approval constraint, but an effective fix needs the specific failure cause, which is an open CRITICAL unknown (U-RELEASE-FAILURE-ROOT-CAUSE).",
+      "residual_gap": "Without diagnosis of why RELEASE-BATCH fails (capacity, config, upstream data), a fix risks being a blind patch that doesn't resolve the actual failure mode."
+     },
+     {
+      "key": "gate-handoff-on-release-confirmation",
+      "description": "Add a process checkpoint so the ORG-1→ORG-CAR handoff (H-PICK) only triggers after RELEASE-BATCH confirms successful release, preventing orders from being exposed to a pickup window before they are released.",
+      "removes_root_cause": false,
+      "feasible_in_contest_time": true,
+      "constraint_feasible": true,
+      "feasibility_rationale": "This is an internal ORG-1 process change touching only DA-WMS/H-PICK, with no HUMAN_APPROVAL constraint (K-SCHED only governs push_pickup_schedule, not release gating).",
+      "residual_gap": "The underlying RELEASE-BATCH failure rate is unchanged; if failures persist, orders may now be delayed further rather than mis-timed, so the 70% failure problem itself still needs remediation."
+     },
+     {
+      "key": "release-batch-ownership-sla",
+      "description": "Assign explicit ownership and an SLA to SH-WMS for monitoring, alerting on, and promptly resolving RELEASE-BATCH job failures.",
+      "removes_root_cause": false,
+      "feasible_in_contest_time": true,
+      "constraint_feasible": true,
+      "feasibility_rationale": "Ownership/process assignment is internal to ORG-1 and requires no external approval or protected action.",
+      "residual_gap": "Improves future responsiveness but does not by itself identify or fix the technical cause of the current 21/30 failure rate."
+     },
+     {
+      "key": "instrument-handoff-tracking",
+      "description": "Capture delivery_status and semantic_validity for the H-PICK handoff (currently UNKNOWN) as structured data to detect handoff breakdowns going forward.",
+      "removes_root_cause": false,
+      "feasible_in_contest_time": true,
+      "constraint_feasible": true,
+      "feasibility_rationale": "This is a data/config change to existing ORG-1 systems, not a protected action, so it is unconstrained by K-SCHED.",
+      "residual_gap": "Improves visibility into handoff failures but does not reduce the 30% late-handover rate (E-02) or the RELEASE-BATCH failure rate (E-04) on its own."
+     }
+    ],
+    "why_agent_needed": "An agent is needed to investigate wms-jobs logs/configuration to diagnose the specific technical cause of the RELEASE-BATCH failures (U-RELEASE-FAILURE-ROOT-CAUSE, CRITICAL, required BEFORE_RELEASE per VOB-U-RELEASE-FAILURE-ROOT-CAUSE), since this is unstructured diagnostic work that no process/ownership remedy alone can substitute for.",
+    "confidence": 0.72
+   }
+  },
+  "R-13": {
+   "skill": "agent_design",
+   "status": "SUCCESS",
+   "output": {
+    "deterministic_rules_cover_cases": false,
+    "llm_reasoning_adds_value": true,
+    "autonomous_iteration_adds_value": true,
+    "residual_exceptions": true,
+    "detection_needed": true,
+    "why_agent": "An agent is needed to pull and correlate order-db, pickup-log and wms-jobs records per order, then compose a grounded customer explanation when candidate causes (H-HANDOFF-FAILURE, H-CARRIER-SCHEDULE-FRICTION) are not fully resolved — unstructured synthesis that fixed rules cannot handle reliably.",
+    "bridge_sunset_condition": "Retire the gating/ownership/communication bridge once VOB-U-RELEASE-FAILURE-ROOT-CAUSE is resolved, SR-FIX-RELEASE-BATCH-RELIABILIT is implemented, and M-RELEASE-BATCH-FAILURE-RATE is verified below the 70% baseline (E-04).",
+    "deterministic_components": [
+     "track_handoff_delivery_status: structured capture of H-PICK delivery_status/semantic_validity per SR-INSTRUMENT-HANDOFF-TRACKING is a config/logging change, not reasoning.",
+     "correlate_pickup_timing: deterministic join of DA-WMS release timestamps with DA-PICK pickup timestamps per order id.",
+     "SR-RELEASE-BATCH-OWNERSHIP-SLA: ownership/SLA assignment to SH-WMS is a fixed process rule needing no agent.",
+     "SR-GATE-HANDOFF-ON-RELEASE-CONF: gating H-PICK trigger on RELEASE-BATCH confirmation status is a deterministic if-then rule."
+    ],
+    "release_scope": [
+     {
+      "action": "track_handoff_delivery_status",
+      "target": "H-PICK"
+     },
+     {
+      "action": "correlate_pickup_timing",
+      "target": "DA-PICK"
+     },
+     {
+      "action": "communicate_delay_reason",
+      "target": "SH-CX"
+     }
+    ],
+    "minimum_useful_scope": [
+     {
+      "action": "track_handoff_delivery_status",
+      "target": "H-PICK"
+     }
+    ],
+    "scope_dependencies": [
+     {
+      "action": "track_handoff_delivery_status",
+      "depends_on": []
+     },
+     {
+      "action": "correlate_pickup_timing",
+      "depends_on": [
+       "DA-PICK",
+       "DA-ORD"
+      ]
+     },
+     {
+      "action": "communicate_delay_reason",
+      "depends_on": [
+       "DA-ORD",
+       "DA-PICK",
+       "DA-WMS"
+      ]
+     }
+    ],
+    "role_suggestion": [
+     "BRIDGE",
+     "CONTROL_DETECTION"
+    ],
+    "capabilities": [
+     "Read-only query of order-db, pickup-log, wms-jobs per order id",
+     "Join/correlate release timestamps (DA-WMS) with pickup timestamps (DA-PICK)",
+     "Capture and structure H-PICK delivery_status/semantic_validity fields",
+     "Generate natural-language delay explanation grounded in retrieved records",
+     "Flag/escalate when retrieved data is incomplete or causes conflict"
+    ],
+    "llm_required_for": [
+     "Composing a per-customer delay explanation from multiple structured signals that matches SC-CUSTOMER-INFO without overclaiming an unresolved root cause",
+     "Detecting ambiguous/conflicting cause signals (handoff failure vs carrier friction) and choosing a defensible, honest explanation or escalation"
+    ],
+    "tools": [
+     "order-db",
+     "pickup-log",
+     "wms-jobs"
+    ],
+    "authority_boundary": [
+     "No execution of push_pickup_schedule (HUMAN_APPROVAL protected action, out of release scope).",
+     "Read-only access only to order-db, pickup-log, wms-jobs; no write access to pickup-sched.",
+     "Cannot assert a confirmed RELEASE-BATCH root cause or carrier contribution while U-RELEASE-FAILURE-ROOT-CAUSE and U-CARRIER-CONTRIBUTION remain open."
+    ],
+    "human_gate": [],
+    "termination": "Each customer query ends once a grounded explanation is returned or an exception is escalated to SH-WMS/SH-CX; the instrumentation/correlation task ends once H-PICK status and timing correlation are captured for the current data snapshot, with no indefinite looping.",
+    "validation": [
+     "Sample chatbot explanations and cross-check against order-db, pickup-log and wms-jobs for the same orders (SC-CUSTOMER-INFO).",
+     "Verify captured H-PICK delivery_status/semantic_validity against actual RELEASE-BATCH confirmation events in DA-WMS.",
+     "Monitor M-LATE-HANDOVER-RATE and M-RELEASE-BATCH-FAILURE-RATE for drift once gating/ownership remedies land."
+    ],
+    "known_limitations": [
+     "Does not fix the 70% RELEASE-BATCH failure rate itself; U-RELEASE-FAILURE-ROOT-CAUSE (CRITICAL) remains open per VOB-U-RELEASE-FAILURE-ROOT-CAUSE.",
+     "Cannot confirm or rule out carrier-side scheduling contribution (U-CARRIER-CONTRIBUTION, HIGH, open), so explanations must avoid attributing lateness solely to carrier pickup delay.",
+     "Completeness of DA-ORD/DA-PICK/DA-WMS is UNKNOWN (U-DATA-COMPLETENESS), which may bias both correlation output and customer explanations."
+    ],
+    "vob_proposals": [
+     {
+      "unresolved_question": "Does the UNKNOWN completeness of DA-ORD/DA-PICK/DA-WMS (U-DATA-COMPLETENESS) materially distort the 30%/70% rates feeding customer-facing delay explanations?",
+      "decision_impact": "MEDIUM",
+      "required_before": "BEFORE_RELEASE",
+      "blocking_scope": [
+       {
+        "action": "communicate_delay_reason",
+        "target": "SH-CX"
+       }
+      ],
+      "entire_solution": false,
+      "validation_method": "Run completeness/null-field audits on order-db, pickup-log, wms-jobs records used by communicate_delay_reason and compare resulting rates before/after excluding incomplete records.",
+      "required_evidence": [
+       "Completeness audit results for DA-ORD",
+       "Completeness audit results for DA-PICK",
+       "Completeness audit results for DA-WMS"
+      ],
+      "linked_unknown": "U-DATA-COMPLETENESS",
+      "rationale": "SC-CUSTOMER-INFO requires explanations to match source data exactly; unverified completeness of DA-ORD/DA-PICK/DA-WMS (per U-DATA-COMPLETENESS, affects communicate_delay_reason:SH-CX) risks systematically wrong customer-facing explanations."
+     }
+    ],
+    "confidence": 0.72
+   }
+  },
+  "R-14": {
+   "skill": "plan_execution",
+   "status": "SUCCESS",
+   "output": {
+    "protected_actions": [],
+    "rationale": "push_pickup_schedule is a protected action (K-SCHED) but is NOT part of SD-1's release_scope (which only contains track_handoff_delivery_status, correlate_pickup_timing, communicate_delay_reason), so no protected_actions are proposed per the rule that scope must reuse a release-scope item exactly. Only one catalog data_op (pickup-log:pickup_by_slot) is available and not already executed; it is applied to correlate_pickup_timing and communicate_delay_reason since their scope_dependencies include DA-PICK, while track_handoff_delivery_status has no catalog-backed data_op (it is instrumentation work per SR-INSTRUMENT-HANDOFF-TRACKING) and is planned as implementation work. A dedicated verification item addresses the open, release-blocking VOB-R-3 on DA-ORD/DA-PICK/DA-WMS completeness before communicate_delay_reason ships.",
+    "work_items": [
+     {
+      "key": "WI-TRACK-HANDOFF",
+      "description": "Instrument the H-PICK ORG-1→ORG-CAR handoff to capture delivery_status and semantic_validity as structured data (currently UNKNOWN per H-PICK), per SR-INSTRUMENT-HANDOFF-TRACKING.",
+      "work_class": "CORE_FEATURE",
+      "est_minutes": 60,
+      "scope_items": [
+       {
+        "action": "track_handoff_delivery_status",
+        "target": "H-PICK"
+       }
+      ],
+      "root_problem_aligned": true,
+      "release_blocking": true,
+      "data_ops": []
+     },
+     {
+      "key": "WI-CORRELATE-PICKUP",
+      "description": "Correlate pickup timing by slot using pickup-log:pickup_by_slot to analyze pickup patterns relative to the handover-stage lateness (E-02) and release-batch failures (E-04).",
+      "work_class": "CORE_FEATURE",
+      "est_minutes": 45,
+      "scope_items": [
+       {
+        "action": "correlate_pickup_timing",
+        "target": "DA-PICK"
+       }
+      ],
+      "root_problem_aligned": true,
+      "release_blocking": true,
+      "data_ops": [
+       "pickup-log:pickup_by_slot"
+      ],
+      "output_name": "pickup_timing_correlation",
+      "output_key_fields": [],
+      "output_join": false,
+      "output_constant_fields": []
+     },
+     {
+      "key": "WI-COMMUNICATE-DELAY",
+      "description": "Generate customer-facing delay explanations for SH-CX grounded in existing order-db/wms-jobs/pickup-log evidence (E-01, E-02, E-04) plus the new pickup_by_slot correlation, while avoiding sole attribution to carrier pickup delay (open U-CARRIER-CONTRIBUTION).",
+      "work_class": "CORE_FEATURE",
+      "est_minutes": 60,
+      "scope_items": [
+       {
+        "action": "communicate_delay_reason",
+        "target": "SH-CX"
+       }
+      ],
+      "root_problem_aligned": true,
+      "release_blocking": true,
+      "data_ops": [
+       "pickup-log:pickup_by_slot"
+      ],
+      "output_name": "customer_delay_explanation",
+      "output_key_fields": [],
+      "output_join": false,
+      "output_constant_fields": []
+     },
+     {
+      "key": "WI-VERIFY-DATA-COMPLETENESS",
+      "description": "Resolve VOB-R-3 (BEFORE_RELEASE) by checking whether the UNKNOWN completeness of DA-ORD/DA-PICK/DA-WMS materially distorts the 30%/70% rates feeding the customer-facing explanations before release.",
+      "work_class": "RELEASE_BLOCKING_VERIFICATION",
+      "est_minutes": 30,
+      "scope_items": [
+       {
+        "action": "communicate_delay_reason",
+        "target": "SH-CX"
+       }
+      ],
+      "root_problem_aligned": false,
+      "release_blocking": true,
+      "data_ops": []
+     }
+    ]
+   }
+  },
+  "R-15": {
+   "skill": "interpret_evidence",
+   "status": "SUCCESS",
+   "output": {
+    "assertion_key": "pickup_delay_uniform_by_slot",
+    "assertion_value": true,
+    "authorization_candidates": [],
+    "claim_assertion_key": "",
+    "claim_assertion_value": "",
+    "confidence": 0.6,
+    "contradiction_assessment": {
+     "relation": "PARTIAL_CONTRADICTION",
+     "target_type": "HYPOTHESIS",
+     "target_refs": [
+      "H-CARRIER-SCHEDULE-FRICTION"
+     ],
+     "materiality": "LOW",
+     "problem_invalidating": false,
+     "rationale": "A constant 2.0h delay at every one of 6 slots is weak evidence of a slot-independent carrier delay rather than variable approval-friction mismatch, but it carries no order/release-batch join so it does not alter the committed root problem (RELEASE-BATCH failures, PD-1)."
+    },
+    "fact_candidates": [
+     {
+      "statement": "pickup-log.pickup_by_slot reports an identical 2.0h delay for each of 6 slots (S-0 through S-5).",
+      "assertion_key": "pickup_delay_uniform_by_slot",
+      "value": true,
+      "evidence_refs": [
+       "E-06"
+      ]
+     }
+    ],
+    "follow_up_actions": [],
+    "hypothesis_effects": [
+     {
+      "hypothesis": "H-CARRIER-SCHEDULE-FRICTION",
+      "effect": "NEUTRAL",
+      "rationale": "Uniform 2.0h delay across all slots is consistent with a constant carrier-side delay but, lacking any join to RELEASE-BATCH runs or handover orders, it neither confirms nor rules out that K-SCHED approval friction is the mechanism."
+     },
+     {
+      "hypothesis": "H-WAREHOUSE-DELAY",
+      "effect": "NEUTRAL",
+      "rationale": "The slot-level pickup delay figures say nothing about warehouse RELEASE-BATCH job completion speed (E-04)."
+     },
+     {
+      "hypothesis": "H-HANDOFF-FAILURE",
+      "effect": "NEUTRAL",
+      "rationale": "This data does not touch H-PICK delivery_status/semantic_validity tracking, which remains UNKNOWN."
+     },
+     {
+      "hypothesis": "H-VISIBILITY-GAP",
+      "effect": "NEUTRAL",
+      "rationale": "The observation is a raw delay figure by slot, not evidence about whether this information is already visible to customers."
+     }
+    ],
+    "interpretation": "pickup-log.pickup_by_slot shows the same 2.0h delay recorded for every one of 6 slots (S-0 through S-5), i.e. no slot-to-slot variation in the measured pickup delay. The data contains only slot and delay_h, with no linkage to order IDs, handover status (E-02) or RELEASE-BATCH runs (E-04), so it does not deliver the correlation the W-WI-CORRELATE-PICKUP work item sought between pickup timing and handover lateness/release failures.",
+    "new_hypotheses": [],
+    "unknown_resolutions": [],
+    "vob_proposals": []
+   }
+  },
+  "R-16": {
+   "skill": "premise_check",
+   "status": "SUCCESS",
+   "output": {
+    "problem_id": "PD-1",
+    "problem_version": 1,
+    "premises": [
+     {
+      "premise_id": "PR-ROOT",
+      "relation": "NOT_ADDRESS",
+      "materiality": "LOW",
+      "affected_layer": "PROBLEM_PREMISE",
+      "problem_invalidating": false,
+      "evidence_refs": [
+       "E-06",
+       "E-04",
+       "E-02"
+      ],
+      "rationale": "E-06 only reports slot-level pickup delay uniformity with no linkage to order IDs, handover status or RELEASE-BATCH runs, so it does not speak to the release-batch-causes-late-handover mechanism."
+     },
+     {
+      "premise_id": "PR-CHAIN-1",
+      "relation": "NOT_ADDRESS",
+      "materiality": "LOW",
+      "affected_layer": "PROBLEM_PREMISE",
+      "problem_invalidating": false,
+      "evidence_refs": [
+       "E-06",
+       "E-04"
+      ],
+      "rationale": "E-06 is pickup-log slot data unrelated to the RELEASE-BATCH job's run/failure counts; it neither confirms nor undermines the 21/30 failure figure."
+     },
+     {
+      "premise_id": "PR-CHAIN-2",
+      "relation": "NOT_ADDRESS",
+      "materiality": "LOW",
+      "affected_layer": "PROBLEM_PREMISE",
+      "problem_invalidating": false,
+      "evidence_refs": [
+       "E-06",
+       "E-04"
+      ],
+      "rationale": "The slot breakdown carries no order-ID or release-run linkage, so it cannot confirm or refute that failed releases cause orders to miss pickup."
+     },
+     {
+      "premise_id": "PR-CHAIN-3",
+      "relation": "NOT_ADDRESS",
+      "materiality": "LOW",
+      "affected_layer": "PROBLEM_PREMISE",
+      "problem_invalidating": false,
+      "evidence_refs": [
+       "E-06",
+       "E-02"
+      ],
+      "rationale": "E-06 does not reference handover-stage lateness or the 30% rate; it is silent on this step of the chain."
+     },
+     {
+      "premise_id": "PR-CHAIN-4",
+      "relation": "NOT_ADDRESS",
+      "materiality": "LOW",
+      "affected_layer": "PROBLEM_PREMISE",
+      "problem_invalidating": false,
+      "evidence_refs": [
+       "E-06"
+      ],
+      "rationale": "E-06 contains no information about customer communication or the chatbot request; irrelevant to this step."
+     },
+     {
+      "premise_id": "PR-H-HANDOFF-FAILURE",
+      "relation": "NOT_ADDRESS",
+      "materiality": "LOW",
+      "affected_layer": "HYPOTHESIS",
+      "problem_invalidating": false,
+      "evidence_refs": [
+       "E-06",
+       "E-02",
+       "E-04"
+      ],
+      "rationale": "E-06 says nothing about handoff delivery_status or semantic_validity tracking; it does not bear on the handoff-failure hypothesis."
+     },
+     {
+      "premise_id": "PR-E-01",
+      "relation": "SUPPORTS",
+      "materiality": "LOW",
+      "affected_layer": "CLAIM",
+      "problem_invalidating": false,
+      "evidence_refs": [
+       "E-06",
+       "E-01"
+      ],
+      "rationale": "The slot-level data shows the identical 2.0h value underlying the median reported in E-01, reinforcing that this delay magnitude is consistently measured."
+     },
+     {
+      "premise_id": "PR-E-02",
+      "relation": "NOT_ADDRESS",
+      "materiality": "LOW",
+      "affected_layer": "CLAIM",
+      "problem_invalidating": false,
+      "evidence_refs": [
+       "E-06",
+       "E-02"
+      ],
+      "rationale": "E-06 is pickup-log data with no connection to order-db's handover-stage lateness counts."
+     },
+     {
+      "premise_id": "PR-E-03",
+      "relation": "NOT_ADDRESS",
+      "materiality": "LOW",
+      "affected_layer": "CLAIM",
+      "problem_invalidating": false,
+      "evidence_refs": [
+       "E-06",
+       "E-03"
+      ],
+      "rationale": "E-06 adds slot-level granularity to the same ~2h magnitude already echoed in E-03 but offers no new causal attribution information."
+     },
+     {
+      "premise_id": "PR-E-04",
+      "relation": "NOT_ADDRESS",
+      "materiality": "LOW",
+      "affected_layer": "CLAIM",
+      "problem_invalidating": false,
+      "evidence_refs": [
+       "E-06",
+       "E-04"
+      ],
+      "rationale": "E-06 explicitly lacks linkage to RELEASE-BATCH runs, so it cannot confirm or contradict the wms-jobs failure/release-after-pickup data."
+     },
+     {
+      "premise_id": "PR-A-RELEASE-PROXIMATE-CAUSE",
+      "relation": "NOT_ADDRESS",
+      "materiality": "LOW",
+      "affected_layer": "ASSUMPTION",
+      "problem_invalidating": false,
+      "evidence_refs": [
+       "E-06",
+       "E-04"
+      ],
+      "rationale": "The slot data has no linkage to RELEASE-BATCH run outcomes, so it cannot test whether release failures are the proximate cause of missed pickups."
+     },
+     {
+      "premise_id": "PR-A-PICKUP-DELAY-DOWNSTREAM",
+      "relation": "PARTIALLY_CONTRADICTS",
+      "materiality": "MEDIUM",
+      "affected_layer": "ASSUMPTION",
+      "problem_invalidating": false,
+      "evidence_refs": [
+       "E-06",
+       "E-01",
+       "E-04"
+      ],
+      "rationale": "If the 2.0h delay were a downstream consequence of a stochastic, 70%-failing RELEASE-BATCH process, slot-to-slot variation would be expected, but E-06 shows an exactly uniform 2.0h delay across all 6 slots, suggesting a fixed scheduling characteristic rather than a release-failure-driven downstream effect."
+     }
+    ],
+    "overall_assessment": "STABLE",
+    "rationale": "E-06's slot-level pickup data carries no linkage to order IDs, handover status, or RELEASE-BATCH runs (per its own interpretation), so it does not address the root problem's causal chain (PR-ROOT, PR-CHAIN-1..4) or the handoff-failure hypothesis. It mildly weakens the ASSUMPTION that pickup delay is downstream of release failures (uniform delay across slots looks more like a fixed scheduling artifact than a stochastic release-failure consequence), but this is an ASSUMPTION-layer, non-core-premise finding, so the problem definition itself is not invalidated.",
+    "confidence": 0.72
+   }
+  },
+  "R-17": {
+   "skill": "semantic_judge",
+   "status": "SUCCESS",
+   "output": {
+    "checks": [
+     {
+      "name": "root_problem_alignment",
+      "status": "PASS",
+      "detail": "Release scope (track_handoff_delivery_status, correlate_pickup_timing, communicate_delay_reason) targets H-HANDOFF-FAILURE, the hypothesis SUPPORTED by evidence, matching PD-1's root_problem about RELEASE-BATCH-driven handoff unreliability rather than the stakeholder's carrier-blame framing.",
+      "refs": [
+       "E-02",
+       "E-04",
+       "H-HANDOFF-FAILURE",
+       "problem_definition.root_problem"
+      ]
+     },
+     {
+      "name": "root_cause_remedy_deferred_disclosure",
+      "status": "PASS",
+      "detail": "The remedy that would remove the root cause (SR-FIX-RELEASE-BATCH-RELIABILIT) is marked not feasible in contest time and this gap is explicitly listed in unfinished_scope alongside the open CRITICAL unknown U-RELEASE-FAILURE-ROOT-CAUSE, so the limitation is honestly stated rather than hidden.",
+      "refs": [
+       "SR-FIX-RELEASE-BATCH-RELIABILIT",
+       "U-RELEASE-FAILURE-ROOT-CAUSE",
+       "solution_design.unfinished_scope"
+      ]
+     },
+     {
+      "name": "correlate_pickup_timing_outcome_mismatch",
+      "status": "WARN",
+      "detail": "E-06's own interpretation states the pickup_by_slot data has no linkage to order IDs/handover status/RELEASE-BATCH runs and 'does not deliver the correlation the W-WI-CORRELATE-PICKUP work item sought', yet that work item is marked DONE and its scope is carried into release_scope as a CORE_FEATURE without flagging the shortfall there.",
+      "refs": [
+       "E-06",
+       "W-WI-CORRELATE-PICKUP",
+       "solution_design.release_scope"
+      ]
+     },
+     {
+      "name": "release_blocking_vob_open_for_released_scope",
+      "status": "WARN",
+      "detail": "VOB-R-3 is OPEN, required_before BEFORE_RELEASE, and blocks communicate_delay_reason:SH-CX, yet that exact action is included in solution_design.release_scope while the corresponding verification work item W-WI-VERIFY-DATA-COMPLETENESS is still PENDING; this is a release-readiness gap worth flagging even though a deterministic check already passed.",
+      "refs": [
+       "VOB-R-3",
+       "W-WI-VERIFY-DATA-COMPLETENESS",
+       "solution_design.release_scope"
+      ]
+     },
+     {
+      "name": "stakeholder_claim_not_treated_as_fact",
+      "status": "PASS",
+      "detail": "CL-01 (chatbot framing) and CL-02 (SH-LOG's carrier-pickup-delay root cause) remain UNVERIFIED claims; the design tests them against evidence (H-ORDER-DATA-INACCURACY REJECTED, H-CARRIER-SCHEDULE-FRICTION left CANDIDATE) and the delay-explanation work item explicitly instructs avoiding sole attribution to carrier pickup delay.",
+      "refs": [
+       "CL-01",
+       "CL-02",
+       "H-ORDER-DATA-INACCURACY",
+       "W-WI-COMMUNICATE-DELAY"
+      ]
+     }
+    ]
+   }
+  },
+  "R-18": {
+   "skill": "release_summary",
+   "status": "SUCCESS",
+   "output": {
+    "summary": "SH-CX originally asked for a chatbot to tell customers why their parcel is late (CL-01). Investigation (PD-1) redefined the problem: 300/1000 orders (30%) are recorded late at the ORG-1→ORG-CAR handover stage (E-02) because the warehouse RELEASE-BATCH job fails on 21 of 30 runs (70%), releasing 290 orders only after carrier pickup had already occurred (E-04). This points to an unreliable ORG-1→ORG-CAR handoff (H-PICK), not simply a carrier-side scheduling issue as SH-LOG claimed (CL-02/E-03) or a pure visibility gap. The DEFINE gate returned CONDITIONAL_PASS, deferring two critical/high unknowns (release-batch root cause, carrier contribution) as verification obligations (VOBs). The release delivers handoff tracking, pickup-timing correlation, and customer delay explanations (SD-1 release_scope), but does not fix RELEASE-BATCH itself and does not push pickup-schedule changes to the carrier. The decision is RELEASE_WITH_KNOWN_LIMITATION because the two blocking VOBs (carrier contribution, release root cause) fall outside this release's scope, while a third, non-critical VOB about data completeness (VOB-R-3) intersects the scope but was judged not release-blocking.",
+    "key_points": [
+     "Root problem established: 30% of orders late at handover (E-02) is driven by RELEASE-BATCH failing 21/30 runs (70%), releasing 290 orders after pickup already happened (E-04), per root_problem in PD-1.",
+     "Hypothesis testing: H-HANDOFF-FAILURE is SUPPORTED (E-02, E-04); H-ORDER-DATA-INACCURACY was REJECTED (contradicted by E-03, E-04); H-CARRIER-SCHEDULE-FRICTION and H-VISIBILITY-GAP remain unresolved CANDIDATEs.",
+     "Carrier pickup delay is a measured 2.0h median (E-01) that is uniform across all 6 slots (E-06), with no order-level linkage to handover lateness or release failures, so the sought correlation (W-WI-CORRELATE-PICKUP) did not establish a slot-based pattern.",
+     "DEFINE Gate result was CONDITIONAL_PASS: two critical/high unknowns (U-RELEASE-FAILURE-ROOT-CAUSE, CRITICAL; U-CARRIER-CONTRIBUTION, HIGH) were deferred to VOBs rather than resolved before proceeding.",
+     "Released scope (SD-1 release_scope): track_handoff_delivery_status on H-PICK, correlate_pickup_timing on DA-PICK, and communicate_delay_reason to SH-CX.",
+     "Not released: diagnose_release_batch_failures (blocked by VOB-U-RELEASE-FAILURE-ROOT-CAUSE, CRITICAL, required BEFORE_RELEASE) and the protected action push_pickup_schedule (blocked by VOB-U-CARRIER-CONTRIBUTION, required BEFORE_PROTECTED_ACTION, and requiring SH-CAR approval per constraint K-SCHED/E-05).",
+     "Decision rationale: RELEASE_WITH_KNOWN_LIMITATION because the two release-blocking VOBs' blocking_scope lies outside this release's actual scope, while VOB-R-3 (data completeness) intersects release scope but was rated non-critical (MEDIUM impact), so it is tracked as a limitation rather than a hold.",
+     "No items are on hold (release.hold is empty); nothing in this release was rejected outright, only deferred or left unfinished."
+    ],
+    "limitations_explained": [
+     "The 70% RELEASE-BATCH failure rate (E-04) is not fixed by this release; the re-engineering remedy (SR-FIX-RELEASE-BATCH-RELIABILIT) was judged not feasible in the available time and remains unfinished, with the root cause itself still open under U-RELEASE-FAILURE-ROOT-CAUSE (CRITICAL, VOB-U-RELEASE-FAILURE-ROOT-CAUSE).",
+     "Whether carrier-side pickup scheduling friction independently adds to lateness beyond RELEASE-BATCH failures is unresolved (U-CARRIER-CONTRIBUTION, HIGH, status DEFERRED); customer-facing explanations are required to avoid attributing lateness solely to carrier pickup delay as a result.",
+     "Completeness of DA-ORD, DA-PICK and DA-WMS is marked UNKNOWN in the open question U-DATA-COMPLETENESS / VOB-R-3, so the 30% late-handover rate and 70% release-failure rate underlying the customer explanations may be imprecise; this VOB was judged non-critical rather than release-blocking.",
+     "The push_pickup_schedule protected action was not exercised in this release; it requires carrier confirmation under constraint K-SCHED (per the carrier contract, E-05) and is gated behind the still-open VOB-U-CARRIER-CONTRIBUTION.",
+     "The pickup-timing correlation work (W-WI-CORRELATE-PICKUP) only found a uniform 2.0h delay across all slots (E-06) with no linkage to specific orders, handover status, or release runs, so it could not confirm or refute a causal link between pickup timing and the handover/release failures."
+    ]
+   }
+  }
+ }
+}
