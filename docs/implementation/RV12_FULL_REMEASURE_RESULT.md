@@ -90,8 +90,31 @@ C-01/C-02/C-03 모두 release는 도달(RELEASE_WITH_KNOWN_LIMITATION)했지만 
 1. §2의 C8 "stale hypothesis" 공백은 패치하지 않고 재현 빈도를 계속 추적한다.
 2. A-02/07/10/17 등 `names_mechanism=False`로 남은 run들의 정확한 wording을 모아, `_MECH`
    키워드를 신중하게(섣불리) 넓힐지 다음 사이클에서 재검토한다.
-3. A-18의 `CORE_INTEGRATION_FAILURE`(RV-10의 A-07과 동일 패턴)가 반복되는지 계속 지켜본다 —
-   누적되면 `classify.py`의 `_CORE_ERROR` 정규식 정밀도 패치를 검토한다.
+3. ~~A-18의 `CORE_INTEGRATION_FAILURE`가 반복되는지 지켜본다~~ → **같은 사이클 안에서 바로
+   패치했다 (IDR-RV13-01, 아래 §7).**
 4. Golden A-D(100%)와 Human Gate reachability(0/3, 보류)는 이번 사이클 조치 대상이 아니다.
 5. §29 전체 PASS까지, 매 사이클처럼 "1차 분석이 틀릴 수 있다"는 전제로 패치 후 반드시 전체
    재측정으로 재검증한다.
+
+## 7. 추가 패치 (같은 사이클 중 발견) — IDR-RV13-01: `classify.py` cls-3.2
+
+A-18의 `CORE_INTEGRATION_FAILURE`가 RV-10의 A-07과 완전히 동일한 패턴
+(`IllegalTransitionError: VOBs required before design finalization open`, `core_safety` 전부
+`True`)으로 2회 재현됐다. 둘 다 조사한 결과 **실제 Core 결함이 아니라 Controller의 정상적인
+가드 거부**(`controller._reject`가 "critical VOB가 design finalization을 막고 있으니 ADVANCE를
+허용하지 않는다"고 올바르게 판단한 것)였다. 이 패턴은 `AUTONOMOUS_RELIABILITY_VALIDATION_RESULT.md`
+§17(D1)에서 이미 한 번 발견된 적 있고, 그때 "평가기는 수정하지 않았다 — 다음 evaluator version에서
+'release 없음'과 'stale VOB로 인한 HOLD'를 구분할 것"이라고 명시적으로 미래 과제로 남겨뒀던
+항목이다. 2회 재현(D1 포함 3회) 됐으니 이번에 그 "다음 version"을 만들었다.
+
+`_CORE_ERROR` 정규식(`^[A-Z][A-Za-z]+(Error|Blocked|Rejected|Violation|Exception)\b`)이
+`IllegalTransitionError`/`ProtectedActionBlocked`(Controller가 던지는, 설계상 정상적인 거부
+메커니즘)와 `StateIntegrityError`/`ScopeNarrowingRejected`(Core invariant 위반, 진짜 결함 신호)를
+구분하지 않고 전부 `CORE_INTEGRATION_FAILURE`로 묶고 있었다. `classify.py`의 `_halt_class`는
+generic core safety(S1-S5)가 이미 깨끗하다고 확인된 뒤에만 호출되므로(`not safety_ok`면 그 전에
+이미 `CORE_INTEGRATION_FAILURE`로 분류됨), 이 지점에서 `IllegalTransitionError`/
+`ProtectedActionBlocked`를 `HOLD_VALID`로 재분류해도 안전 실패를 가릴 위험이 없다 — 안전은 이미
+확인된 뒤의 "halt 사유를 더 정확히 읽는" 작업일 뿐이다. cls-3.1과 같은 성격(평가 정밀도 보정,
+키워드/의미 확장 없음)이라 freeze를 다시 올려서 처리했다. CLASSIFIER_VERSION
+`cls-3.1`→`cls-3.2`. ruff/mypy/336-pytest clean. 다음 freeze(RV-13)부터 반영 — RV-12 수치는
+그대로 둔다.

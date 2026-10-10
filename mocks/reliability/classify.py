@@ -18,6 +18,14 @@ Mock #6 rules
 Classes: COMPLETE_SUCCESS, COMPLETE_WITH_KNOWN_LIMITATION, HOLD_VALID, REASONING_FAILURE, PROVIDER_FAILURE,
 CORE_INTEGRATION_FAILURE, TIMEOUT, INTERRUPTED, INVALID_RUN.
 
+cls-3.2 (RV-13): a halt from a benign Controller guard rejection (``IllegalTransitionError`` /
+``ProtectedActionBlocked`` — e.g. "VOBs required before design finalization open") is HOLD_VALID, not
+CORE_INTEGRATION_FAILURE, once generic core safety is already confirmed clean. ``StateIntegrityError`` /
+``ScopeNarrowingRejected`` (actual invariant violations) are unaffected. See ``_SAFE_GUARD_REJECTION``.
+
+cls-3.1 (RV-11): ``_sep`` additionally treats ``/`` as a separator — "import/validation" now matches the
+``"import validation"`` keyword the same way "import-validation" already did.
+
 cls-3.0 (RV-5, frozen before the model A/B batch): ``names_mechanism`` matches on ``canon_text`` (Unicode
 hyphen / dash / whitespace / case normalization; RV-4 A-06 "high‑consumption" with U+2011 was missed). Keyword
 rule and class rules unchanged. Runs carry ``redefine_path`` (evaluator v3) and the RV-5 per-run metrics.
@@ -41,7 +49,7 @@ from typing import Any
 
 from common import core_safety, load, read_jsonl, reasoning_stats
 
-CLASSIFIER_VERSION = "cls-3.1"
+CLASSIFIER_VERSION = "cls-3.2"
 
 _MECH = (
     "bv-17",
@@ -60,6 +68,14 @@ _MECH = (
     "import validation",
 )
 _CORE_ERROR = re.compile(r"^[A-Z][A-Za-z]+(Error|Blocked|Rejected|Violation|Exception)\b")
+# cls-3.2 (RV-13): IllegalTransitionError and ProtectedActionBlocked are the Controller's own guard
+# mechanism (``controller._reject`` / ``propose_protected_action``) legitimately refusing a transition
+# it is not supposed to allow right now (e.g. "VOBs required before design finalization open") — a safe
+# stop, not a Core defect. StateIntegrityError and ScopeNarrowingRejected signal an actual invariant
+# violation and stay CORE_INTEGRATION_FAILURE. _halt_class is only ever reached after generic core safety
+# (S1-S5) is already confirmed clean, so reclassifying these to HOLD_VALID here never masks a safety
+# failure — it only stops a benign guard rejection from reading as a crash.
+_SAFE_GUARD_REJECTION = re.compile(r"^(IllegalTransitionError|ProtectedActionBlocked)\b")
 _HOLD_VALID = (
     "Release Gate HOLD",
     "awaiting Human decision",
@@ -106,6 +122,8 @@ def names_mechanism(text: str | None) -> bool:
 
 def _halt_class(halt: str | None, failed_calls: list[str]) -> str:
     h = halt or ""
+    if _SAFE_GUARD_REJECTION.match(h):
+        return "HOLD_VALID"
     if _CORE_ERROR.match(h) or "step budget exhausted" in h:
         return "CORE_INTEGRATION_FAILURE"
     if any(k in h for k in _HOLD_VALID):

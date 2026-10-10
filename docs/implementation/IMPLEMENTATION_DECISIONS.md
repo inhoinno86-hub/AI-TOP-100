@@ -783,3 +783,27 @@ OPERATOR_REASONER unchanged (PASS / 0). No session-limit recurrence.
   - **Verification:** ruff clean on the touched lines (2 pre-existing line-length warnings elsewhere in the
     file are unrelated to this change), 336/336 tests pass (no regression; `classify.py` has no dedicated
     unit tests — covered indirectly by the Mock #6 evaluator pipeline, exercised live in RV-11/RV-12).
+
+- **IDR-RV13-01 (`cls-3.2`) — benign Controller guard rejections were mis-classified as
+  `CORE_INTEGRATION_FAILURE`.** RV-12's A-18 halted with `IllegalTransitionError: VOBs required before
+  design finalization open: ['VOB-R-3']` and `core_safety` fully `True` — the exact pattern RV-10's A-07
+  showed, and the exact pattern `AUTONOMOUS_RELIABILITY_VALIDATION_RESULT.md` §17 (run D1) had already
+  flagged once before and deliberately left unpatched ("평가기는 수정하지 않았다 — 다음 evaluator
+  version에서 'release 없음'과 'stale VOB로 인한 HOLD'를 구분할 것"). Three occurrences across three
+  measurement cycles made this the "next evaluator version" moment. `classify.py`'s `_CORE_ERROR` regex
+  (`^[A-Z][A-Za-z]+(Error|Blocked|Rejected|Violation|Exception)\b`) lumped `IllegalTransitionError` /
+  `ProtectedActionBlocked` — the Controller's own designed-in refusal mechanism
+  (`controller._reject` / `propose_protected_action` correctly declining a transition that is not
+  currently allowed) — together with `StateIntegrityError` / `ScopeNarrowingRejected`, which actually
+  signal an invariant violation. Added `_SAFE_GUARD_REJECTION` to route the first group to `HOLD_VALID`
+  instead, leaving the second group's `CORE_INTEGRATION_FAILURE` classification untouched.
+  `_halt_class` is only ever reached after `_halt_class`'s caller has already confirmed generic core
+  safety (S1-S5) is clean (an unclean one is classified `CORE_INTEGRATION_FAILURE` before `_halt_class`
+  runs at all), so this reclassification can never mask an actual safety failure — it only stops a safe
+  stop from reading like a crash. Same category of fix as `cls-3.1` (evaluator precision, no new
+  semantic content); `CLASSIFIER_VERSION` bumped `cls-3.1` → `cls-3.2`, effective starting with the next
+  freeze (RV-13), RV-12's reported numbers left untouched.
+  - **Verification:** manual check that `IllegalTransitionError`/`ProtectedActionBlocked` route to
+    `HOLD_VALID` while `StateIntegrityError`/`ScopeNarrowingRejected` and the open-challenge "Reasoner
+    proposed REPROFILE... Human decides" message are unaffected; ruff clean on the touched lines; 336/336
+    tests pass (no regression).
