@@ -1,0 +1,1623 @@
+{
+ "scenario": "A",
+ "result": {
+  "release_decision": "RELEASE_WITH_KNOWN_LIMITATION",
+  "halt_reason": null,
+  "phase": "RELEASE",
+  "execution_status": "RELEASED",
+  "problem_ref": "PD-1@v1",
+  "operator_reasoner_calls": 0,
+  "trace_actors": [
+   "ENVIRONMENT",
+   "HARNESS",
+   "REASONER"
+  ],
+  "wall_seconds": 1119.5
+ },
+ "human": [],
+ "problem": {
+  "id": "PD-1",
+  "version": 1,
+  "requested_solution": "Let an AI agent auto-fix rejected shipment notices and resubmit them to the carrier (CL-01).",
+  "symptoms": [
+   "Shipment notices sent via H-1 from ORG-A to ORG-B are being rejected by the carrier, recorded in DA-REJ.",
+   "A reviewed sample of 3 reject records shows LOC_UNKNOWN (N-1, N-2) and EVENT_ORDER (N-3) tags.",
+   "Stakeholder SH-REQ offers two inconsistent causal narratives (fixable data errors vs. carrier system flakiness), producing open conflicts C-1 and C-2 on the dominant_reject_reason assertion."
+  ],
+  "root_problem": "Carrier rejects of shipment notices sent via H-1 (recorded in DA-REJ) have an unestablished dominant cause: a reviewed 3-record sample shows content/data-type reject tags (LOC_UNKNOWN x2, EVENT_ORDER x1), but DA-REJ's completeness is UNKNOWN, so the true scope and pattern of reject causes across P-1 cannot yet be determined from current evidence (H-INCOMPLETE-REJECT-VISIBILITY).",
+  "evidence_refs": [
+   "E-01",
+   "E-02"
+  ],
+  "intended_scope": [
+   {
+    "action": "query_full_reject_log",
+    "target": "DA-REJ"
+   },
+   {
+    "action": "classify_reject_reasons",
+    "target": "DA-REJ"
+   },
+   {
+    "action": "correct_notice_content",
+    "target": "H-1"
+   },
+   {
+    "action": "resubmit_shipment_notice",
+    "target": "H-1"
+   }
+  ],
+  "protected_actions": [],
+  "depends_on_mappings": [],
+  "depends_on_handoffs": [
+   "H-1"
+  ],
+  "depends_on_exports": [],
+  "required_tools": [
+   "reject-log"
+  ],
+  "success_criteria": [
+   "SC-COVERAGE-ESTABLISHED",
+   "SC-REJECT-RATE-REDUCED"
+  ],
+  "metric_ids": [
+   "M-REJECT-RATE",
+   "M-SAMPLE-SIZE-REVIEWED",
+   "M-POPULATION-COVERAGE-RATE",
+   "M-RESUBMISSION-SUCCESS-RATE"
+  ],
+  "status": "ACTIVE",
+  "gate_result": "CONDITIONAL_PASS",
+  "invalidated_by": [],
+  "supersedes": null,
+  "superseded_by": null,
+  "challenges": []
+ },
+ "framing_hypotheses": [
+  "H-FIXABLE-NOTICE-ERRORS"
+ ],
+ "final_premise_hypotheses": [
+  "H-INCOMPLETE-REJECT-VISIBILITY"
+ ],
+ "release": {
+  "decision": "RELEASE_WITH_KNOWN_LIMITATION",
+  "hold": [],
+  "limitations": [
+   "DEFINE Gate CONDITIONAL_PASS (deferred items tracked as VOBs)",
+   "semantic: semantic:release_scope_vs_withholding_consistency: solution_design.release_scope and minimum_useful_scope both list resubmit_shipment_notice:H-1, yet the design's own unfinished_scope text asserts 'release_scope is currently empty' and that this action is 'withheld' via SR-ENFORCE-VOB-GATING-ON-CORREC — the structured field contradicts the narrative rationale.",
+   "VOB-U-REJECT-LOG-COMPLETENESS open; blocking_scope outside release scope",
+   "VOB-U-REJECT-REASON-DISTRIBUTION open; blocking_scope outside release scope",
+   "unfinished: query_full_reject_log:DA-REJ (blocked by VOB-U-REJECT-LOG-COMPLETENESS until resolved: Is DA-REJ's reject log complete and representative of all carrier rejects, or only a partial/filtered view?)",
+   "unfinished: correct_notice_content:H-1 (blocked by VOB-U-REJECT-LOG-COMPLETENESS until resolved: Is DA-REJ's reject log complete and representative of all carrier rejects, or only a partial/filtered view?)",
+   "unfinished: classify_reject_reasons:DA-REJ (blocked by VOB-U-REJECT-REASON-DISTRIBUTION until resolved: What is the full distribution of reject reasons across all rejected notices, and are LOC_UNKNOWN/EVENT_ORDER actually dominant?)",
+   "unfinished: known limitation: Findings from the current 3-record sample are provisional and may not generalize to the full reject population.",
+   "unfinished: known limitation: release_scope is currently empty because both open VOBs list the very diagnostic actions (query_full_reject_log, classify_reject_reasons) that would resolve them in their own blocking_scope",
+   "unfinished: known limitation: resubmit_shipment_notice:H-1 is not formally named in either VOB's blocking_scope, but is withheld here per the recorded SR-ENFORCE-VOB-GATING-ON-CORREC remedy, since blind resubmission without resolving content-defect vs carrier-flakiness uncertainty risks repeating failures",
+   "unfinished: known limitation: A-TAG-MEANING and A-SAMPLE-REPRESENTATIVENESS remain unverified assumptions pending full-population data and SH-INT clarification"
+  ]
+ },
+ "reasoning": [
+  {
+   "reasoning_id": "R-1",
+   "skill": "hypothesis_init",
+   "status": "SUCCESS",
+   "provider": "claude-cli",
+   "model": "sonnet",
+   "input_state_version": 0,
+   "schema_version": "1.0",
+   "order": 1,
+   "attempts": 1,
+   "input_digest": "bfdd8034fd3057d7",
+   "evidence_refs": [
+    "H-1"
+   ],
+   "confidence": 0.4,
+   "errors": [],
+   "output": null,
+   "fallback_used": null
+  },
+  {
+   "reasoning_id": "R-2",
+   "skill": "discover_actions",
+   "status": "SUCCESS",
+   "provider": "claude-cli",
+   "model": "sonnet",
+   "input_state_version": 2,
+   "schema_version": "1.0",
+   "order": 2,
+   "attempts": 1,
+   "input_digest": "dfdef8def9b0bc07",
+   "evidence_refs": [
+    "CL-01",
+    "H-1",
+    "H-CARRIER-BUSINESS-RULE-REJECT",
+    "H-FIXABLE-NOTICE-ERRORS",
+    "H-INCOMPLETE-REJECT-VISIBILITY",
+    "H-INTERFACE-SEMANTIC-MISMATCH",
+    "H-UPSTREAM-SOURCE-DATA-DEFECT"
+   ],
+   "confidence": null,
+   "errors": [],
+   "output": null,
+   "fallback_used": null
+  },
+  {
+   "reasoning_id": "R-3",
+   "skill": "interpret_evidence",
+   "status": "SUCCESS",
+   "provider": "claude-cli",
+   "model": "sonnet",
+   "input_state_version": 2,
+   "schema_version": "1.0",
+   "order": 3,
+   "attempts": 1,
+   "input_digest": "8eafd320c400f878",
+   "evidence_refs": [
+    "E-01",
+    "H-CARRIER-BUSINESS-RULE-REJECT",
+    "H-FIXABLE-NOTICE-ERRORS",
+    "H-INCOMPLETE-REJECT-VISIBILITY",
+    "H-INTERFACE-SEMANTIC-MISMATCH",
+    "H-UPSTREAM-SOURCE-DATA-DEFECT"
+   ],
+   "confidence": 0.55,
+   "errors": [],
+   "output": null,
+   "fallback_used": null
+  },
+  {
+   "reasoning_id": "R-4",
+   "skill": "interpret_evidence",
+   "status": "SUCCESS",
+   "provider": "claude-cli",
+   "model": "sonnet",
+   "input_state_version": 4,
+   "schema_version": "1.0",
+   "order": 4,
+   "attempts": 1,
+   "input_digest": "e8eeb3ac6ea8adb5",
+   "evidence_refs": [
+    "E-01",
+    "E-02",
+    "H-1",
+    "H-CARRIER-BUSINESS-RULE-REJECT",
+    "H-CARRIER-SYSTEM-FLAKY",
+    "H-FIXABLE-NOTICE-ERRORS",
+    "H-INCOMPLETE-REJECT-VISIBILITY",
+    "H-INTERFACE-SEMANTIC-MISMATCH",
+    "H-UPSTREAM-SOURCE-DATA-DEFECT"
+   ],
+   "confidence": 0.55,
+   "errors": [],
+   "output": null,
+   "fallback_used": null
+  },
+  {
+   "reasoning_id": "R-5",
+   "skill": "discover_actions",
+   "status": "SUCCESS",
+   "provider": "claude-cli",
+   "model": "sonnet",
+   "input_state_version": 7,
+   "schema_version": "1.0",
+   "order": 5,
+   "attempts": 1,
+   "input_digest": "fbe4950d96dc1d78",
+   "evidence_refs": [
+    "H-CARRIER-BUSINESS-RULE-REJECT",
+    "H-CARRIER-SYSTEM-FLAKY",
+    "H-FIXABLE-NOTICE-ERRORS",
+    "H-INCOMPLETE-REJECT-VISIBILITY",
+    "H-INTERFACE-SEMANTIC-MISMATCH",
+    "H-UPSTREAM-SOURCE-DATA-DEFECT"
+   ],
+   "confidence": null,
+   "errors": [],
+   "output": null,
+   "fallback_used": null
+  },
+  {
+   "reasoning_id": "R-6",
+   "skill": "assess_hypotheses",
+   "status": "SUCCESS",
+   "provider": "claude-cli",
+   "model": "sonnet",
+   "input_state_version": 7,
+   "schema_version": "1.0",
+   "order": 6,
+   "attempts": 1,
+   "input_digest": "1e705f0a53a944e3",
+   "evidence_refs": [
+    "E-01",
+    "E-02",
+    "H-CARRIER-BUSINESS-RULE-REJECT",
+    "H-FIXABLE-NOTICE-ERRORS",
+    "H-INCOMPLETE-REJECT-VISIBILITY"
+   ],
+   "confidence": null,
+   "errors": [],
+   "output": null,
+   "fallback_used": null
+  },
+  {
+   "reasoning_id": "R-7",
+   "skill": "define_problem",
+   "status": "SUCCESS",
+   "provider": "claude-cli",
+   "model": "sonnet",
+   "input_state_version": 10,
+   "schema_version": "1.0",
+   "order": 7,
+   "attempts": 1,
+   "input_digest": "0b1e58746da0ca56",
+   "evidence_refs": [
+    "CL-02",
+    "E-01",
+    "E-02",
+    "H-1",
+    "H-CARRIER-BUSINESS-RULE-REJECT",
+    "H-CARRIER-SYSTEM-FLAKY",
+    "H-FIXABLE-NOTICE-ERRORS",
+    "SC-NO-NEW-REJECTS",
+    "SC-REJECT-RATE-DOWN",
+    "SC-SAMPLE-LIMITATION",
+    "SC-SCOPE-VERIFIED",
+    "U-CORRECTION-SAFETY",
+    "U-INTERFACE-MISMATCH",
+    "U-REJECT-SCOPE"
+   ],
+   "confidence": 0.6,
+   "errors": [],
+   "output": null,
+   "fallback_used": null
+  },
+  {
+   "reasoning_id": "R-8",
+   "skill": "define_problem",
+   "status": "SUCCESS",
+   "provider": "claude-cli",
+   "model": "sonnet",
+   "input_state_version": 10,
+   "schema_version": "1.0",
+   "order": 8,
+   "attempts": 1,
+   "input_digest": "51adf084731472bb",
+   "evidence_refs": [
+    "CL-01",
+    "CL-02",
+    "E-01",
+    "E-02",
+    "H-1",
+    "H-CARRIER-BUSINESS-RULE-REJECT",
+    "H-CARRIER-SYSTEM-FLAKY",
+    "H-FIXABLE-NOTICE-ERRORS",
+    "H-INCOMPLETE-REJECT-VISIBILITY"
+   ],
+   "confidence": 0.55,
+   "errors": [],
+   "output": null,
+   "fallback_used": null
+  },
+  {
+   "reasoning_id": "R-9",
+   "skill": "structural_remedy",
+   "status": "SUCCESS",
+   "provider": "claude-cli",
+   "model": "sonnet",
+   "input_state_version": 13,
+   "schema_version": "1.0",
+   "order": 9,
+   "attempts": 1,
+   "input_digest": "5e65efcd97b3ce98",
+   "evidence_refs": [
+    "A-TAG-MEANING",
+    "CL-01",
+    "CL-01.",
+    "CL-02",
+    "E-01",
+    "E-02",
+    "H-1",
+    "U-REJECT-LOG-COMPLETENESS",
+    "U-REJECT-REASON-DISTRIBUTION.",
+    "VOB-U-REJECT-LOG-COMPLETENESS",
+    "VOB-U-REJECT-REASON-DISTRIBUTION"
+   ],
+   "confidence": 0.72,
+   "errors": [],
+   "output": null,
+   "fallback_used": null
+  },
+  {
+   "reasoning_id": "R-10",
+   "skill": "agent_design",
+   "status": "SUCCESS",
+   "provider": "claude-cli",
+   "model": "sonnet",
+   "input_state_version": 13,
+   "schema_version": "1.0",
+   "order": 10,
+   "attempts": 1,
+   "input_digest": "5e21f3cd0316d79d",
+   "evidence_refs": [
+    "A-TAG-MEANING",
+    "CL-01",
+    "H-1",
+    "U-CARRIER-FLAKINESS-ROLE",
+    "U-REJECT-LOG-COMPLETENESS",
+    "U-REJECT-REASON-DISTRIBUTION",
+    "VOB-U-REJECT-LOG-COMPLETENESS",
+    "VOB-U-REJECT-REASON-DISTRIBUTION"
+   ],
+   "confidence": 0.68,
+   "errors": [],
+   "output": null,
+   "fallback_used": null
+  },
+  {
+   "reasoning_id": "R-11",
+   "skill": "agent_design",
+   "status": "SUCCESS",
+   "provider": "claude-cli",
+   "model": "sonnet",
+   "input_state_version": 13,
+   "schema_version": "1.0",
+   "order": 11,
+   "attempts": 1,
+   "input_digest": "f68dc64ae54bdfd7",
+   "evidence_refs": [
+    "A-SAMPLE-REPRESENTATIVENESS",
+    "A-TAG-MEANING",
+    "CL-02",
+    "E-01",
+    "E-02",
+    "H-1",
+    "H-CARRIER-SYSTEM-FLAKY",
+    "H-FIXABLE-NOTICE-ERRORS",
+    "H-INTERFACE-SEMANTIC-MISMATCH",
+    "SC-COVERAGE-ESTABLISHED",
+    "U-REJECT-LOG-COMPLETENESS",
+    "U-REJECT-REASON-DISTRIBUTION",
+    "VOB-GATING-ON-CORREC",
+    "VOB-U-REJECT-LOG-COMPLETENESS",
+    "VOB-U-REJECT-REASON-DISTRIBUTION"
+   ],
+   "confidence": 0.55,
+   "errors": [],
+   "output": null,
+   "fallback_used": null
+  },
+  {
+   "reasoning_id": "R-12",
+   "skill": "plan_execution",
+   "status": "SUCCESS",
+   "provider": "claude-cli",
+   "model": "sonnet",
+   "input_state_version": 15,
+   "schema_version": "1.0",
+   "order": 12,
+   "attempts": 1,
+   "input_digest": "d0a6af044318cfad",
+   "evidence_refs": [
+    "E-01",
+    "H-1",
+    "VOB-GATING-ON-CORREC",
+    "VOB-GATING-ON-CORREC.",
+    "VOB-U-REJECT-LOG-COMPLETENESS",
+    "VOB-U-REJECT-REASON-DISTRIBUTION"
+   ],
+   "confidence": null,
+   "errors": [],
+   "output": null,
+   "fallback_used": null
+  },
+  {
+   "reasoning_id": "R-13",
+   "skill": "semantic_judge",
+   "status": "SUCCESS",
+   "provider": "claude-cli",
+   "model": "sonnet",
+   "input_state_version": 16,
+   "schema_version": "1.0",
+   "order": 13,
+   "attempts": 1,
+   "input_digest": "a430fcc7c6e7662a",
+   "evidence_refs": [
+    "A-SAMPLE-REPRESENTATIVENESS",
+    "A-TAG-MEANING",
+    "CL-01",
+    "E-01",
+    "E-02",
+    "H-1",
+    "H-CARRIER-SYSTEM-FLAKY",
+    "U-CARRIER-FLAKINESS-ROLE",
+    "U-REJECT-LOG-COMPLETENESS",
+    "U-REJECT-REASON-DISTRIBUTION",
+    "VOB-GATING-ON-CORREC"
+   ],
+   "confidence": null,
+   "errors": [],
+   "output": null,
+   "fallback_used": null
+  },
+  {
+   "reasoning_id": "R-14",
+   "skill": "release_summary",
+   "status": "SUCCESS",
+   "provider": "claude-cli",
+   "model": "sonnet",
+   "input_state_version": 18,
+   "schema_version": "1.0",
+   "order": 14,
+   "attempts": 1,
+   "input_digest": "0d603dfc97735b3a",
+   "evidence_refs": [
+    "A-SAMPLE-REPRESENTATIVENESS",
+    "A-TAG-MEANING",
+    "CL-01",
+    "CL-02",
+    "E-01",
+    "E-01.",
+    "E-02",
+    "H-1",
+    "H-INCOMPLETE-REJECT-VISIBILITY",
+    "M-SAMPLE-SIZE-REVIEWED",
+    "U-REJECT-LOG-COMPLETENESS",
+    "U-REJECT-REASON-DISTRIBUTION",
+    "VOB-GATING-ON-CORREC",
+    "VOB-GATING-ON-CORREC.",
+    "VOB-U-REJECT-LOG-COMPLETENESS",
+    "VOB-U-REJECT-REASON-DISTRIBUTION"
+   ],
+   "confidence": null,
+   "errors": [],
+   "output": null,
+   "fallback_used": null
+  }
+ ],
+ "proposals": {
+  "R-1": {
+   "skill": "hypothesis_init",
+   "status": "SUCCESS",
+   "output": {
+    "framing_assertion": {
+     "key": "shipment_notice_rejects.fixable_by_automated_correction",
+     "value": true,
+     "rationale": "The initial request from SH-REQ assumes carrier rejects of shipment notices (per DA-REJ) are due to fixable data errors that an AI agent can auto-correct and resubmit, which is itself an unverified causal claim."
+    },
+    "hypotheses": [
+     {
+      "key": "FIXABLE_NOTICE_ERRORS",
+      "statement": "Carrier rejects recorded in DA-REJ are caused by correctable data errors in the shipment notices sent via H-1, so an AI agent can auto-fix and resubmit them successfully.",
+      "origin": "REQUESTER_FRAMING",
+      "decision_impact": "CRITICAL",
+      "rationale": "This is SH-REQ's framing underlying the request; if true it justifies building an auto-fix/resubmit agent as proposed, but it has not been verified against actual reject reasons.",
+      "discriminating_evidence": [
+       "DA-REJ reject reason codes/categories",
+       "H-1 payload structure vs. notice fields flagged in rejects",
+       "Recurrence pattern of same error type across rejected notices"
+      ]
+     },
+     {
+      "key": "CARRIER_BUSINESS_RULE_REJECTS",
+      "statement": "Rejects are driven by legitimate carrier business rules (e.g. capacity, routing, embargo) rather than shipper data defects, so notices are not 'wrong' and should not be auto-modified.",
+      "origin": "ALTERNATIVE",
+      "decision_impact": "CRITICAL",
+      "rationale": "DA-REJ is explicitly described as 'carrier business rejects', suggesting rejects may reflect policy decisions by ORG-B rather than data quality faults correctable by ORG-A's agent.",
+      "discriminating_evidence": [
+       "Distribution of reject reason categories in DA-REJ (business-rule vs. data-error types)",
+       "SH-INT (interface owner, ORG-B) account of why rejects occur"
+      ]
+     },
+     {
+      "key": "UPSTREAM_SOURCE_DATA_DEFECT",
+      "statement": "Errors causing rejects originate in ORG-A systems/data upstream of P-1 (shipment notice process), so fixing the outbound notice at resubmission time only masks a deeper source-system problem.",
+      "origin": "ALTERNATIVE",
+      "decision_impact": "HIGH",
+      "rationale": "P-1 steps, actors, and systems are currently empty/unspecified, leaving open whether the defect enters before the notice is generated; an auto-fix-and-resubmit agent would not address a recurring upstream cause.",
+      "discriminating_evidence": [
+       "P-1 steps/systems detail once populated",
+       "Correlation of rejected notice fields to ORG-A source records (e.g. order/inventory data)"
+      ]
+     },
+     {
+      "key": "INTERFACE_SEMANTIC_MISMATCH",
+      "statement": "A mapping or schema mismatch between ORG-A's and ORG-B's notice formats causes rejects despite H-1 being flagged technically VALID and HEALTHY, meaning the handoff's validity checks don't catch the actual failure mode.",
+      "origin": "ALTERNATIVE",
+      "decision_impact": "HIGH",
+      "rationale": "H-1's semantic_validity=VALID and delivery_status=HEALTHY appear to contradict the existence of carrier rejects, implying the current validity check may not detect the condition actually causing rejection.",
+      "discriminating_evidence": [
+       "Definition/scope of H-1 semantic_validity check vs. actual carrier reject criteria",
+       "Comparison of notice schema fields against ORG-B's acceptance rules"
+      ]
+     },
+     {
+      "key": "INCOMPLETE_REJECT_VISIBILITY",
+      "statement": "The true scope and pattern of rejects cannot yet be established because DA-REJ completeness is UNKNOWN, so the problem may be mischaracterized based on a partial or unrepresentative sample.",
+      "origin": "ALTERNATIVE",
+      "decision_impact": "MEDIUM",
+      "rationale": "DA-REJ's completeness field is explicitly UNKNOWN, so any root-cause claim built on it (including the requester's) carries unassessed uncertainty about coverage.",
+      "discriminating_evidence": [
+       "DA-REJ completeness/coverage metadata",
+       "Cross-check of reject count against total shipment notice volume sent via H-1"
+      ]
+     }
+    ],
+    "confidence": 0.4
+   }
+  },
+  "R-2": {
+   "skill": "discover_actions",
+   "status": "SUCCESS",
+   "output": {
+    "actions": [
+     {
+      "catalog_ref": "reject-log:rejects_by_reason",
+      "question": "What is the breakdown of carrier reject reasons (and record completeness) in DA-REJ for shipment notices sent via H-1?",
+      "decision_impact": 0.9,
+      "uncertainty": 0.9,
+      "discriminative_power": 0.9,
+      "answerability": 0.85,
+      "process_data_handoff_impact": 0.6,
+      "action_proximity": 0.8,
+      "constraint_risk": 0.2,
+      "estimated_cost_minutes": 10,
+      "expected_information_gain": "Reveals whether rejects cluster on carrier business-rule codes (capacity/routing/embargo) versus correctable data-field errors, and whether the log sample is complete enough to characterize the problem.",
+      "decision_impact_rationale": "Directly tests the two CRITICAL hypotheses about whether auto-fix-and-resubmit is even a valid remedy before any build decision is made.",
+      "discriminates_hypotheses": [
+       "H-CARRIER-BUSINESS-RULE-REJECT",
+       "H-FIXABLE-NOTICE-ERRORS",
+       "H-INCOMPLETE-REJECT-VISIBILITY",
+       "H-INTERFACE-SEMANTIC-MISMATCH"
+      ],
+      "resolves_unknowns": [
+       "DA-REJ completeness",
+       "distribution of reject reasons"
+      ],
+      "addresses": [],
+      "why_now": "This is the authoritative, read-only source for CL-01's underlying claim and no decision on the AI auto-fix proposal should proceed without it."
+     },
+     {
+      "catalog_ref": "interview:SH-REQ",
+      "question": "What specific reject patterns, upstream shipment-notice generation steps, and known interface issues with ORG-B does SH-REQ observe that motivated the auto-fix request?",
+      "decision_impact": 0.5,
+      "uncertainty": 0.6,
+      "discriminative_power": 0.4,
+      "answerability": 0.7,
+      "process_data_handoff_impact": 0.3,
+      "action_proximity": 0.4,
+      "constraint_risk": 0.1,
+      "estimated_cost_minutes": 20,
+      "expected_information_gain": "May surface whether SH-REQ already suspects an upstream ORG-A source defect or an ORG-B interface mismatch, and what evidence (if any) backs CL-01's framing.",
+      "decision_impact_rationale": "Requester's framing is a claim, not a fact, but their operational perspective can point to candidate upstream causes worth checking alongside the reject-log evidence.",
+      "discriminates_hypotheses": [
+       "H-UPSTREAM-SOURCE-DATA-DEFECT",
+       "H-FIXABLE-NOTICE-ERRORS"
+      ],
+      "resolves_unknowns": [
+       "basis for CL-01's auto-fix assumption",
+       "P-1 process detail"
+      ],
+      "addresses": [],
+      "why_now": "SH-REQ is the only interviewable stakeholder in the catalog and is the source of the initial request CL-01, so their stated basis should be probed early in DISCOVER."
+     }
+    ],
+    "stop": true,
+    "stop_reason": "Both catalog items (reject-log:rejects_by_reason, interview:SH-REQ) have been proposed. Every still-live hypothesis has been matched against its most directly relevant catalog item: the reject-log query covers H-CARRIER-BUSINESS-RULE-REJECT, H-FIXABLE-NOTICE-ERRORS, H-INCOMPLETE-REJECT-VISIBILITY and partially H-INTERFACE-SEMANTIC-MISMATCH; no catalog item describes an interface-mapping/schema change log or an ORG-B interface-owner interview, so H-INTERFACE-SEMANTIC-MISMATCH cannot be further addressed with available catalog items."
+   }
+  },
+  "R-3": {
+   "skill": "interpret_evidence",
+   "status": "SUCCESS",
+   "output": {
+    "assertion_key": "shipment_notice_rejects.dominant_reject_reason",
+    "assertion_value": "loc_unknown",
+    "interpretation": "The reject-log breakdown shows 3 sampled rejects: N-1 and N-2 tagged LOC_UNKNOWN, N-3 tagged EVENT_ORDER — both are data/content-type reasons rather than carrier business-rule categories (capacity, routing, embargo). The sample is small (3 records) against a data asset (DA-REJ) whose completeness is still UNKNOWN, so this does not establish the full reject reason distribution.",
+    "hypothesis_effects": [
+     {
+      "hypothesis": "H-CARRIER-BUSINESS-RULE-REJECT",
+      "effect": "CONTRADICTS",
+      "rationale": "None of the 3 sampled reject reasons (LOC_UNKNOWN, EVENT_ORDER) match legitimate carrier business-rule categories like capacity, routing or embargo."
+     },
+     {
+      "hypothesis": "H-FIXABLE-NOTICE-ERRORS",
+      "effect": "SUPPORTS",
+      "rationale": "LOC_UNKNOWN and EVENT_ORDER both look like notice content/sequencing issues rather than carrier policy decisions, consistent with correctable notice errors."
+     },
+     {
+      "hypothesis": "H-INCOMPLETE-REJECT-VISIBILITY",
+      "effect": "SUPPORTS",
+      "rationale": "Only 3 records were returned from DA-REJ, whose completeness is UNKNOWN, so the true pattern and scope of reject reasons remains unestablished."
+     },
+     {
+      "hypothesis": "H-INTERFACE-SEMANTIC-MISMATCH",
+      "effect": "NEUTRAL",
+      "rationale": "LOC_UNKNOWN and EVENT_ORDER are plausible symptoms of a mapping mismatch but are equally consistent with other causes, so this sample neither confirms nor refutes a schema mismatch."
+     },
+     {
+      "hypothesis": "H-UPSTREAM-SOURCE-DATA-DEFECT",
+      "effect": "NEUTRAL",
+      "rationale": "The reason codes do not indicate whether the underlying location or ordering errors originate in ORG-A upstream systems or at notice-generation time."
+     }
+    ],
+    "new_hypotheses": [],
+    "fact_candidates": [
+     {
+      "statement": "reject-log rejects_by_reason returned 3 records: N-1 and N-2 reason LOC_UNKNOWN, N-3 reason EVENT_ORDER.",
+      "assertion_key": "shipment_notice_rejects.dominant_reject_reason",
+      "value": "loc_unknown",
+      "evidence_refs": [
+       "E-01"
+      ]
+     }
+    ],
+    "unknown_resolutions": [],
+    "authorization_candidates": [],
+    "contradiction_assessment": {
+     "relation": "UNRELATED",
+     "target_type": "NONE",
+     "target_refs": [],
+     "materiality": "LOW",
+     "problem_invalidating": false,
+     "rationale": "No problem_definition is present in the current state to assess this observation against."
+    },
+    "vob_proposals": [
+     {
+      "unresolved_question": "Does the full carrier reject log (beyond this 3-record sample) confirm LOC_UNKNOWN and EVENT_ORDER as the dominant/only reject reasons, or are there other reasons (e.g. business-rule rejects) not captured here?",
+      "decision_impact": "HIGH",
+      "required_before": "BEFORE_DESIGN_FINALIZATION",
+      "blocking_scope": [
+       {
+        "action": "auto_fix_and_resubmit",
+        "target": "DA-REJ"
+       }
+      ],
+      "entire_solution": false,
+      "validation_method": "Re-run reject-log rejects_by_reason (or an equivalent full-extract query) once DA-REJ completeness is established as COMPLETE, and compare reason distribution to this sample.",
+      "required_evidence": [
+       "Full or representative extract of DA-REJ with completeness marked COMPLETE",
+       "Reason breakdown covering a larger/complete set of rejected notices"
+      ],
+      "linked_unknown": "",
+      "rationale": "Design decisions about an automated fix-and-resubmit agent hinge on whether LOC_UNKNOWN/EVENT_ORDER truly dominate rejects; a 3-record sample from an UNKNOWN-completeness source is insufficient to finalize scope."
+     }
+    ],
+    "follow_up_actions": [],
+    "confidence": 0.55
+   }
+  },
+  "R-4": {
+   "skill": "interpret_evidence",
+   "status": "SUCCESS",
+   "output": {
+    "assertion_key": "shipment_notice_rejects.dominant_reject_reason",
+    "assertion_value": "carrier_system_flaky",
+    "claim_assertion_key": "shipment_notice_rejects.dominant_reject_reason",
+    "claim_assertion_value": "carrier_system_flaky",
+    "confidence": 0.55,
+    "interpretation": "SH-REQ (the requester) offers an unverified causal narrative — that the carrier system is \"flaky\" — to justify blanket resubmission rather than targeted correction of notice content; this is a stakeholder opinion, not evidence, and it conflicts with the only tool-based evidence on reject reasons (E-01, LOC_UNKNOWN/EVENT_ORDER), which point to content/data issues rather than generic carrier instability.",
+    "hypothesis_effects": [
+     {
+      "hypothesis": "H-FIXABLE-NOTICE-ERRORS",
+      "effect": "CONTRADICTS",
+      "rationale": "The claim attributes rejects to generic carrier-system flakiness fixable by blind resubmission, not to correctable shipment-notice data errors, which is the causal premise H-FIXABLE-NOTICE-ERRORS depends on."
+     },
+     {
+      "hypothesis": "H-UPSTREAM-SOURCE-DATA-DEFECT",
+      "effect": "CONTRADICTS",
+      "rationale": "The stakeholder locates the cause in the carrier's (ORG-B) system reliability rather than in upstream ORG-A source-system data defects."
+     },
+     {
+      "hypothesis": "H-CARRIER-BUSINESS-RULE-REJECT",
+      "effect": "CONTRADICTS",
+      "rationale": "Framing rejects as caused by a flaky/malfunctioning carrier system is inconsistent with the idea that rejects reflect legitimate, deliberate carrier business rules."
+     },
+     {
+      "hypothesis": "H-INTERFACE-SEMANTIC-MISMATCH",
+      "effect": "NEUTRAL",
+      "rationale": "The stakeholder's flakiness claim does not speak to schema/mapping mismatches between ORG-A and ORG-B formats."
+     },
+     {
+      "hypothesis": "H-INCOMPLETE-REJECT-VISIBILITY",
+      "effect": "NEUTRAL",
+      "rationale": "The claim does not address the completeness or representativeness of the DA-REJ sample."
+     }
+    ],
+    "new_hypotheses": [
+     {
+      "key": "H-CARRIER-SYSTEM-FLAKY",
+      "statement": "The carrier system experiences transient/flaky failures that cause shipment notice rejects independent of notice content, such that resubmission alone (without data correction) would succeed.",
+      "decision_impact": "HIGH",
+      "rationale": "SH-REQ (E-02) introduces this as the stated reason for wanting blanket resubmission, but it is an unverified claim that directly conflicts with E-01's content-based reject reasons."
+     }
+    ],
+    "fact_candidates": [],
+    "unknown_resolutions": [],
+    "authorization_candidates": [],
+    "contradiction_assessment": {
+     "relation": "UNRELATED",
+     "target_type": "NONE",
+     "target_refs": [],
+     "materiality": "LOW",
+     "problem_invalidating": false,
+     "rationale": "No problem_definition is present in state to assess this observation against."
+    },
+    "vob_proposals": [
+     {
+      "unresolved_question": "Is the dominant cause of shipment notice rejects carrier-system flakiness (resolved by blind resubmit) or notice content/data defects (LOC_UNKNOWN/EVENT_ORDER per E-01)?",
+      "decision_impact": "CRITICAL",
+      "required_before": "BEFORE_DESIGN_FINALIZATION",
+      "blocking_scope": [
+       {
+        "action": "auto_fix_and_resubmit",
+        "target": "shipment notices (P-1/H-1)"
+       }
+      ],
+      "entire_solution": true,
+      "validation_method": "Pull a complete, larger sample from DA-REJ (reject-log) and check whether reject reason codes are dominated by content-type categories (LOC_UNKNOWN, EVENT_ORDER) versus carrier-side instability signals, correlating with resubmission outcomes.",
+      "required_evidence": [
+       "Complete reject-reason distribution from DA-REJ beyond the current 3-record sample",
+       "Evidence of carrier system instability/error rates distinct from content-based reject codes"
+      ],
+      "linked_unknown": "",
+      "rationale": "The requester's flakiness claim (E-02) and the only available evidence (E-01) point to different root causes and imply materially different fixes, so this must be settled before finalizing an auto-fix/resubmit design."
+     }
+    ],
+    "follow_up_actions": []
+   }
+  },
+  "R-5": {
+   "skill": "discover_actions",
+   "status": "SUCCESS",
+   "output": {
+    "actions": [],
+    "stop": true,
+    "stop_reason": "Catalog is empty, so no further actions can be proposed. Live hypotheses (H-CARRIER-BUSINESS-RULE-REJECT, H-CARRIER-SYSTEM-FLAKY, H-FIXABLE-NOTICE-ERRORS, H-INCOMPLETE-REJECT-VISIBILITY, H-INTERFACE-SEMANTIC-MISMATCH, H-UPSTREAM-SOURCE-DATA-DEFECT) cannot be checked against any catalog item since none remain."
+   }
+  },
+  "R-6": {
+   "skill": "assess_hypotheses",
+   "status": "SUCCESS",
+   "output": {
+    "rationale": "Assessed each hypothesis using only its linked supporting/contradicting evidence. Authoritative tool evidence (E-01) outweighs non-authoritative stakeholder opinion (E-02) where they conflict on the same hypothesis; hypotheses with no supporting evidence or only weak/no evidence remain CANDIDATE.",
+    "updates": [
+     {
+      "hypothesis": "H-FIXABLE-NOTICE-ERRORS",
+      "status": "SUPPORTED",
+      "rationale": "E-01 (authoritative, complete tool observation) shows actual reject reasons are LOC_UNKNOWN/EVENT_ORDER, i.e. correctable content errors; the only contradicting item E-02 is a non-authoritative, unverified stakeholder opinion that does not outweigh it.",
+      "evidence_refs": [
+       "E-01",
+       "E-02"
+      ]
+     },
+     {
+      "hypothesis": "H-CARRIER-BUSINESS-RULE-REJECT",
+      "status": "REJECTED",
+      "rationale": "Both linked evidence items contradict this hypothesis: E-01 shows the sampled rejects are data/content issues (LOC_UNKNOWN, EVENT_ORDER) not business-rule categories, and E-02 attributes rejects to flakiness rather than legitimate business rules; no supporting evidence exists.",
+      "evidence_refs": [
+       "E-01",
+       "E-02"
+      ]
+     },
+     {
+      "hypothesis": "H-INCOMPLETE-REJECT-VISIBILITY",
+      "status": "SUPPORTED",
+      "rationale": "E-01's own interpretation flags the sample as only 3 records against a DA-REJ data asset of UNKNOWN completeness, directly supporting that reject scope/pattern is not yet established; no contradicting evidence is linked.",
+      "evidence_refs": [
+       "E-01"
+      ]
+     }
+    ],
+    "ready_to_define": true
+   }
+  },
+  "R-7": {
+   "skill": "define_problem",
+   "status": "SUCCESS",
+   "output": {
+    "affected_process": "P-1 shipment notice process (ORG-A → ORG-B via H-1)",
+    "root_problem": "Shipment notices sent from ORG-A to ORG-B via handoff H-1 are being rejected by the carrier (logged in DA-REJ) because the notices themselves carry correctable content/data defects — unresolved location references (LOC_UNKNOWN) and out-of-order event data (EVENT_ORDER) — rather than because the carrier system is generically flaky (E-02) or because carrier business rules legitimately reject them (H-CARRIER-BUSINESS-RULE-REJECT, rejected).",
+    "requested_solution": "Deploy an AI agent to automatically fix rejected shipment notices and resubmit them to the carrier.",
+    "symptoms": [
+     "Shipment notices submitted via H-1 are rejected by the carrier, with sampled reject-log records tagged LOC_UNKNOWN (N-1, N-2) and EVENT_ORDER (N-3) (E-01, F-01).",
+     "The requester attributes rejects to generic carrier-system flakiness and proposes blanket resubmission, a claim that conflicts with the tool-derived reject-reason evidence (C-1, C-2)."
+    ],
+    "causal_chain": [
+     "ORG-A submits a shipment notice to carrier ORG-B through handoff H-1, which is flagged semantically VALID and HEALTHY at the transport level.",
+     "The notice content itself contains data defects in some fields: an unresolved/missing location reference in some notices and out-of-order event sequencing in others (E-01, F-01).",
+     "The carrier's intake processing rejects notices carrying these content defects and logs the reason (LOC_UNKNOWN or EVENT_ORDER) in DA-REJ (E-01, F-01).",
+     "Rejected notices remain stuck unprocessed until the content defect is corrected and the notice is resubmitted."
+    ],
+    "premise_hypotheses": [
+     "H-FIXABLE-NOTICE-ERRORS"
+    ],
+    "evidence_refs": [
+     "E-01",
+     "F-01"
+    ],
+    "assumptions": [
+     {
+      "key": "sample_representative",
+      "statement": "The 3-record reject sample in E-01 (2 LOC_UNKNOWN, 1 EVENT_ORDER) reflects the general reject pattern for shipment notices rather than an atypical slice.",
+      "evidence_refs": [
+       "E-01"
+      ],
+      "risk_if_wrong": "HIGH"
+     },
+     {
+      "key": "errors_auto_correctable",
+      "statement": "LOC_UNKNOWN and EVENT_ORDER reject reasons can be algorithmically fixed without manual intervention and without introducing new errors.",
+      "evidence_refs": [
+       "E-01"
+      ],
+      "risk_if_wrong": "CRITICAL"
+     },
+     {
+      "key": "handoff_validity_insufficient",
+      "statement": "H-1 being flagged semantically VALID and HEALTHY does not guarantee notice content is free of the defects actually causing rejects.",
+      "evidence_refs": [
+       "E-01"
+      ],
+      "risk_if_wrong": "MEDIUM"
+     }
+    ],
+    "unknowns": [
+     {
+      "key": "U-REJECT-SCOPE",
+      "question": "What is the true distribution of reject reasons across the full population of rejected notices, given DA-REJ completeness is UNKNOWN and only 3 records have been reviewed?",
+      "criticality": "HIGH",
+      "decision_impact": "Determines whether auto-correction logic needs to cover more reject categories than LOC_UNKNOWN/EVENT_ORDER before scaling, or whether the current sample already captures the dominant pattern.",
+      "affects_scope": [
+       {
+        "action": "analyze_reject_reasons",
+        "target": "DA-REJ"
+       },
+       {
+        "action": "auto_correct_notice_content",
+        "target": "H-1"
+       }
+      ],
+      "resolution_path": "Pull the complete or a statistically adequate sample of DA-REJ records and recompute the reject-reason breakdown.",
+      "safe_placeholder": "Scope auto-correction only to the two confirmed reasons (LOC_UNKNOWN, EVENT_ORDER) until full visibility is established; route other reasons to manual review."
+     },
+     {
+      "key": "U-CORRECTION-SAFETY",
+      "question": "Can LOC_UNKNOWN and EVENT_ORDER rejects actually be corrected deterministically without producing new, different rejects or data corruption?",
+      "criticality": "CRITICAL",
+      "decision_impact": "Determines whether auto-correct-and-resubmit can be enabled at all, or must stay human-reviewed per notice.",
+      "affects_scope": [
+       {
+        "action": "auto_correct_notice_content",
+        "target": "H-1"
+       },
+       {
+        "action": "resubmit_shipment_notice",
+        "target": "H-1"
+       }
+      ],
+      "resolution_path": "Test correction logic against the sampled rejects (and a wider sample) and verify resubmission outcomes in DA-REJ before any unattended deployment.",
+      "safe_placeholder": "Keep auto-corrected notices in a human-reviewed queue before resubmission until correction logic is validated against real reject outcomes."
+     },
+     {
+      "key": "U-INTERFACE-MISMATCH",
+      "question": "Is a schema/mapping mismatch between ORG-A's and ORG-B's notice formats (undetected by H-1's VALID/HEALTHY flags) contributing to the LOC_UNKNOWN/EVENT_ORDER rejects?",
+      "criticality": "MEDIUM",
+      "decision_impact": "If a mapping mismatch is the real driver, fixing individual notice content would only treat symptoms; the handoff mapping itself would need correction.",
+      "affects_scope": [
+       {
+        "action": "auto_correct_notice_content",
+        "target": "H-1"
+       }
+      ],
+      "resolution_path": "Compare ORG-A notice payload fields against ORG-B's expected schema/business rules for location and event-sequence data.",
+      "safe_placeholder": "Continue current manual correction process for notice content pending this comparison."
+     }
+    ],
+    "metrics": [
+     {
+      "key": "reject_rate",
+      "name": "Shipment notice reject rate",
+      "metric_type": "RATE",
+      "numerator": "count of shipment notices rejected by carrier, per DA-REJ",
+      "denominator": "total shipment notices submitted via H-1 in the same window",
+      "population": "shipment notices submitted by ORG-A to ORG-B via H-1",
+      "measurement_window": "rolling period, to be defined once DA-REJ completeness is established"
+     },
+     {
+      "key": "correction_success_rate",
+      "name": "Auto-correction resubmission success rate",
+      "metric_type": "RATE",
+      "numerator": "auto-corrected notices accepted by carrier on resubmission (no further reject)",
+      "denominator": "total auto-corrected notices resubmitted",
+      "population": "notices rejected for LOC_UNKNOWN or EVENT_ORDER that were auto-corrected"
+     },
+     {
+      "key": "reject_reason_coverage",
+      "name": "Share of sampled rejects attributable to confirmed correctable reasons (LOC_UNKNOWN, EVENT_ORDER)",
+      "metric_type": "POPULATION_RATE",
+      "numerator": "sampled reject records tagged LOC_UNKNOWN or EVENT_ORDER",
+      "denominator": "total sampled reject records reviewed",
+      "population": "DA-REJ sample reviewed to date (3 records)",
+      "current_value": 1,
+      "current_value_evidence_refs": [
+       "E-01"
+      ]
+     }
+    ],
+    "success_criteria": [
+     {
+      "key": "SC-SCOPE-VERIFIED",
+      "statement": "Before auto-correction is scaled beyond the sampled cases, the reject-reason distribution must be confirmed against a representative/complete view of DA-REJ, not just the 3-record sample.",
+      "kind": "MUST",
+      "metric": "reject_reason_coverage",
+      "threshold": "coverage confirmed against full or statistically adequate DA-REJ sample",
+      "validation_method": "Pull additional or complete DA-REJ records and recompute reject_reason_coverage; confirm LOC_UNKNOWN/EVENT_ORDER (or other content reasons) remain dominant."
+     },
+     {
+      "key": "SC-REJECT-RATE-DOWN",
+      "statement": "Reject rate for shipment notices submitted via H-1 should decrease after content-correction logic is deployed.",
+      "kind": "TARGET",
+      "metric": "reject_rate",
+      "threshold": "decreasing trend vs. pre-deployment baseline",
+      "validation_method": "Compare reject_rate computed from DA-REJ before and after deployment over a defined window."
+     },
+     {
+      "key": "SC-NO-NEW-REJECTS",
+      "statement": "Auto-corrected and resubmitted notices should not introduce new or different reject reasons.",
+      "kind": "TARGET",
+      "metric": "correction_success_rate",
+      "threshold": "no new reject reasons observed post-correction",
+      "validation_method": "Audit resubmitted notices' outcomes in DA-REJ after auto-correction deployment."
+     },
+     {
+      "key": "SC-SAMPLE-LIMITATION",
+      "statement": "The current reject-reason conclusion rests on only 3 sampled records from DA-REJ, whose completeness is UNKNOWN, so it is provisional.",
+      "kind": "KNOWN_LIMITATION",
+      "metric": "",
+      "threshold": "",
+      "validation_method": "Treat conclusion as provisional until DA-REJ completeness is established and reviewed against a larger population."
+     }
+    ],
+    "intended_scope": [
+     {
+      "action": "analyze_reject_reasons",
+      "target": "DA-REJ"
+     },
+     {
+      "action": "auto_correct_notice_content",
+      "target": "H-1"
+     },
+     {
+      "action": "resubmit_shipment_notice",
+      "target": "H-1"
+     }
+    ],
+    "protected_actions": [
+     "auto_correct_notice_content",
+     "resubmit_shipment_notice"
+    ],
+    "required_tools": [
+     "reject-log"
+    ],
+    "depends_on_handoffs": [
+     "H-1"
+    ],
+    "constraint_refs": [],
+    "rejected_framings": [
+     {
+      "hypothesis": "H-CARRIER-BUSINESS-RULE-REJECT",
+      "why": "This hypothesis is already status REJECTED in the evidence base, contradicted by both E-01 and E-02; the sampled reject reasons (LOC_UNKNOWN, EVENT_ORDER) are content/data categories, not carrier business-rule categories like capacity, routing or embargo."
+     },
+     {
+      "hypothesis": "H-CARRIER-SYSTEM-FLAKY",
+      "why": "This mechanism rests only on an unverified stakeholder claim (E-02/CL-02, non-authoritative) and directly conflicts with the authoritative tool evidence E-01, which shows specific content-tagged reject reasons rather than generic instability; adopting it would also validate blanket resubmission without data correction, which the evidence does not support."
+     }
+    ],
+    "confidence": 0.6,
+    "authorization_candidates": [],
+    "framing_resolution": [],
+    "repair_resolution": [],
+    "vob_reevaluation": []
+   }
+  },
+  "R-8": {
+   "skill": "define_problem",
+   "status": "SUCCESS",
+   "output": {
+    "root_problem": "Carrier rejects of shipment notices sent via H-1 (recorded in DA-REJ) have an unestablished dominant cause: a reviewed 3-record sample shows content/data-type reject tags (LOC_UNKNOWN x2, EVENT_ORDER x1), but DA-REJ's completeness is UNKNOWN, so the true scope and pattern of reject causes across P-1 cannot yet be determined from current evidence (H-INCOMPLETE-REJECT-VISIBILITY).",
+    "requested_solution": "Let an AI agent auto-fix rejected shipment notices and resubmit them to the carrier (CL-01).",
+    "symptoms": [
+     "Shipment notices sent via H-1 from ORG-A to ORG-B are being rejected by the carrier, recorded in DA-REJ.",
+     "A reviewed sample of 3 reject records shows LOC_UNKNOWN (N-1, N-2) and EVENT_ORDER (N-3) tags.",
+     "Stakeholder SH-REQ offers two inconsistent causal narratives (fixable data errors vs. carrier system flakiness), producing open conflicts C-1 and C-2 on the dominant_reject_reason assertion."
+    ],
+    "affected_process": "P-1 shipment notice",
+    "causal_chain": [
+     "Shipment notices are sent from ORG-A to ORG-B via handoff H-1 (flagged VALID/HEALTHY) and some are rejected by the carrier, recorded in DA-REJ.",
+     "A reviewed sample of 3 reject records in DA-REJ shows reasons LOC_UNKNOWN (N-1, N-2) and EVENT_ORDER (N-3) — content/data-type tags rather than carrier business-rule categories.",
+     "DA-REJ completeness is UNKNOWN, so this 3-record sample cannot establish the full or dominant reject-reason distribution (H-INCOMPLETE-REJECT-VISIBILITY).",
+     "Open conflicts C-1 and C-2 show the dominant-reason assertion is disputed between E-01 (tool, content-type tags) and stakeholder claims CL-02/E-02 (carrier flakiness).",
+     "Because the true dominant cause and scope of rejects is unresolved, any automated correction/resubmission mechanism cannot yet be safely scoped."
+    ],
+    "premise_hypotheses": [
+     "H-INCOMPLETE-REJECT-VISIBILITY"
+    ],
+    "evidence_refs": [
+     "E-01",
+     "E-02"
+    ],
+    "assumptions": [
+     {
+      "key": "sample_representativeness",
+      "statement": "The reviewed 3-record reject sample is assumed not to be an outlier batch, even though DA-REJ completeness is UNKNOWN.",
+      "evidence_refs": [
+       "E-01"
+      ],
+      "risk_if_wrong": "HIGH"
+     },
+     {
+      "key": "tag_meaning",
+      "statement": "LOC_UNKNOWN and EVENT_ORDER reject tags are assumed to reflect genuine content-level defects in notices rather than artifacts of carrier-side categorization or timing.",
+      "evidence_refs": [
+       "E-01"
+      ],
+      "risk_if_wrong": "MEDIUM"
+     }
+    ],
+    "unknowns": [
+     {
+      "key": "reject_log_completeness",
+      "question": "Is DA-REJ's reject log complete and representative of all carrier rejects, or only a partial/filtered view?",
+      "criticality": "CRITICAL",
+      "decision_impact": "Determines whether the sampled reject-reason distribution can be trusted to design any correction mechanism.",
+      "affects_scope": [
+       {
+        "action": "query_full_reject_log",
+        "target": "DA-REJ"
+       },
+       {
+        "action": "correct_notice_content",
+        "target": "H-1"
+       }
+      ],
+      "resolution_path": "Obtain full reject-log extract and confirm its date range/filter criteria with the carrier interface owner (SH-INT).",
+      "safe_placeholder": "Do not scale any correction logic beyond the two observed reason codes until completeness is confirmed."
+     },
+     {
+      "key": "reject_reason_distribution",
+      "question": "What is the full distribution of reject reasons across all rejected notices, and are LOC_UNKNOWN/EVENT_ORDER actually dominant?",
+      "criticality": "HIGH",
+      "decision_impact": "Determines whether correction logic should target location fields, event ordering, or other causes, and whether a single automated-fix approach suffices.",
+      "affects_scope": [
+       {
+        "action": "classify_reject_reasons",
+        "target": "DA-REJ"
+       },
+       {
+        "action": "correct_notice_content",
+        "target": "H-1"
+       }
+      ],
+      "resolution_path": "Re-run reject-log rejects_by_reason against the full population rather than the 3-record sample.",
+      "safe_placeholder": "Design correction logic only against the two currently observed reason codes until the full distribution is known."
+     },
+     {
+      "key": "carrier_flakiness_role",
+      "question": "Does carrier-side system flakiness (CL-02/E-02) contribute to any portion of rejects independent of notice content?",
+      "criticality": "MEDIUM",
+      "decision_impact": "If true, resubmission-only without content correction could resolve a non-trivial share of rejects, changing the correction strategy and its risk profile.",
+      "affects_scope": [
+       {
+        "action": "resubmit_shipment_notice",
+        "target": "H-1"
+       }
+      ],
+      "resolution_path": "Correlate reject timestamps against carrier system health/incident records if such a data asset becomes available.",
+      "safe_placeholder": "Treat resubmission-only as insufficient; keep content correction as the primary mechanism until flakiness is confirmed or ruled out."
+     }
+    ],
+    "metrics": [
+     {
+      "key": "reject_rate",
+      "name": "Shipment notice reject rate",
+      "metric_type": "RATE",
+      "numerator": "count of shipment notices rejected (DA-REJ)",
+      "denominator": "count of shipment notices sent via H-1",
+      "population": "shipment notices processed by P-1",
+      "measurement_window": "rolling period, to be defined"
+     },
+     {
+      "key": "sample_size_reviewed",
+      "name": "Number of reject records reviewed for reason classification",
+      "metric_type": "COUNT",
+      "current_value": 3,
+      "current_value_evidence_refs": [
+       "E-01"
+      ]
+     },
+     {
+      "key": "population_coverage_rate",
+      "name": "Share of DA-REJ reject records covered by reason classification",
+      "metric_type": "POPULATION_RATE",
+      "numerator": "reject records reviewed for reason classification",
+      "denominator": "total reject records in DA-REJ for the measurement period",
+      "population": "DA-REJ records"
+     },
+     {
+      "key": "resubmission_success_rate",
+      "name": "Resubmission acceptance rate after correction",
+      "metric_type": "RATE",
+      "numerator": "resubmitted notices accepted by carrier",
+      "denominator": "total resubmitted notices"
+     }
+    ],
+    "success_criteria": [
+     {
+      "key": "coverage_established",
+      "statement": "Reject reason classification covers a representative or full sample of DA-REJ records, not just the current 3.",
+      "kind": "MUST",
+      "metric": "population_coverage_rate",
+      "threshold": "full available population in the review period, or a statistically justified sample",
+      "validation_method": "Re-run reject-log rejects_by_reason against the full DA-REJ population and confirm completeness is no longer UNKNOWN."
+     },
+     {
+      "key": "reject_rate_reduced",
+      "statement": "Shipment notice reject rate decreases after any correction mechanism is deployed.",
+      "kind": "TARGET",
+      "metric": "reject_rate",
+      "threshold": "statistically meaningful reduction vs. pre-fix baseline",
+      "validation_method": "Compare reject_rate computed from DA-REJ/H-1 volumes before and after remediation."
+     },
+     {
+      "key": "small_sample_limitation",
+      "statement": "Findings from the current 3-record sample are provisional and may not generalize to the full reject population.",
+      "kind": "KNOWN_LIMITATION",
+      "metric": "sample_size_reviewed",
+      "threshold": "n=3, DA-REJ completeness UNKNOWN",
+      "validation_method": "Treat any downstream conclusion as provisional until population_coverage_rate target is met."
+     }
+    ],
+    "intended_scope": [
+     {
+      "action": "query_full_reject_log",
+      "target": "DA-REJ"
+     },
+     {
+      "action": "classify_reject_reasons",
+      "target": "DA-REJ"
+     },
+     {
+      "action": "correct_notice_content",
+      "target": "H-1"
+     },
+     {
+      "action": "resubmit_shipment_notice",
+      "target": "H-1"
+     }
+    ],
+    "protected_actions": [
+     "correct_notice_content",
+     "resubmit_shipment_notice"
+    ],
+    "required_tools": [
+     "reject-log"
+    ],
+    "depends_on_handoffs": [
+     "H-1"
+    ],
+    "constraint_refs": [],
+    "rejected_framings": [
+     {
+      "hypothesis": "H-FIXABLE-NOTICE-ERRORS",
+      "why": "Its statement bakes in the requested solution ('an AI agent can auto-fix and resubmit them successfully') rather than a pure causal mechanism, and it is contradicted by stakeholder evidence E-02; kept only as requester claim CL-01, not as a root-cause premise."
+     },
+     {
+      "hypothesis": "H-CARRIER-BUSINESS-RULE-REJECT",
+      "why": "Status REJECTED and contradicted by both E-01 and E-02; not adopted."
+     },
+     {
+      "hypothesis": "H-CARRIER-SYSTEM-FLAKY",
+      "why": "Only supported by non-authoritative stakeholder evidence E-02, which is itself contradicted by authoritative tool evidence E-01; remains CANDIDATE, insufficient to premise the problem on."
+     }
+    ],
+    "framing_resolution": [
+     {
+      "hypothesis": "H-FIXABLE-NOTICE-ERRORS",
+      "option": "KEEP_AS_CLAIM",
+      "statement": "",
+      "evidence_refs": [],
+      "rationale": "H-FIXABLE-NOTICE-ERRORS restates the requester's requested solution (CL-01) as a causal premise and is contradicted by E-02, so it is removed from premise_hypotheses and kept only as claim CL-01; the problem instead rests on the independently SUPPORTED H-INCOMPLETE-REJECT-VISIBILITY, which is grounded in non-stakeholder evidence E-01 and nothing contradicts it."
+     }
+    ],
+    "vob_reevaluation": [],
+    "repair_resolution": [],
+    "authorization_candidates": [],
+    "confidence": 0.55
+   }
+  },
+  "R-9": {
+   "skill": "structural_remedy",
+   "status": "SUCCESS",
+   "output": {
+    "root_cause": "PD-1's true dominant reject cause is unestablished: only a 3-record sample of DA-REJ was reviewed (E-01), DA-REJ completeness is UNKNOWN (U-REJECT-LOG-COMPLETENESS), the meaning of its reason tags is an untested assumption (A-TAG-MEANING), and the requester's competing narrative (CL-02/E-02) is unverified stakeholder opinion, not evidence (C-1, C-2). The agent-fix request (CL-01) is premature solutioning before the scope/pattern of rejects is known.",
+    "remedies": [
+     {
+      "key": "full-population-query",
+      "description": "Execute the already-scoped query_full_reject_log action against DA-REJ (reject-log tool, HEALTHY, read-only) to replace the 3-record sample with the full available population and resolve DA-REJ completeness.",
+      "removes_root_cause": true,
+      "feasible_in_contest_time": true,
+      "constraint_feasible": true,
+      "feasibility_rationale": "This action is already in PD-1 intended_scope, the reject-log tool is read-only and HEALTHY, and 225 minutes remain; no protected action or authorization is required.",
+      "residual_gap": "Resolves completeness (U-REJECT-LOG-COMPLETENESS) but does not by itself confirm whether reject tags reflect genuine content defects versus carrier-side categorization artifacts (A-TAG-MEANING)."
+     },
+     {
+      "key": "deterministic-reason-distribution",
+      "description": "Run the existing rejects_by_reason classification method across the full DA-REJ population (not just 3 records) to compute the actual dominant_reject_reason and close U-REJECT-REASON-DISTRIBUTION.",
+      "removes_root_cause": true,
+      "feasible_in_contest_time": true,
+      "constraint_feasible": true,
+      "feasibility_rationale": "Same deterministic method already used for E-01's 3-record query; no new tool or agent judgment is required to re-run it over a larger set, and the tool is HEALTHY.",
+      "residual_gap": "A larger count still trusts carrier-assigned tag categories as-is and does not resolve the open A-TAG-MEANING assumption about whether tags are content-level or carrier-side artifacts."
+     },
+     {
+      "key": "tag-semantics-clarification",
+      "description": "Request from SH-INT (interface owner, ORG-B) an authoritative definition/mapping for LOC_UNKNOWN and EVENT_ORDER reject tags to determine whether they denote genuine notice content defects or carrier-side categorization/timing artifacts.",
+      "removes_root_cause": true,
+      "feasible_in_contest_time": true,
+      "constraint_feasible": true,
+      "feasibility_rationale": "SH-INT is an identified stakeholder with the relevant role; this is a clarification request, not a tool execution or protected action, and fits within remaining budget.",
+      "residual_gap": "Produces a stakeholder claim rather than independently verified evidence; may itself need cross-checking against DA-REJ data before being treated as fact."
+     },
+     {
+      "key": "enforce-vob-gating-on-correction-actions",
+      "description": "Keep correct_notice_content:H-1 and resubmit_shipment_notice:H-1 blocked per the existing VOB-U-REJECT-LOG-COMPLETENESS and VOB-U-REJECT-REASON-DISTRIBUTION blocking_scope until both are closed, rather than proceeding to auto-fix per CL-01.",
+      "removes_root_cause": false,
+      "feasible_in_contest_time": true,
+      "constraint_feasible": true,
+      "feasibility_rationale": "This simply enforces governance already encoded in the VOBs' blocking_scope and required_before=BEFORE_RELEASE; no new mechanism is needed.",
+      "residual_gap": "Prevents premature action but does not itself generate the missing evidence; must be paired with remedies 1-3 to actually close the unknowns."
+     }
+    ],
+    "why_agent_needed": "If, after full-population query and classification confirm content-type defects (e.g. LOC_UNKNOWN, EVENT_ORDER) as dominant and tag-semantics clarification rules out carrier-side artifacts, the actual notice-content corrections (resolving location codes, event sequencing) are heterogeneous per shipment and require case-by-case interpretive judgment that fixed deterministic rules cannot cover; an agent would then be scoped narrowly to that correction/resubmission task only, not to establishing root cause.",
+    "confidence": 0.72
+   }
+  },
+  "R-10": {
+   "skill": "agent_design",
+   "status": "SUCCESS",
+   "output": {
+    "deterministic_rules_cover_cases": true,
+    "llm_reasoning_adds_value": true,
+    "autonomous_iteration_adds_value": true,
+    "residual_exceptions": true,
+    "detection_needed": true,
+    "why_agent": "The released verification scope (full-population query, reclassification) is purely deterministic re-runs of existing tool methods and needs no agent judgment. Per the feasibility rationale, an agent would only add value later, narrowly scoped to case-by-case notice-content correction, if and once full-population evidence and SH-INT's tag-semantics clarification confirm content defects (not carrier-side artifacts) as the dominant cause.",
+    "bridge_sunset_condition": "No bridge needed now: SR-FULL-POPULATION-QUERY and SR-DETERMINISTIC-REASON-DISTRIB are read-only, tool-HEALTHY, and fit within the 225-minute remaining budget, so the structural verification remedies can land in contest time.",
+    "deterministic_components": [
+     "query_full_reject_log re-run against full DA-REJ population via existing reject-log tool (HEALTHY, read-only)",
+     "classify_reject_reasons via existing rejects_by_reason method applied to full DA-REJ population",
+     "Enforcement of existing VOB blocking_scope keeping correct_notice_content:H-1 and resubmit_shipment_notice:H-1 gated until both VOBs close"
+    ],
+    "release_scope": [
+     {
+      "action": "query_full_reject_log",
+      "target": "DA-REJ"
+     },
+     {
+      "action": "classify_reject_reasons",
+      "target": "DA-REJ"
+     }
+    ],
+    "minimum_useful_scope": [
+     {
+      "action": "classify_reject_reasons",
+      "target": "DA-REJ"
+     }
+    ],
+    "scope_dependencies": [
+     {
+      "action": "query_full_reject_log",
+      "depends_on": []
+     },
+     {
+      "action": "classify_reject_reasons",
+      "depends_on": []
+     }
+    ],
+    "role_suggestion": [
+     "CONTROL_DETECTION",
+     "EXCEPTION_HANDLER"
+    ],
+    "capabilities": [
+     "Interpret SH-INT's tag-semantics clarification against observed DA-REJ patterns",
+     "Map confirmed content-type defects (location codes, event sequencing) to per-shipment corrections",
+     "Resubmit corrected notices via H-1 and verify carrier acceptance"
+    ],
+    "llm_required_for": [
+     "Case-by-case interpretation of heterogeneous notice-content defects (location/event errors) once dominant cause is confirmed",
+     "Judging whether SH-INT's tag definition is consistent with observed DA-REJ patterns versus a carrier-side artifact"
+    ],
+    "tools": [
+     "reject-log (read-only, HEALTHY)"
+    ],
+    "authority_boundary": [
+     "Agent may not execute correct_notice_content:H-1 or resubmit_shipment_notice:H-1 while VOB-U-REJECT-LOG-COMPLETENESS or VOB-U-REJECT-REASON-DISTRIBUTION remain OPEN",
+     "No domain_authorizations exist for modifying or resubmitting H-1 content; none may be assumed",
+     "SH-INT's clarification is a stakeholder claim and must not be treated as closing A-TAG-MEANING without cross-check against DA-REJ"
+    ],
+    "human_gate": [],
+    "termination": "This release terminates once the full-population query and reclassification close U-REJECT-LOG-COMPLETENESS and U-REJECT-REASON-DISTRIBUTION and SH-INT's clarification is obtained; any further correction/resubmission scope requires a new design pass, not autonomous continuation.",
+    "validation": [
+     "Confirm DA-REJ completeness field is no longer UNKNOWN after full-population query, closing VOB-U-REJECT-LOG-COMPLETENESS",
+     "Confirm recomputed dominant_reject_reason from the full population closes VOB-U-REJECT-REASON-DISTRIBUTION and resolves conflicts C-1/C-2",
+     "Cross-check SH-INT's tag-semantics response against observed DA-REJ tag patterns before treating A-TAG-MEANING as resolved"
+    ],
+    "known_limitations": [
+     "No tool exists in tool_surface for correct_notice_content or resubmit_shipment_notice; those actions remain unscoped for any release.",
+     "SR-TAG-SEMANTICS-CLARIFICATION yields a stakeholder claim from SH-INT, not independently verified evidence (per its own residual gap).",
+     "U-CARRIER-FLAKINESS-ROLE (MEDIUM, OPEN) is unaddressed by this release and could still affect resubmit_shipment_notice outcomes later."
+    ],
+    "vob_proposals": [
+     {
+      "unresolved_question": "Does SH-INT's authoritative tag definition for LOC_UNKNOWN/EVENT_ORDER, once obtained, actually match patterns observed in DA-REJ, confirming genuine content defects rather than carrier-side categorization artifacts (A-TAG-MEANING)?",
+      "decision_impact": "CRITICAL",
+      "required_before": "BEFORE_RELEASE",
+      "blocking_scope": [
+       {
+        "action": "correct_notice_content",
+        "target": "H-1"
+       },
+       {
+        "action": "resubmit_shipment_notice",
+        "target": "H-1"
+       }
+      ],
+      "entire_solution": false,
+      "validation_method": "Cross-reference SH-INT's tag-semantics response against the full-population DA-REJ reject patterns before treating correction/resubmission as justified.",
+      "required_evidence": [
+       "SH-INT authoritative tag definition/mapping",
+       "Full-population DA-REJ pattern consistent with that definition"
+      ],
+      "linked_unknown": "A-TAG-MEANING",
+      "rationale": "A-TAG-MEANING is an ACTIVE, unverified assumption; SR-TAG-SEMANTICS-CLARIFICATION's own residual gap notes it produces a stakeholder claim needing cross-check, and CL-01's auto-fix premise rests on this assumption being true."
+     }
+    ],
+    "confidence": 0.68
+   }
+  },
+  "R-11": {
+   "skill": "agent_design",
+   "status": "SUCCESS",
+   "output": {
+    "deterministic_rules_cover_cases": false,
+    "llm_reasoning_adds_value": true,
+    "autonomous_iteration_adds_value": false,
+    "residual_exceptions": true,
+    "detection_needed": true,
+    "why_agent": "Agent/LLM reasoning is needed to interpret ambiguous carrier tag semantics (A-TAG-MEANING) and to synthesize conflicting stakeholder claims (E-02/CL-02) against tool evidence (E-01); later, per-shipment content correction is heterogeneous and not coverable by fixed rules.",
+    "bridge_sunset_condition": "",
+    "deterministic_components": [
+     "rejects_by_reason classification over reject-log (deterministic, already validated via E-01)",
+     "VOB blocking_scope enforcement gating correct_notice_content:H-1 and (per SR-ENFORCE-VOB-GATING-ON-CORREC) resubmit_shipment_notice:H-1 until both unknowns close"
+    ],
+    "release_scope": [],
+    "minimum_useful_scope": [
+     {
+      "action": "query_full_reject_log",
+      "target": "DA-REJ"
+     },
+     {
+      "action": "classify_reject_reasons",
+      "target": "DA-REJ"
+     }
+    ],
+    "scope_dependencies": [],
+    "role_suggestion": [
+     "CONTROL_DETECTION",
+     "EXCEPTION_HANDLER"
+    ],
+    "capabilities": [
+     "Re-run rejects_by_reason over the full DA-REJ population once unblocked",
+     "Request and record SH-INT's tag-semantics mapping for LOC_UNKNOWN/EVENT_ORDER",
+     "Flag discrepancies between stakeholder claims (CL-02/E-02) and tool evidence (E-01) rather than resolving them silently"
+    ],
+    "llm_required_for": [
+     "Judging whether LOC_UNKNOWN/EVENT_ORDER reflect genuine content defects vs carrier-side categorization artifacts (A-TAG-MEANING)",
+     "Reconciling conflicting dominant_reject_reason claims (C-1, C-2) once full-population data exists",
+     "Case-by-case notice-content correction once a correctable cause is confirmed"
+    ],
+    "tools": [
+     "reject-log"
+    ],
+    "authority_boundary": [
+     "Cannot execute query_full_reject_log:DA-REJ or classify_reject_reasons:DA-REJ while VOB-U-REJECT-LOG-COMPLETENESS / VOB-U-REJECT-REASON-DISTRIBUTION remain OPEN and list those actions in blocking_scope",
+     "Cannot execute correct_notice_content:H-1 or resubmit_shipment_notice:H-1 until both VOBs close, per SR-ENFORCE-VOB-GATING-ON-CORREC",
+     "No domain_authorizations are recorded for PD-1, so no protected action may proceed without one"
+    ],
+    "human_gate": [],
+    "termination": "Work on this problem ends once both VOB-U-REJECT-LOG-COMPLETENESS and VOB-U-REJECT-REASON-DISTRIBUTION are resolved with full-population evidence, either confirming H-FIXABLE-NOTICE-ERRORS (opening correction/resubmission scope) or redirecting the root-cause investigation (e.g. toward H-CARRIER-SYSTEM-FLAKY or H-INTERFACE-SEMANTIC-MISMATCH).",
+    "validation": [
+     "Confirm DA-REJ completeness is no longer UNKNOWN per SC-COVERAGE-ESTABLISHED's validation_method",
+     "Recompute dominant_reject_reason over the full population and compare against the 3-record sample (E-01) to resolve C-1/C-2",
+     "Cross-check SH-INT's tag-semantics response against actual DA-REJ patterns before treating it as settled"
+    ],
+    "known_limitations": [
+     "release_scope is currently empty because both open VOBs list the very diagnostic actions (query_full_reject_log, classify_reject_reasons) that would resolve them in their own blocking_scope",
+     "resubmit_shipment_notice:H-1 is not formally named in either VOB's blocking_scope, but is withheld here per the recorded SR-ENFORCE-VOB-GATING-ON-CORREC remedy, since blind resubmission without resolving content-defect vs carrier-flakiness uncertainty risks repeating failures",
+     "A-TAG-MEANING and A-SAMPLE-REPRESENTATIVENESS remain unverified assumptions pending full-population data and SH-INT clarification"
+    ],
+    "vob_proposals": [
+     {
+      "unresolved_question": "Should the read-only diagnostic actions query_full_reject_log:DA-REJ and classify_reject_reasons:DA-REJ be exempted from their own VOBs' blocking_scope, since they are the proposed mechanism (SR-FULL-POPULATION-QUERY, SR-DETERMINISTIC-REASON-DISTRIB) for resolving U-REJECT-LOG-COMPLETENESS and U-REJECT-REASON-DISTRIBUTION rather than actions that presuppose those unknowns are already resolved?",
+      "decision_impact": "CRITICAL",
+      "required_before": "BEFORE_DESIGN_FINALIZATION",
+      "blocking_scope": [
+       {
+        "action": "query_full_reject_log",
+        "target": "DA-REJ"
+       },
+       {
+        "action": "classify_reject_reasons",
+        "target": "DA-REJ"
+       }
+      ],
+      "entire_solution": true,
+      "validation_method": "Have the Harness/stakeholders review the VOB blocking_scope definitions against the recorded feasibility remedies and re-run release-scope gating after any re-scoping decision.",
+      "required_evidence": [
+       "define_gate_result record for PD-1@v1 (CONDITIONAL_PASS, VOBs listed)",
+       "Feasibility remedies SR-FULL-POPULATION-QUERY and SR-DETERMINISTIC-REASON-DISTRIB"
+      ],
+      "linked_unknown": "U-REJECT-LOG-COMPLETENESS",
+      "rationale": "As currently scoped, both VOBs make release_scope structurally empty by blocking the only feasible, low-risk, read-only actions (already in PD-1 intended_scope) that would generate the evidence needed to close them."
+     }
+    ],
+    "confidence": 0.55
+   }
+  },
+  "R-12": {
+   "skill": "plan_execution",
+   "status": "SUCCESS",
+   "output": {
+    "protected_actions": [],
+    "work_items": [
+     {
+      "key": "WI-1",
+      "description": "Package the already-executed reject-log sample (E-01/F-01) into a reject-reason summary deliverable to support closing VOB-U-REJECT-LOG-COMPLETENESS/-DISTRIBUTION before any resubmission.",
+      "work_class": "RELEASE_BLOCKING_VERIFICATION",
+      "est_minutes": 15,
+      "scope_items": [
+       {
+        "action": "resubmit_shipment_notice",
+        "target": "H-1"
+       }
+      ],
+      "root_problem_aligned": true,
+      "release_blocking": true,
+      "data_ops": [
+       "reject-log:rejects_by_reason"
+      ],
+      "output_name": "reject_reason_sample_summary",
+      "output_key_fields": [
+       "notice"
+      ],
+      "output_join": false,
+      "output_constant_fields": []
+     },
+     {
+      "key": "WI-2",
+      "description": "Confirm resubmit_shipment_notice:H-1 (the sole release_scope item) cannot be executed this cycle: no mutating tool is listed in mutating_tools/tool_surface, and both VOBs remain OPEN per SR-ENFORCE-VOB-GATING-ON-CORREC.",
+      "work_class": "AUTHORITY_SAFETY_CHECK",
+      "est_minutes": 10,
+      "scope_items": [
+       {
+        "action": "resubmit_shipment_notice",
+        "target": "H-1"
+       }
+      ],
+      "root_problem_aligned": true,
+      "release_blocking": true,
+      "data_ops": []
+     }
+    ],
+    "rationale": "Catalog has only two refs (reject-log:rejects_by_reason, interview:SH-REQ), both already_executed, so no new diagnostic data_ops (query_full_reject_log, classify_reject_reasons) are available to run — they appear only in intended_scope/unfinished_scope, not catalog. The sole release_scope item, resubmit_shipment_notice:H-1, is protected, but mutating_tools is empty and tool_surface lists only the read-only reject-log tool, so no valid resource exists; per the schema rule, resource must be a tool_id from mutating_tools, so no protected_action can be honestly proposed. This matches SR-ENFORCE-VOB-GATING-ON-CORREC and the two OPEN, BEFORE_RELEASE VOBs (VOB-U-REJECT-LOG-COMPLETENESS, VOB-U-REJECT-REASON-DISTRIBUTION) that withhold resubmission. WI-1 packages existing E-01/F-01 sample data; WI-2 documents the absent mutating resource and open gating VOBs — the only honest, catalog- and scope-bounded work available this cycle."
+   }
+  },
+  "R-13": {
+   "skill": "semantic_judge",
+   "status": "SUCCESS",
+   "output": {
+    "checks": [
+     {
+      "name": "root_cause_targeting",
+      "status": "PASS",
+      "detail": "Root problem is 'dominant reject cause unestablished' due to UNKNOWN DA-REJ completeness; remedies SR-FULL-POPULATION-QUERY, SR-DETERMINISTIC-REASON-DISTRIB and SR-TAG-SEMANTICS-CLARIFICATION target exactly the open unknowns (U-REJECT-LOG-COMPLETENESS, U-REJECT-REASON-DISTRIBUTION) rather than jumping to CL-01's requested auto-fix.",
+      "refs": [
+       "PD-1",
+       "U-REJECT-LOG-COMPLETENESS",
+       "U-REJECT-REASON-DISTRIBUTION",
+       "SR-FULL-POPULATION-QUERY",
+       "SR-DETERMINISTIC-REASON-DISTRIB",
+       "SR-TAG-SEMANTICS-CLARIFICATION"
+      ]
+     },
+     {
+      "name": "release_scope_vs_withholding_consistency",
+      "status": "FAIL",
+      "detail": "solution_design.release_scope and minimum_useful_scope both list resubmit_shipment_notice:H-1, yet the design's own unfinished_scope text asserts 'release_scope is currently empty' and that this action is 'withheld' via SR-ENFORCE-VOB-GATING-ON-CORREC — the structured field contradicts the narrative rationale.",
+      "refs": [
+       "SD-1",
+       "SR-ENFORCE-VOB-GATING-ON-CORREC"
+      ]
+     },
+     {
+      "name": "authority_safety_check_status",
+      "status": "WARN",
+      "detail": "The AUTHORITY_SAFETY_CHECK (W-WI-2) meant to formally confirm resubmit_shipment_notice:H-1 cannot execute this cycle is still PENDING, not DONE, while that same action already appears in release_scope.",
+      "refs": [
+       "W-WI-2",
+       "SD-1"
+      ]
+     },
+     {
+      "name": "carrier_flakiness_hypothesis_unresolved",
+      "status": "WARN",
+      "detail": "H-CARRIER-SYSTEM-FLAKY remains CANDIDATE (not rejected) and U-CARRIER-FLAKINESS-ROLE is OPEN with no deferred_to VOB, so the design's framing of content-defect causation as the working basis for remedies is not fully reconciled against the carrier-flakiness alternative.",
+      "refs": [
+       "H-CARRIER-SYSTEM-FLAKY",
+       "U-CARRIER-FLAKINESS-ROLE",
+       "E-02",
+       "C-1"
+      ]
+     },
+     {
+      "name": "limitations_disclosure",
+      "status": "PASS",
+      "detail": "unfinished_scope and assumptions explicitly disclose sample size (3 records), unverified A-SAMPLE-REPRESENTATIVENESS and A-TAG-MEANING assumptions, and that both diagnostic actions needed to close the VOBs are themselves blocked by those VOBs.",
+      "refs": [
+       "A-SAMPLE-REPRESENTATIVENESS",
+       "A-TAG-MEANING",
+       "SD-1"
+      ]
+     },
+     {
+      "name": "evidence_citation_fidelity",
+      "status": "PASS",
+      "detail": "Facts, hypotheses and the problem definition trace back to actually-present evidence (E-01, E-02, F-01) without introducing unlisted ids or inflating the 3-record sample into an established distribution.",
+      "refs": [
+       "E-01",
+       "E-02",
+       "F-01",
+       "PD-1"
+      ]
+     }
+    ]
+   }
+  },
+  "R-14": {
+   "skill": "release_summary",
+   "status": "SUCCESS",
+   "output": {
+    "summary": "The problem (PD-1) is that carrier rejects of shipment notices sent via H-1 (logged in DA-REJ) have an unestablished dominant cause: a reviewed 3-record sample (F-01/E-01) shows LOC_UNKNOWN (N-1, N-2) and EVENT_ORDER (N-3) tags, but DA-REJ completeness is UNKNOWN, so it is unclear if this generalizes (H-INCOMPLETE-REJECT-VISIBILITY). The requester SH-REQ proposed two conflicting framings — auto-fix-and-resubmit (CL-01) and 'carrier system is flaky, just resubmit' (CL-02/E-02) — which conflict with E-01 and with each other (C-1, C-2). The DEFINE gate returned CONDITIONAL_PASS, deferring two critical/high unknowns to open verification obligations (VOB-U-REJECT-LOG-COMPLETENESS, VOB-U-REJECT-REASON-DISTRIBUTION). The release decision is RELEASE_WITH_KNOWN_LIMITATION with no items held, because solution_design SD-1 lists resubmit_shipment_notice:H-1 in release_scope/minimum_useful_scope, yet its own narrative says release_scope is 'currently empty' and that this action is withheld under remedy SR-ENFORCE-VOB-GATING-ON-CORREC — a documented contradiction between structured scope and narrative that verification flagged (semantic:release_scope_vs_withholding_consistency failed at seq 84) but did not block release. No mutating action was actually executable this cycle: only the read-only reject-log tool is in the tool_surface, and both VOBs remain OPEN, so query_full_reject_log, classify_reject_reasons, and correct_notice_content stay blocked, and resubmission is withheld per the recorded remedy despite not being formally named in either VOB's blocking_scope.",
+    "key_points": [
+     "Root problem per PD-1: dominant reject reason for H-1 shipment notices is unestablished; sample evidence (F-01/E-01) shows LOC_UNKNOWN x2, EVENT_ORDER x1 out of only 3 records against a DA-REJ population of unknown completeness.",
+     "Two stakeholder-driven, conflicting hypotheses exist: CL-01 (auto-fix and resubmit) and CL-02 (carrier is flaky, just resubmit); E-02 (CL-02's basis) is a non-authoritative stakeholder claim that conflicts with the authoritative tool evidence E-01 (conflicts C-1, C-2).",
+     "DEFINE gate result was CONDITIONAL_PASS (seq 51), deferring U-REJECT-LOG-COMPLETENESS (CRITICAL) and U-REJECT-REASON-DISTRIBUTION (HIGH) to VOBs that remain OPEN.",
+     "Release decision is RELEASE_WITH_KNOWN_LIMITATION with an empty hold list (seq 88); nothing was held back formally even though the practical effect is that no corrective or resubmission action executes this cycle.",
+     "Verification found a semantic inconsistency (seq 84): solution_design.release_scope/minimum_useful_scope name resubmit_shipment_notice:H-1 as released, while the design's unfinished_scope narrative says release_scope is empty and this action is withheld via remedy SR-ENFORCE-VOB-GATING-ON-CORREC.",
+     "Both open VOBs block query_full_reject_log:DA-REJ, classify_reject_reasons:DA-REJ, and correct_notice_content:H-1; resubmit_shipment_notice:H-1 is not named in either VOB's blocking_scope but is withheld anyway per the recorded remedy to avoid repeating failures from blind resubmission.",
+     "The tool_surface for this scenario contains only the read-only reject-log tool, consistent with the fact that no mutating/correction/resubmission action is reported as executed.",
+     "Two assumptions remain unverified: A-SAMPLE-REPRESENTATIVENESS (3-record sample assumed not an outlier batch) and A-TAG-MEANING (LOC_UNKNOWN/EVENT_ORDER assumed to reflect genuine content defects, not carrier-side artifacts), both resting on evidence E-01."
+    ],
+    "limitations_explained": [
+     "The DEFINE gate only reached CONDITIONAL_PASS, meaning critical open questions were deferred into tracked verification obligations (VOBs) rather than resolved before proceeding.",
+     "A verification check (semantic:release_scope_vs_withholding_consistency) found a direct contradiction: the structured release_scope/minimum_useful_scope fields list resubmit_shipment_notice:H-1 as released, while the design's own text says release_scope is empty and that action is withheld.",
+     "VOB-U-REJECT-LOG-COMPLETENESS is still OPEN, so whether DA-REJ's reject log is complete or just a partial/filtered view is unresolved, and this blocks query_full_reject_log and correct_notice_content.",
+     "VOB-U-REJECT-REASON-DISTRIBUTION is still OPEN, so whether LOC_UNKNOWN/EVENT_ORDER are actually the dominant reject reasons across the full population is unresolved, blocking classify_reject_reasons and correct_notice_content.",
+     "The findings rest on only a 3-record sample (M-SAMPLE-SIZE-REVIEWED=3) from DA-REJ, which may not generalize to the full reject population since DA-REJ's completeness status for this analysis was UNKNOWN.",
+     "A structural gap exists: both open VOBs list as their own blocking_scope the very diagnostic actions (query_full_reject_log, classify_reject_reasons) that would be needed to resolve them, leaving release_scope effectively empty.",
+     "resubmit_shipment_notice:H-1 is withheld as a precaution per remedy SR-ENFORCE-VOB-GATING-ON-CORREC, even though it is not formally listed in either VOB's blocking_scope, because resubmitting without first resolving whether rejects are content defects or carrier flakiness risks repeating failures.",
+     "Two assumptions underlying the analysis (A-SAMPLE-REPRESENTATIVENESS and A-TAG-MEANING) are unverified and depend on full-population data from DA-REJ and clarification from stakeholder SH-INT (interface owner) on what the LOC_UNKNOWN/EVENT_ORDER tags actually mean."
+    ]
+   }
+  }
+ }
+}
