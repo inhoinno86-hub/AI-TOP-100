@@ -41,7 +41,7 @@ from typing import Any
 
 from common import core_safety, load, read_jsonl, reasoning_stats
 
-CLASSIFIER_VERSION = "cls-3.0"
+CLASSIFIER_VERSION = "cls-3.1"
 
 _MECH = (
     "bv-17",
@@ -91,9 +91,12 @@ def canon_text(text: str | None) -> str:
 
 
 def _sep(text: str) -> str:
-    """Separator spelling: '-' / '_' / whitespace between words are one notation (the keyword list already
-    lists e.g. 'unit scal' + 'unit-scal' and 'high consumption' + 'high_consumption' for that reason)."""
-    return re.sub(r"[\s_-]+", " ", text)
+    """Separator spelling: '-' / '_' / '/' / whitespace between words are one notation (the keyword list
+    already lists e.g. 'unit scal' + 'unit-scal' and 'high consumption' + 'high_consumption' for that
+    reason). cls-3.1 (RV-11): added '/' — "billing import/validation defect" is a common way to phrase
+    "import validation defect" and was being missed by the slash alone, undercounting correct runs that
+    worded the mechanism this way."""
+    return re.sub(r"[\s_/-]+", " ", text)
 
 
 def names_mechanism(text: str | None) -> bool:

@@ -753,4 +753,33 @@ OPERATOR_REASONER unchanged (PASS / 0). No session-limit recurrence.
     unaffected, plus an orchestrator-level direct `_handle_challenge()` test driving the bound to exhaustion;
     `test_rv4_reasoning_stabilization.py`: full-pipeline REDEFINE-after-REPROFILE success and the
     WAITING_APPROVAL safety fallback). ruff / ruff format / mypy clean, 336/336 tests pass (6 new, no
-    regression). Live re-verification is the next RV-11 full re-measurement.
+    regression). **Live re-verification (RV-11, freeze `d32e3d96e000aa90`) confirmed the fix at scale:** 6
+    of 20 Mock #6 runs hit a canonical challenge and had the Reasoner propose REPROFILE at least once; all 6
+    were handled by the bounded allowance — one, A-04, used it to fetch real new evidence
+    (`billing-config:validation_rule_changes`) and then re-proposed REPROFILE a second time on legitimately
+    different grounds (the newly confirmed mechanism explained only the ESTIMATED-read minority, not the
+    dominant ACTUAL-read majority), at which point the bound correctly exhausted and escalated to Human —
+    exactly the intended behavior, not a bug. Zero permanent HOLDs and zero crashes from this pattern across
+    the full batch. See `RV11_FULL_REMEASURE_RESULT.md` §2.
+
+- **IDR-RV11-01 (`cls-3.1`) — `classify.py`'s mechanism-keyword matcher missed the slash as a separator.**
+  All 4 of RV-11's `REASONING_FAILURE` runs (A-02, A-07, A-16, A-19) turned out, on inspection, to have
+  stated a `final_problem` mechanism essentially identical to the hidden ground truth ("billing
+  import/validation defect ... producing incorrect bills") — not a Reasoner miss. `classify.py`'s `_sep()`
+  normalizes `-`/`_`/whitespace as one notation before matching `_MECH` keywords (so `"unit-scal"` and
+  `"unit scal"` both match `"unit scal"`), but did not include `/`, so the common English phrasing "billing
+  import/validation defect" never matched the keyword `"import validation"`. This is purely a mechanical
+  evaluator-precision gap, not a Harness or prompt defect — the fix (`[\s_/-]+` instead of `[\s_-]+`) adds
+  one more notation variant to the existing `_sep()` normalization layer cls-3.0 already established
+  (Unicode hyphens, `_` vs `-` vs space); it does not expand `_MECH`'s actual keyword set, so no new
+  semantic content counts as the mechanism that didn't before. 2 of the 4 runs (A-07, A-16) reclassify to
+  `COMPLETE_SUCCESS` once this ships; the other 2 use different wording entirely (`"import + validation"`,
+  `"import/calculation"`) and are left for a future cycle rather than widening `_MECH` opportunistically.
+  - **Freeze integrity:** `classify.py` is hashed into the freeze manifest's `evaluator` /
+    `classification_rules` digest groups (`freeze.py`). Per the standing A/B rule ("a patch to any frozen
+    file invalidates the A/B — both models restart from scratch"), RV-11's already-reported numbers are
+    left untouched; `CLASSIFIER_VERSION` bumped `cls-3.0` → `cls-3.1` and the fix takes effect starting with
+    the next freeze (RV-12), not retroactively on RV-11's artifacts.
+  - **Verification:** ruff clean on the touched lines (2 pre-existing line-length warnings elsewhere in the
+    file are unrelated to this change), 336/336 tests pass (no regression; `classify.py` has no dedicated
+    unit tests — covered indirectly by the Mock #6 evaluator pipeline, exercised live in RV-11/RV-12).

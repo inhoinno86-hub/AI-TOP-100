@@ -1,0 +1,1154 @@
+{
+ "scenario": "A",
+ "result": {
+  "release_decision": "RELEASE_WITH_KNOWN_LIMITATION",
+  "halt_reason": null,
+  "phase": "RELEASE",
+  "execution_status": "RELEASED",
+  "problem_ref": "PD-1@v1",
+  "operator_reasoner_calls": 0,
+  "trace_actors": [
+   "ENVIRONMENT",
+   "HARNESS",
+   "REASONER"
+  ],
+  "wall_seconds": 626.7
+ },
+ "human": [],
+ "problem": {
+  "id": "PD-1",
+  "version": 1,
+  "requested_solution": "Deploy an AI agent that auto-fixes rejected shipment notices and resubmits them to the Carrier automatically (SH-REQ initial request, CL-01).",
+  "symptoms": [
+   "Carrier rejects shipment notices; the only recorded rejects (N-1, N-2, N-3) show reasons LOC_UNKNOWN and EVENT_ORDER, not generic content errors (E-01).",
+   "The requester's framing of the reject cause shifted from correctable content errors (CL-01) to carrier-system flakiness (CL-02), and neither matches the authoritative reject-log reasons (C-2, C-4, C-5)."
+  ],
+  "root_problem": "Carrier (ORG-B) rejects Shipper (ORG-A) shipment notices specifically because they fail LOC_UNKNOWN and EVENT_ORDER validation checks (N-1, N-2, N-3 per E-01), not because of generic correctable content typos (CL-01, rejected via H-NOTICE-CONTENT-ERRORS) or carrier-system flakiness (CL-02/E-02, non-authoritative, contradicted by E-01). Because these causes are structural rather than transient, blindly auto-correcting and resubmitting notices would likely reproduce the same rejects (H-BLIND-RESUBMIT-INEFFECTIVE).",
+  "evidence_refs": [
+   "E-01",
+   "E-02"
+  ],
+  "intended_scope": [
+   {
+    "action": "analyze_reject_reasons",
+    "target": "DA-REJ"
+   },
+   {
+    "action": "investigate_upstream_process_data",
+    "target": "P-1"
+   },
+   {
+    "action": "investigate_carrier_validation_rules",
+    "target": "ORG-B"
+   },
+   {
+    "action": "consult_stakeholder_on_reject_cause",
+    "target": "SH-INT"
+   }
+  ],
+  "protected_actions": [],
+  "depends_on_mappings": [],
+  "depends_on_handoffs": [
+   "H-1"
+  ],
+  "depends_on_exports": [],
+  "required_tools": [
+   "reject-log"
+  ],
+  "success_criteria": [
+   "SC-NO-BLIND-RESUBMIT",
+   "SC-REDUCE-STRUCTURAL-REJECTS",
+   "SC-RESUBMIT-NOT-RECURRING"
+  ],
+  "metric_ids": [
+   "M-REJECT-COUNT-STRUCTURAL",
+   "M-RESUBMIT-RECURRENCE-RATE"
+  ],
+  "status": "ACTIVE",
+  "gate_result": "CONDITIONAL_PASS",
+  "invalidated_by": [],
+  "supersedes": null,
+  "superseded_by": null,
+  "challenges": []
+ },
+ "framing_hypotheses": [
+  "H-NOTICE-CONTENT-ERRORS"
+ ],
+ "final_premise_hypotheses": [
+  "H-BLIND-RESUBMIT-INEFFECTIVE"
+ ],
+ "release": {
+  "decision": "RELEASE_WITH_KNOWN_LIMITATION",
+  "hold": [],
+  "limitations": [
+   "DEFINE Gate CONDITIONAL_PASS (deferred items tracked as VOBs)",
+   "semantic: semantic:scope_executability_consistency: solution_design.release_scope lists consult_stakeholder_on_reject_cause:SH-INT as part of the released scope, yet plan item W-WI-CONSULT-SHINT-GAP explicitly states this scope item cannot be executed because the catalog has no interview op for SH-INT (status PENDING).",
+   "VOB-U-FIX-OWNERSHIP-SIDE open; blocking_scope outside release scope",
+   "unfinished: If diagnosis attributes rejects to Carrier-side validation logic or stale reference data (per H-CARRIER-RULE-MISMATCH), request ORG-B correct the LOC_UNKNOWN/EVENT_ORDER checks or underlying master data.",
+   "unfinished: known limitation: Current reject sample is only 3 notices (N-1, N-2, N-3), so the true magnitude/trend of the problem is not yet established.",
+   "unfinished: known limitation: Diagnosing ownership does not itself correct any reject cause; a targeted shipper- or carrier-side fix must still be designed and implemented afterward",
+   "unfinished: known limitation: Sample validation confirms scale/representativeness only; it does not determine which side owns the fix",
+   "unfinished: known limitation: If diagnosis attributes rejects to Carrier-side rules, timeline and cooperation from ORG-B for any subsequent fix are not evidenced"
+  ]
+ },
+ "reasoning": [
+  {
+   "reasoning_id": "R-1",
+   "skill": "hypothesis_init",
+   "status": "SUCCESS",
+   "provider": "claude-cli",
+   "model": "sonnet",
+   "input_state_version": 0,
+   "schema_version": "1.0",
+   "order": 1,
+   "attempts": 1,
+   "input_digest": "bfdd8034fd3057d7",
+   "evidence_refs": [
+    "H-1",
+    "H-1."
+   ],
+   "confidence": 0.52,
+   "errors": [],
+   "output": null,
+   "fallback_used": null
+  },
+  {
+   "reasoning_id": "R-2",
+   "skill": "discover_actions",
+   "status": "SUCCESS",
+   "provider": "claude-cli",
+   "model": "sonnet",
+   "input_state_version": 2,
+   "schema_version": "1.0",
+   "order": 2,
+   "attempts": 1,
+   "input_digest": "de29ab69f64bb674",
+   "evidence_refs": [
+    "CL-01",
+    "H-CARRIER-RULE-MISMATCH",
+    "H-NOTICE-CONTENT-ERRORS",
+    "H-REJECT-LOG-MEASUREMENT-GAP",
+    "H-UPSTREAM-PROCESS-RECURRENCE",
+    "H-UPSTREAM-PROCESS-RECURRENCE."
+   ],
+   "confidence": null,
+   "errors": [],
+   "output": null,
+   "fallback_used": null
+  },
+  {
+   "reasoning_id": "R-3",
+   "skill": "interpret_evidence",
+   "status": "SUCCESS",
+   "provider": "claude-cli",
+   "model": "sonnet",
+   "input_state_version": 2,
+   "schema_version": "1.0",
+   "order": 3,
+   "attempts": 1,
+   "input_digest": "d1c14f8b6ababf96",
+   "evidence_refs": [
+    "E-01",
+    "H-CARRIER-RULE-MISMATCH",
+    "H-NOTICE-CONTENT-ERRORS",
+    "H-REJECT-LOG-MEASUREMENT-GAP",
+    "H-UPSTREAM-PROCESS-RECURRENCE"
+   ],
+   "confidence": 0.72,
+   "errors": [],
+   "output": null,
+   "fallback_used": null
+  },
+  {
+   "reasoning_id": "R-4",
+   "skill": "interpret_evidence",
+   "status": "SUCCESS",
+   "provider": "claude-cli",
+   "model": "sonnet",
+   "input_state_version": 4,
+   "schema_version": "1.0",
+   "order": 4,
+   "attempts": 1,
+   "input_digest": "a1ddd7b670360b38",
+   "evidence_refs": [
+    "CL-01",
+    "E-01",
+    "E-02",
+    "H-BLIND-RESUBMIT-INEFFECTIVE",
+    "H-CARRIER-RULE-MISMATCH",
+    "H-NOTICE-CONTENT-ERRORS",
+    "H-REJECT-LOG-MEASUREMENT-GAP",
+    "H-UPSTREAM-PROCESS-RECURRENCE"
+   ],
+   "confidence": 0.7,
+   "errors": [],
+   "output": null,
+   "fallback_used": null
+  },
+  {
+   "reasoning_id": "R-5",
+   "skill": "discover_actions",
+   "status": "SUCCESS",
+   "provider": "claude-cli",
+   "model": "sonnet",
+   "input_state_version": 7,
+   "schema_version": "1.0",
+   "order": 5,
+   "attempts": 1,
+   "input_digest": "8b31894992121bdc",
+   "evidence_refs": [
+    "H-BLIND-RESUBMIT-INEFFECTIVE",
+    "H-CARRIER-RULE-MISMATCH",
+    "H-NOTICE-CONTENT-ERRORS",
+    "H-REJECT-LOG-MEASUREMENT-GAP",
+    "H-UPSTREAM-PROCESS-RECURRENCE"
+   ],
+   "confidence": null,
+   "errors": [],
+   "output": null,
+   "fallback_used": null
+  },
+  {
+   "reasoning_id": "R-6",
+   "skill": "assess_hypotheses",
+   "status": "SUCCESS",
+   "provider": "claude-cli",
+   "model": "sonnet",
+   "input_state_version": 7,
+   "schema_version": "1.0",
+   "order": 6,
+   "attempts": 1,
+   "input_digest": "c5bd30ace1e625fe",
+   "evidence_refs": [
+    "E-01",
+    "E-02",
+    "H-BLIND-RESUBMIT-INEFFECTIVE",
+    "H-CARRIER-RULE-MISMATCH",
+    "H-NOTICE-CONTENT-ERRORS",
+    "H-REJECT-LOG-MEASUREMENT-GAP",
+    "H-UPSTREAM-PROCESS-RECURRENCE"
+   ],
+   "confidence": null,
+   "errors": [],
+   "output": null,
+   "fallback_used": null
+  },
+  {
+   "reasoning_id": "R-7",
+   "skill": "define_problem",
+   "status": "SUCCESS",
+   "provider": "claude-cli",
+   "model": "sonnet",
+   "input_state_version": 12,
+   "schema_version": "1.0",
+   "order": 7,
+   "attempts": 1,
+   "input_digest": "aa1ae40350ebf8f8",
+   "evidence_refs": [
+    "CL-01",
+    "CL-02",
+    "E-01",
+    "E-02",
+    "H-1",
+    "H-1.",
+    "H-BLIND-RESUBMIT-INEFFECTIVE",
+    "H-NOTICE-CONTENT-ERRORS",
+    "H-REJECT-LOG-MEASUREMENT-GAP"
+   ],
+   "confidence": 0.6,
+   "errors": [],
+   "output": null,
+   "fallback_used": null
+  },
+  {
+   "reasoning_id": "R-8",
+   "skill": "structural_remedy",
+   "status": "SUCCESS",
+   "provider": "claude-cli",
+   "model": "sonnet",
+   "input_state_version": 15,
+   "schema_version": "1.0",
+   "order": 8,
+   "attempts": 1,
+   "input_digest": "7ca2214c90b4a769",
+   "evidence_refs": [
+    "CL-01",
+    "CL-02",
+    "E-01",
+    "E-02",
+    "H-CARRIER-RULE-MISMATCH",
+    "H-NOTICE-CONTENT-ERRORS",
+    "U-FIX-OWNERSHIP-SIDE",
+    "U-MEASUREMENT-VALIDITY-AT-SCAL",
+    "VOB-U-FIX-OWNERSHIP-SIDE",
+    "VOB-U-FIX-OWNERSHIP-SIDE."
+   ],
+   "confidence": 0.72,
+   "errors": [],
+   "output": null,
+   "fallback_used": null
+  },
+  {
+   "reasoning_id": "R-9",
+   "skill": "agent_design",
+   "status": "SUCCESS",
+   "provider": "claude-cli",
+   "model": "sonnet",
+   "input_state_version": 15,
+   "schema_version": "1.0",
+   "order": 9,
+   "attempts": 1,
+   "input_digest": "fc1a6c8a78d53686",
+   "evidence_refs": [
+    "CL-01",
+    "CL-02",
+    "E-01",
+    "E-02",
+    "H-NOTICE-CONTENT-ERRORS",
+    "M-RESUBMIT-RECURRENCE-RATE",
+    "VOB-U-FIX-OWNERSHIP-SIDE"
+   ],
+   "confidence": 0.72,
+   "errors": [],
+   "output": null,
+   "fallback_used": null
+  },
+  {
+   "reasoning_id": "R-10",
+   "skill": "plan_execution",
+   "status": "SUCCESS",
+   "provider": "claude-cli",
+   "model": "sonnet",
+   "input_state_version": 17,
+   "schema_version": "1.0",
+   "order": 10,
+   "attempts": 1,
+   "input_digest": "b2f9edfa7273bba4",
+   "evidence_refs": [
+    "E-01",
+    "U-FIX-OWNERSHIP-SIDE",
+    "VOB-U-FIX-OWNERSHIP-SIDE"
+   ],
+   "confidence": null,
+   "errors": [],
+   "output": null,
+   "fallback_used": null
+  },
+  {
+   "reasoning_id": "R-11",
+   "skill": "semantic_judge",
+   "status": "SUCCESS",
+   "provider": "claude-cli",
+   "model": "sonnet",
+   "input_state_version": 18,
+   "schema_version": "1.0",
+   "order": 11,
+   "attempts": 1,
+   "input_digest": "580d6f7b05812875",
+   "evidence_refs": [
+    "CL-01",
+    "CL-02",
+    "E-01",
+    "E-02",
+    "H-BLIND-RESUBMIT-INEFFECTIVE",
+    "U-MEASUREMENT-VALIDITY-AT-SCAL"
+   ],
+   "confidence": null,
+   "errors": [],
+   "output": null,
+   "fallback_used": null
+  },
+  {
+   "reasoning_id": "R-12",
+   "skill": "release_summary",
+   "status": "SUCCESS",
+   "provider": "claude-cli",
+   "model": "sonnet",
+   "input_state_version": 20,
+   "schema_version": "1.0",
+   "order": 12,
+   "attempts": 1,
+   "input_digest": "98e879edb1284876",
+   "evidence_refs": [
+    "CL-01",
+    "CL-02",
+    "E-01",
+    "E-02",
+    "H-BLIND-RESUBMIT-INEFFECTIVE",
+    "H-CARRIER-RULE-MISMATCH",
+    "H-NOTICE-CONTENT-ERRORS",
+    "U-FIX-OWNERSHIP-SIDE",
+    "VOB-U-FIX-OWNERSHIP-SIDE",
+    "VOB-U-FIX-OWNERSHIP-SIDE."
+   ],
+   "confidence": null,
+   "errors": [],
+   "output": null,
+   "fallback_used": null
+  }
+ ],
+ "proposals": {
+  "R-1": {
+   "skill": "hypothesis_init",
+   "status": "SUCCESS",
+   "output": {
+    "framing_assertion": {
+     "key": "shipment_notice.reject_cause",
+     "value": "correctable_content_errors_in_notice",
+     "rationale": "The initial request ('auto-fix rejected shipment notices and resubmit them') asserts that rejects stem from fixable content errors in the shipment notice itself that an AI agent could detect and correct before resubmission."
+    },
+    "hypotheses": [
+     {
+      "key": "NOTICE_CONTENT_ERRORS",
+      "statement": "Shipment notices from Shipper (ORG-A) contain data errors that cause Carrier (ORG-B) to reject them, and these errors are mechanically correctable, so an auto-fix-and-resubmit agent would resolve the root cause.",
+      "origin": "REQUESTER_FRAMING",
+      "decision_impact": "CRITICAL",
+      "rationale": "This is SH-REQ's own framing of the problem (scenario.initial_request); if true the proposed auto-fix agent is the correct solution, if false it would patch symptoms without fixing the real cause.",
+      "discriminating_evidence": [
+       "DA-REJ reject reason codes/categories for recurring, mechanically fixable field errors",
+       "H-1.semantic_validity=VALID, which already suggests notices are well-formed, weakening the premise of content-level errors"
+      ]
+     },
+     {
+      "key": "CARRIER_RULE_MISMATCH",
+      "statement": "Rejects are driven by Carrier-side business rules or reference data (e.g. stale master data, overly strict validation) that flag otherwise-valid notices, meaning the fix belongs on ORG-B's side, not in a shipper-side auto-fix bot.",
+      "origin": "ALTERNATIVE",
+      "decision_impact": "HIGH",
+      "rationale": "H-1 shows delivery_status=HEALTHY and semantic_validity=VALID yet the carrier still produces 'business rejects' per the reject-log tool description, suggesting the mismatch may originate in carrier logic rather than notice content.",
+      "discriminating_evidence": [
+       "DA-REJ reject reason taxonomy pointing to carrier rule/reference-data mismatches",
+       "tool_surface description 'carrier business rejects' indicating rule-based rejection distinct from transmission/semantic errors"
+      ]
+     },
+     {
+      "key": "REJECT_LOG_MEASUREMENT_GAP",
+      "statement": "The scale or nature of the reject problem is mis-scoped because DA-REJ's completeness is UNKNOWN, so the true root cause and magnitude cannot yet be established from this data asset alone.",
+      "origin": "ALTERNATIVE",
+      "decision_impact": "MEDIUM",
+      "rationale": "DA-REJ.completeness is explicitly UNKNOWN, so any root-cause conclusion drawn solely from this log risks being based on partial or unrepresentative data.",
+      "discriminating_evidence": [
+       "DA-REJ.completeness field and any audit comparing logged rejects to total carrier transactions",
+       "Cross-check of reject counts against independent shipment volume records if available"
+      ]
+     },
+     {
+      "key": "UPSTREAM_PROCESS_RECURRENCE",
+      "statement": "Rejects stem from a recurring upstream data-entry or process issue in P-1 (shipment notice process) at the Shipper, which needs a process/training fix rather than a per-instance AI auto-fix.",
+      "origin": "ALTERNATIVE",
+      "decision_impact": "HIGH",
+      "rationale": "P-1.pain_points is currently empty/unidentified, leaving open whether a systemic upstream process defect (rather than ad hoc content errors) is generating the same reject pattern repeatedly.",
+      "discriminating_evidence": [
+       "Recurrence/clustering of identical reject reasons in DA-REJ across multiple shipments",
+       "P-1 pain_points once populated, indicating a known systemic process defect"
+      ]
+     }
+    ],
+    "confidence": 0.52
+   }
+  },
+  "R-2": {
+   "skill": "discover_actions",
+   "status": "SUCCESS",
+   "output": {
+    "actions": [
+     {
+      "catalog_ref": "reject-log:rejects_by_reason",
+      "question": "What is the breakdown of carrier reject reasons in DA-REJ, and does it show content-correctable errors, carrier-side rule/reference-data flags, or recurring upstream patterns?",
+      "decision_impact": 0.9,
+      "uncertainty": 0.8,
+      "discriminative_power": 0.85,
+      "answerability": 0.9,
+      "process_data_handoff_impact": 0.5,
+      "action_proximity": 0.7,
+      "constraint_risk": 0.1,
+      "estimated_cost_minutes": 15,
+      "expected_information_gain": "Reveals the actual mix of reject reasons, letting us see whether rejects cluster as mechanically-fixable content errors, carrier-side rule mismatches, or recurring upstream patterns, and whether DA-REJ's data is complete enough to trust.",
+      "decision_impact_rationale": "Directly determines whether the auto-fix bot (CL-01's premise) targets the right root cause or whether a carrier-side or process fix is needed instead.",
+      "discriminates_hypotheses": [
+       "H-NOTICE-CONTENT-ERRORS",
+       "H-CARRIER-RULE-MISMATCH",
+       "H-UPSTREAM-PROCESS-RECURRENCE",
+       "H-REJECT-LOG-MEASUREMENT-GAP"
+      ],
+      "resolves_unknowns": [],
+      "addresses": [],
+      "why_now": "DA-REJ is the only authoritative, read-only data asset describing reject causes and its completeness is still UNKNOWN, so this is the most direct check against four still-live hypotheses before any build decision."
+     },
+     {
+      "catalog_ref": "interview:SH-REQ",
+      "question": "Does the operations manager (SH-REQ) observe reject causes recurring from the same upstream process/data-entry steps in P-1, and what evidence led them to frame the fix as an AI auto-correct-and-resubmit agent?",
+      "decision_impact": 0.6,
+      "uncertainty": 0.6,
+      "discriminative_power": 0.55,
+      "answerability": 0.8,
+      "process_data_handoff_impact": 0.3,
+      "action_proximity": 0.4,
+      "constraint_risk": 0.15,
+      "estimated_cost_minutes": 20,
+      "expected_information_gain": "Surfaces whether SH-REQ's framing (CL-01) is based on observed recurring process/training gaps versus one-off content errors, which the reject-log breakdown alone cannot distinguish for process-level causation.",
+      "decision_impact_rationale": "If SH-REQ confirms a recurring process pattern rather than isolated content mistakes, the appropriate fix shifts from a per-instance AI bot to a process/training intervention.",
+      "discriminates_hypotheses": [
+       "H-UPSTREAM-PROCESS-RECURRENCE",
+       "H-NOTICE-CONTENT-ERRORS"
+      ],
+      "resolves_unknowns": [],
+      "addresses": [],
+      "why_now": "No catalog tool directly measures recurring upstream process behavior, so the requester interview is the most direct remaining way to check H-UPSTREAM-PROCESS-RECURRENCE before deciding scope."
+     }
+    ],
+    "stop": true,
+    "stop_reason": "Both catalog items have been proposed; the reject-log query is the most direct check for H-NOTICE-CONTENT-ERRORS, H-CARRIER-RULE-MISMATCH and H-REJECT-LOG-MEASUREMENT-GAP, and the SH-REQ interview is the most direct remaining check for H-UPSTREAM-PROCESS-RECURRENCE. No further catalog items remain that could test any still-live hypothesis."
+   }
+  },
+  "R-3": {
+   "skill": "interpret_evidence",
+   "status": "SUCCESS",
+   "output": {
+    "assertion_key": "shipment_notice.reject_cause",
+    "assertion_value": "loc_unknown_and_event_order",
+    "confidence": 0.72,
+    "interpretation": "The reject-log breakdown shows only 3 rejected notices, with reasons LOC_UNKNOWN (N-1, N-2) and EVENT_ORDER (N-3) — not generic content typos. This is the first authoritative, complete look at actual reject reasons, and it does not obviously match the stakeholder's framing of \"correctable content errors.\"",
+    "hypothesis_effects": [
+     {
+      "hypothesis": "H-NOTICE-CONTENT-ERRORS",
+      "effect": "CONTRADICTS",
+      "rationale": "LOC_UNKNOWN and EVENT_ORDER look like reference-data/sequencing issues rather than simple mechanically-correctable content typos, so a per-notice auto-fix framing is not clearly supported."
+     },
+     {
+      "hypothesis": "H-CARRIER-RULE-MISMATCH",
+      "effect": "SUPPORTS",
+      "rationale": "LOC_UNKNOWN (2 of 3 rejects) is consistent with the carrier's reference/master data not recognizing a location, matching the stale-master-data pattern this hypothesis describes."
+     },
+     {
+      "hypothesis": "H-UPSTREAM-PROCESS-RECURRENCE",
+      "effect": "SUPPORTS",
+      "rationale": "EVENT_ORDER suggests a sequencing/process issue in notice submission rather than a one-off data typo, consistent with a recurring upstream process gap."
+     },
+     {
+      "hypothesis": "H-REJECT-LOG-MEASUREMENT-GAP",
+      "effect": "CONTRADICTS",
+      "rationale": "This observation is itself AUTHORITATIVE and COMPLETE with a concrete reason breakdown, reducing (though not eliminating) the concern that the reject-log data asset is unusable for root-causing."
+     }
+    ],
+    "new_hypotheses": [],
+    "fact_candidates": [
+     {
+      "statement": "reject-log rejects_by_reason returned 3 rejected notices: N-1 and N-2 reason LOC_UNKNOWN, N-3 reason EVENT_ORDER.",
+      "assertion_key": "reject_log.reasons_breakdown",
+      "value": "loc_unknown_x2_event_order_x1",
+      "evidence_refs": [
+       "E-01"
+      ]
+     }
+    ],
+    "unknown_resolutions": [],
+    "authorization_candidates": [],
+    "contradiction_assessment": {
+     "relation": "UNRELATED",
+     "target_type": "NONE",
+     "target_refs": [],
+     "materiality": "LOW",
+     "problem_invalidating": false,
+     "rationale": "No problem_definition is present in the input, so no premise-level assessment can be made against this observation."
+    },
+    "vob_proposals": [
+     {
+      "unresolved_question": "Are LOC_UNKNOWN and EVENT_ORDER reject reasons mechanically correctable on the shipper side via an auto-fix agent, or do they originate from carrier-side reference data (location master) or process-sequencing requirements that a shipper-side bot cannot fix?",
+      "decision_impact": "CRITICAL",
+      "required_before": "BEFORE_DESIGN_FINALIZATION",
+      "blocking_scope": [
+       {
+        "action": "auto_fix_and_resubmit",
+        "target": "shipment_notice"
+       }
+      ],
+      "entire_solution": true,
+      "validation_method": "Compare the location codes and event timestamps in N-1, N-2, N-3 against ORG-B's location reference data and expected event ordering to determine whether the fault originates in the shipper's data or the carrier's rules/reference data.",
+      "required_evidence": [
+       "notice content/location codes for N-1, N-2, N-3",
+       "carrier (ORG-B) location reference/master data",
+       "event timestamp sequence underlying N-3's EVENT_ORDER rejection"
+      ],
+      "linked_unknown": "",
+      "rationale": "H-NOTICE-CONTENT-ERRORS (CRITICAL decision impact, basis of the initial request) is only weakly supported by the observed reasons, so the core premise of the requested auto-fix solution needs verification before committing to that design."
+     }
+    ],
+    "follow_up_actions": [
+     "interview:SH-REQ"
+    ]
+   }
+  },
+  "R-4": {
+   "skill": "interpret_evidence",
+   "status": "SUCCESS",
+   "output": {
+    "assertion_key": "shipment_notice.reject_cause",
+    "assertion_value": "carrier_system_flaky",
+    "claim_assertion_key": "shipment_notice.reject_cause",
+    "claim_assertion_value": "carrier_system_flaky",
+    "interpretation": "SH-REQ (non-authoritative, interview) now attributes rejects to a 'flaky' carrier system and proposes blanket resubmission, a different framing than their own earlier claim of correctable content errors (CL-01). This framing also does not match the authoritative reject-log reasons (LOC_UNKNOWN, EVENT_ORDER in E-01), which point to specific data/sequencing issues rather than carrier system instability.",
+    "hypothesis_effects": [
+     {
+      "hypothesis": "H-NOTICE-CONTENT-ERRORS",
+      "effect": "CONTRADICTS",
+      "rationale": "The stakeholder now abandons the 'correctable content errors' framing that originally motivated this hypothesis, instead blaming carrier-system flakiness."
+     },
+     {
+      "hypothesis": "H-CARRIER-RULE-MISMATCH",
+      "effect": "NEUTRAL",
+      "rationale": "'Flaky system' is an unsubstantiated claim distinct from a specific business-rule or reference-data mismatch, so it neither confirms nor refutes this hypothesis."
+     },
+     {
+      "hypothesis": "H-UPSTREAM-PROCESS-RECURRENCE",
+      "effect": "NEUTRAL",
+      "rationale": "The claim does not speak to shipper-side process or data-entry recurrence."
+     },
+     {
+      "hypothesis": "H-REJECT-LOG-MEASUREMENT-GAP",
+      "effect": "NEUTRAL",
+      "rationale": "The claim does not address the completeness or measurement scope of the reject-log data asset."
+     }
+    ],
+    "new_hypotheses": [
+     {
+      "key": "H-BLIND-RESUBMIT-INEFFECTIVE",
+      "statement": "Blanket resubmission of rejected notices without correcting the underlying LOC_UNKNOWN/EVENT_ORDER causes seen in E-01 would likely just reproduce the same rejects, since those causes are structural, not transient carrier-system flakiness.",
+      "decision_impact": "HIGH",
+      "rationale": "The stakeholder's proposed 'just resubmit everything' approach (E-02) conflicts with the authoritative reject-log breakdown (E-01) showing specific, non-transient reject reasons."
+     }
+    ],
+    "fact_candidates": [],
+    "unknown_resolutions": [],
+    "authorization_candidates": [],
+    "contradiction_assessment": {
+     "relation": "UNRELATED",
+     "target_type": "NONE",
+     "target_refs": [],
+     "materiality": "LOW",
+     "problem_invalidating": false,
+     "rationale": "No problem_definition is present in state to assess this stakeholder claim against."
+    },
+    "vob_proposals": [
+     {
+      "unresolved_question": "Would blanket resubmission of rejected notices (without fixing LOC_UNKNOWN/EVENT_ORDER causes) actually reduce rejects, or just resubmit still-invalid notices?",
+      "decision_impact": "HIGH",
+      "required_before": "BEFORE_DESIGN_FINALIZATION",
+      "blocking_scope": [
+       {
+        "action": "resubmit",
+        "target": "shipment_notice"
+       }
+      ],
+      "entire_solution": false,
+      "validation_method": "Query reject-log for outcomes of previously resubmitted notices (N-1, N-2, N-3) to see if resubmission without content changes resolves or repeats the reject reason.",
+      "required_evidence": [
+       "reject-log history of resubmitted notice outcomes"
+      ],
+      "linked_unknown": "",
+      "rationale": "The stakeholder's 'just resubmit everything' claim is unsubstantiated and conflicts with E-01's structural reject reasons, so its viability should be verified before finalizing the auto-fix/resubmit design."
+     }
+    ],
+    "follow_up_actions": [],
+    "confidence": 0.7
+   }
+  },
+  "R-5": {
+   "skill": "discover_actions",
+   "status": "SUCCESS",
+   "output": {
+    "actions": [],
+    "stop": true,
+    "stop_reason": "The catalog is empty, so there are no actions available to propose; all remaining live hypotheses (H-NOTICE-CONTENT-ERRORS, H-CARRIER-RULE-MISMATCH, H-UPSTREAM-PROCESS-RECURRENCE, H-REJECT-LOG-MEASUREMENT-GAP, H-BLIND-RESUBMIT-INEFFECTIVE) have no catalog item left to check them against."
+   }
+  },
+  "R-6": {
+   "skill": "assess_hypotheses",
+   "status": "SUCCESS",
+   "output": {
+    "rationale": "Status updates derived strictly from each hypothesis's linked supporting/contradicting evidence and that evidence's own authority/completeness/interpretation fields; CONFIRMED withheld wherever the causal attribution goes beyond what the raw evidence (reason codes) directly establishes or where two hypotheses compete for the same evidence.",
+    "ready_to_define": true,
+    "updates": [
+     {
+      "hypothesis": "H-NOTICE-CONTENT-ERRORS",
+      "status": "REJECTED",
+      "rationale": "Both linked evidence items contradict it: E-01 (authoritative, complete) shows reject reasons are LOC_UNKNOWN/EVENT_ORDER, not generic content typos, and E-02 is the stakeholder's own shifted (non-authoritative) framing that also conflicts with E-01's reason codes.",
+      "evidence_refs": [
+       "E-01",
+       "E-02"
+      ]
+     },
+     {
+      "hypothesis": "H-REJECT-LOG-MEASUREMENT-GAP",
+      "status": "REJECTED",
+      "rationale": "The hypothesis assumes a measurement/completeness gap, but its sole linked evidence E-01 is explicitly AUTHORITATIVE and COMPLETE, directly contradicting the premise of unresolved data-asset completeness.",
+      "evidence_refs": [
+       "E-01"
+      ]
+     },
+     {
+      "hypothesis": "H-BLIND-RESUBMIT-INEFFECTIVE",
+      "status": "SUPPORTED",
+      "rationale": "Linked evidence E-02 (the flaky-carrier/resubmit claim) has no contradicting evidence attached to this hypothesis and, per E-02's own interpretation, is unsupported by the authoritative reason-code data, consistent with blind resubmission being ineffective against structural causes.",
+      "evidence_refs": [
+       "E-02"
+      ]
+     },
+     {
+      "hypothesis": "H-CARRIER-RULE-MISMATCH",
+      "status": "SUPPORTED",
+      "rationale": "Linked evidence E-01 is authoritative and complete with no contradiction, but it only shows reason codes (LOC_UNKNOWN/EVENT_ORDER) and does not itself establish that the fault sits on the carrier side rather than elsewhere, so support is affirmed without full confirmation.",
+      "evidence_refs": [
+       "E-01"
+      ]
+     },
+     {
+      "hypothesis": "H-UPSTREAM-PROCESS-RECURRENCE",
+      "status": "SUPPORTED",
+      "rationale": "Linked evidence E-01 is uncontradicted and authoritative, but the same reason codes equally underpin the competing H-CARRIER-RULE-MISMATCH explanation, so genuine causal ambiguity remains and full confirmation is not warranted.",
+      "evidence_refs": [
+       "E-01"
+      ]
+     }
+    ]
+   }
+  },
+  "R-7": {
+   "skill": "define_problem",
+   "status": "SUCCESS",
+   "output": {
+    "root_problem": "Carrier (ORG-B) rejects Shipper (ORG-A) shipment notices specifically because they fail LOC_UNKNOWN and EVENT_ORDER validation checks (N-1, N-2, N-3 per E-01), not because of generic correctable content typos (CL-01, rejected via H-NOTICE-CONTENT-ERRORS) or carrier-system flakiness (CL-02/E-02, non-authoritative, contradicted by E-01). Because these causes are structural rather than transient, blindly auto-correcting and resubmitting notices would likely reproduce the same rejects (H-BLIND-RESUBMIT-INEFFECTIVE).",
+    "requested_solution": "Deploy an AI agent that auto-fixes rejected shipment notices and resubmits them to the Carrier automatically (SH-REQ initial request, CL-01).",
+    "symptoms": [
+     "Carrier rejects shipment notices; the only recorded rejects (N-1, N-2, N-3) show reasons LOC_UNKNOWN and EVENT_ORDER, not generic content errors (E-01).",
+     "The requester's framing of the reject cause shifted from correctable content errors (CL-01) to carrier-system flakiness (CL-02), and neither matches the authoritative reject-log reasons (C-2, C-4, C-5)."
+    ],
+    "affected_process": "P-1 shipment notice process",
+    "causal_chain": [
+     "Shipper's P-1 process generates shipment notices handed off to Carrier via H-1.",
+     "Carrier's validation rejects notices that fail LOC_UNKNOWN and EVENT_ORDER checks (E-01: N-1, N-2 = LOC_UNKNOWN; N-3 = EVENT_ORDER).",
+     "These reject reasons are structural data/sequencing issues, not generic content typos (contradicts rejected H-NOTICE-CONTENT-ERRORS) and not carrier-system flakiness (contradicts CL-02/E-02).",
+     "Because the causes are structural rather than transient, blanket auto-correction and resubmission without fixing them would likely reproduce the same rejects (H-BLIND-RESUBMIT-INEFFECTIVE)."
+    ],
+    "premise_hypotheses": [
+     "H-BLIND-RESUBMIT-INEFFECTIVE"
+    ],
+    "evidence_refs": [
+     "E-01",
+     "E-02"
+    ],
+    "assumptions": [
+     {
+      "key": "structural_not_flakiness",
+      "statement": "LOC_UNKNOWN and EVENT_ORDER reasons reflect genuine notice data/sequencing issues rather than an undiagnosed Carrier system defect.",
+      "evidence_refs": [
+       "E-01"
+      ],
+      "risk_if_wrong": "HIGH"
+     },
+     {
+      "key": "sample_representative",
+      "statement": "The 3 logged rejects (N-1, N-2, N-3) are representative of the reject pattern despite DA-REJ's completeness being marked UNKNOWN.",
+      "evidence_refs": [
+       "E-01",
+       "DA-REJ"
+      ],
+      "risk_if_wrong": "MEDIUM"
+     }
+    ],
+    "unknowns": [
+     {
+      "key": "fix_ownership_side",
+      "question": "Do LOC_UNKNOWN/EVENT_ORDER rejects originate from Shipper-side process/data entry (P-1) or Carrier-side validation rules/reference data (ORG-B)?",
+      "criticality": "HIGH",
+      "decision_impact": "Determines whether remediation targets ORG-A's notice-generation process or ORG-B's validation rules, which are different fixes with different owners.",
+      "affects_scope": [
+       {
+        "action": "investigate_upstream_process_data",
+        "target": "P-1"
+       },
+       {
+        "action": "investigate_carrier_validation_rules",
+        "target": "ORG-B"
+       }
+      ],
+      "resolution_path": "Compare N-1/N-2/N-3 notice contents against P-1 process steps and against ORG-B's current validation rules/reference data.",
+      "safe_placeholder": "Route rejected notices to manual review by both ORG-A and ORG-B contacts rather than auto-fixing on one side."
+     },
+     {
+      "key": "measurement_validity_at_scale",
+      "question": "Does the current n=3 reject sample reflect the true volume/trend of rejects, or is it limited by an observation window not yet captured in DA-REJ?",
+      "criticality": "MEDIUM",
+      "decision_impact": "Affects whether reject-count targets and thresholds are meaningful or need recalibration as more data accumulates.",
+      "affects_scope": [
+       {
+        "action": "analyze_reject_reasons",
+        "target": "DA-REJ"
+       }
+      ],
+      "resolution_path": "Extend reject-log monitoring window and re-run rejects_by_reason over a longer period.",
+      "safe_placeholder": "Treat current counts as a preliminary baseline only, not a final target."
+     }
+    ],
+    "metrics": [
+     {
+      "key": "reject_count_structural",
+      "name": "Count of rejected shipment notices by structural reason (LOC_UNKNOWN, EVENT_ORDER)",
+      "metric_type": "COUNT",
+      "population": "rejected shipment notices recorded in reject-log",
+      "aggregation": "count grouped by reject reason",
+      "current_value": 3,
+      "current_value_evidence_refs": [
+       "E-01"
+      ]
+     },
+     {
+      "key": "resubmit_recurrence_rate",
+      "name": "Rate of resubmitted notices rejected again for the same reason",
+      "metric_type": "RATE",
+      "numerator": "resubmitted notices rejected again with the same reject reason",
+      "denominator": "total notices resubmitted following a prior reject",
+      "measurement_window": "rolling window after remediation deployment"
+     }
+    ],
+    "success_criteria": [
+     {
+      "key": "no_blind_resubmit",
+      "statement": "Any remediation must not blindly auto-correct generic content and resubmit without addressing the actual LOC_UNKNOWN/EVENT_ORDER causes.",
+      "kind": "MUST",
+      "metric": "reject_count_structural",
+      "threshold": "0 unaddressed structural causes before resubmission",
+      "validation_method": "Review reject-log rejects_by_reason after remediation to confirm LOC_UNKNOWN/EVENT_ORDER no longer recur for the same input class."
+     },
+     {
+      "key": "reduce_structural_rejects",
+      "statement": "Reduce LOC_UNKNOWN and EVENT_ORDER driven rejects toward zero over time.",
+      "kind": "TARGET",
+      "metric": "reject_count_structural",
+      "threshold": "0 within monitoring window",
+      "validation_method": "Track reject-log rejects_by_reason counts over time after remediation."
+     },
+     {
+      "key": "resubmit_not_recurring",
+      "statement": "Resubmitted notices should not recur-reject for the same structural reason.",
+      "kind": "TARGET",
+      "metric": "resubmit_recurrence_rate",
+      "threshold": "< 10% recurrence",
+      "validation_method": "Compare reject reasons before and after resubmission in reject-log."
+     },
+     {
+      "key": "small_sample_limitation",
+      "statement": "Current reject sample is only 3 notices (N-1, N-2, N-3), so the true magnitude/trend of the problem is not yet established.",
+      "kind": "KNOWN_LIMITATION",
+      "metric": "reject_count_structural",
+      "threshold": "n=3 as of E-01",
+      "validation_method": "Re-evaluate once reject-log accumulates more volume."
+     }
+    ],
+    "intended_scope": [
+     {
+      "action": "analyze_reject_reasons",
+      "target": "DA-REJ"
+     },
+     {
+      "action": "investigate_upstream_process_data",
+      "target": "P-1"
+     },
+     {
+      "action": "investigate_carrier_validation_rules",
+      "target": "ORG-B"
+     },
+     {
+      "action": "consult_stakeholder_on_reject_cause",
+      "target": "SH-INT"
+     }
+    ],
+    "protected_actions": [],
+    "required_tools": [
+     "reject-log"
+    ],
+    "depends_on_handoffs": [
+     "H-1"
+    ],
+    "constraint_refs": [],
+    "rejected_framings": [
+     {
+      "hypothesis": "H-NOTICE-CONTENT-ERRORS",
+      "why": "Rejected: contradicted by E-01 and E-02; the recorded reasons are LOC_UNKNOWN/EVENT_ORDER, not generic content typos, so adopting it would misdirect remediation toward content correction."
+     },
+     {
+      "hypothesis": "H-REJECT-LOG-MEASUREMENT-GAP",
+      "why": "Rejected: contradicted by E-01; the authoritative complete breakdown gives a concrete, specific reject-reason signal rather than an unusable or mis-scoped measurement."
+     }
+    ],
+    "framing_resolution": [],
+    "repair_resolution": [],
+    "authorization_candidates": [],
+    "vob_reevaluation": [],
+    "confidence": 0.6
+   }
+  },
+  "R-8": {
+   "skill": "structural_remedy",
+   "status": "SUCCESS",
+   "output": {
+    "root_cause": "PD-1's root cause is that Carrier (ORG-B) rejects notices for structural reasons — LOC_UNKNOWN (N-1,N-2) and EVENT_ORDER (N-3) per E-01 — not generic content typos (CL-01, rejected via H-NOTICE-CONTENT-ERRORS) nor carrier flakiness (CL-02/E-02, non-authoritative, contradicted by E-01/C-3,C-5). However WHICH side owns the structural cause — Shipper-side process/data entry in P-1 or Carrier-side validation rules/reference data in ORG-B — is unresolved (U-FIX-OWNERSHIP-SIDE, HIGH criticality, OPEN, with VOB-U-FIX-OWNERSHIP-SIDE blocking both investigate_upstream_process_data:P-1 and investigate_carrier_validation_rules:ORG-B before release).",
+    "remedies": [
+     {
+      "key": "DIAGNOSTIC_CONSULTATION",
+      "description": "Hold a structured review with SH-INT (Carrier interface owner, ORG-B) and ORG-A process owners to determine whether LOC_UNKNOWN/EVENT_ORDER originate from Shipper-side data entry (P-1) or Carrier-side validation rules/reference data (ORG-B), resolving U-FIX-OWNERSHIP-SIDE / VOB-U-FIX-OWNERSHIP-SIDE.",
+      "removes_root_cause": false,
+      "feasible_in_contest_time": true,
+      "constraint_feasible": true,
+      "feasibility_rationale": "Already within PD-1's intended_scope (consult_stakeholder_on_reject_cause:SH-INT) and uses an existing stakeholder relationship; 225 minutes remain in budget.",
+      "residual_gap": "Diagnoses ownership but does not itself correct any reject cause; a targeted shipper- or carrier-side fix must still be designed and implemented afterward."
+     },
+     {
+      "key": "SHIPPER_SIDE_VALIDATION_FIX",
+      "description": "If diagnosis attributes rejects to P-1, add pre-submission checks in the shipment notice process to validate location codes against a known reference list and enforce correct event sequencing before transmitting to Carrier.",
+      "removes_root_cause": true,
+      "feasible_in_contest_time": true,
+      "constraint_feasible": false,
+      "feasibility_rationale": "Blocked today because VOB-U-FIX-OWNERSHIP-SIDE (OPEN) explicitly blocks investigate_upstream_process_data:P-1; cannot be committed as 'the' remedy until ownership is confirmed.",
+      "residual_gap": "If the diagnosis instead attributes rejects to Carrier-side rules, this remedy addresses nothing and the carrier-side remedy would be required instead."
+     },
+     {
+      "key": "CARRIER_SIDE_RULE_REVIEW",
+      "description": "If diagnosis attributes rejects to Carrier-side validation logic or stale reference data (per H-CARRIER-RULE-MISMATCH), request ORG-B correct the LOC_UNKNOWN/EVENT_ORDER checks or underlying master data.",
+      "removes_root_cause": true,
+      "feasible_in_contest_time": false,
+      "constraint_feasible": false,
+      "feasibility_rationale": "Blocked by the same VOB (blocking_scope includes investigate_carrier_validation_rules:ORG-B) and depends on ORG-B's internal process/cooperation outside this contest's direct control.",
+      "residual_gap": "Timeline and authorization for ORG-B to change its own validation rules are not evidenced and may exceed remaining contest time."
+     },
+     {
+      "key": "EXPAND_SAMPLE_VALIDATION",
+      "description": "Confirm DA-REJ's completeness or extend the observation window to check that the 3 logged rejects (N-1-N-3) represent the true pattern/volume, addressing U-MEASUREMENT-VALIDITY-AT-SCAL before finalizing any remedy.",
+      "removes_root_cause": false,
+      "feasible_in_contest_time": true,
+      "constraint_feasible": true,
+      "feasibility_rationale": "Uses the existing HEALTHY reject-log tool already within analyze_reject_reasons:DA-REJ scope; no new access needed.",
+      "residual_gap": "Confirms scale/representativeness of the sample only; it does not determine which side owns the fix or implement any correction."
+     }
+    ],
+    "why_agent_needed": "",
+    "confidence": 0.72
+   }
+  },
+  "R-9": {
+   "skill": "agent_design",
+   "status": "SUCCESS",
+   "output": {
+    "deterministic_rules_cover_cases": false,
+    "llm_reasoning_adds_value": true,
+    "autonomous_iteration_adds_value": false,
+    "residual_exceptions": true,
+    "detection_needed": true,
+    "why_agent": "Determining whether LOC_UNKNOWN/EVENT_ORDER rejects originate shipper-side or carrier-side requires facilitating a judgment-based consultation and synthesizing conflicting claims (C-1..C-5), not a fixed rule; sample-validity assessment also needs interpretive judgment.",
+    "bridge_sunset_condition": "Sunset the diagnostic-only bridge once VOB-U-FIX-OWNERSHIP-SIDE is resolved via SR-DIAGNOSTIC-CONSULTATION and the corresponding side-specific remedy (SR-SHIPPER-SIDE-VALIDATION-FIX or SR-CARRIER-SIDE-RULE-REVIEW) is implemented and verified to hold M-RESUBMIT-RECURRENCE-RATE below 10%.",
+    "deterministic_components": [
+     "reject-log rejects_by_reason query/count is deterministic (as used in E-01/F-01)"
+    ],
+    "release_scope": [
+     {
+      "action": "consult_stakeholder_on_reject_cause",
+      "target": "SH-INT"
+     },
+     {
+      "action": "analyze_reject_reasons",
+      "target": "DA-REJ"
+     }
+    ],
+    "minimum_useful_scope": [
+     {
+      "action": "consult_stakeholder_on_reject_cause",
+      "target": "SH-INT"
+     }
+    ],
+    "scope_dependencies": [
+     {
+      "action": "consult_stakeholder_on_reject_cause:SH-INT",
+      "depends_on": [
+       "DA-REJ"
+      ]
+     },
+     {
+      "action": "analyze_reject_reasons:DA-REJ",
+      "depends_on": []
+     }
+    ],
+    "role_suggestion": [
+     "BRIDGE",
+     "CONTROL_DETECTION"
+    ],
+    "capabilities": [
+     "Facilitate structured diagnostic review with SH-INT and ORG-A process owners",
+     "Synthesize conflicting claims/evidence (CL-01, CL-02, E-01, E-02) into an ownership determination",
+     "Confirm or extend DA-REJ observation window to validate sample representativeness"
+    ],
+    "llm_required_for": [
+     "Interpreting ambiguous/conflicting stakeholder statements to attribute reject cause to shipper or carrier side",
+     "Assessing whether the n=3 sample (N-1..N-3) is representative given UNKNOWN completeness of DA-REJ"
+    ],
+    "tools": [
+     "reject-log"
+    ],
+    "authority_boundary": [
+     "Cannot itself implement SR-SHIPPER-SIDE-VALIDATION-FIX or SR-CARRIER-SIDE-RULE-REVIEW; those remain blocked by VOB-U-FIX-OWNERSHIP-SIDE until ownership is confirmed",
+     "Cannot authorize or compel ORG-B to change its validation rules or master data",
+     "Cannot resubmit or auto-correct shipment notices (that path was rejected via H-NOTICE-CONTENT-ERRORS)"
+    ],
+    "human_gate": [],
+    "termination": "Terminate this bridge once the diagnostic consultation yields an ownership determination and DA-REJ's completeness/sample validity is confirmed, handing off the result to resolve VOB-U-FIX-OWNERSHIP-SIDE and unblock the appropriate side-specific fix design.",
+    "validation": [
+     "Re-run reject-log rejects_by_reason after the extended observation window and compare against the N-1..N-3 baseline from E-01",
+     "Confirm the consultation's ownership conclusion is cross-checked against E-01's authoritative reason codes before closing VOB-U-FIX-OWNERSHIP-SIDE"
+    ],
+    "known_limitations": [
+     "Diagnosing ownership does not itself correct any reject cause; a targeted shipper- or carrier-side fix must still be designed and implemented afterward",
+     "Sample validation confirms scale/representativeness only; it does not determine which side owns the fix",
+     "If diagnosis attributes rejects to Carrier-side rules, timeline and cooperation from ORG-B for any subsequent fix are not evidenced"
+    ],
+    "vob_proposals": [],
+    "confidence": 0.72
+   }
+  },
+  "R-10": {
+   "skill": "plan_execution",
+   "status": "SUCCESS",
+   "output": {
+    "work_items": [
+     {
+      "key": "WI-ANALYZE-REJECTS",
+      "description": "Compile the authoritative reject-reason breakdown for DA-REJ (LOC_UNKNOWN, EVENT_ORDER) into a deliverable to support the diagnostic consultation and root-cause remedy decision.",
+      "work_class": "CORE_FEATURE",
+      "est_minutes": 15,
+      "scope_items": [
+       {
+        "action": "analyze_reject_reasons",
+        "target": "DA-REJ"
+       }
+      ],
+      "root_problem_aligned": true,
+      "release_blocking": true,
+      "data_ops": [
+       "reject-log:rejects_by_reason"
+      ],
+      "output_name": "DA-REJ_reject_reason_summary",
+      "output_key_fields": [
+       "notice"
+      ],
+      "output_join": false,
+      "output_constant_fields": []
+     },
+     {
+      "key": "WI-CONSULT-SHINT-GAP",
+      "description": "Release scope requires consulting SH-INT (ORG-B interface owner, per U-FIX-OWNERSHIP-SIDE/VOB-U-FIX-OWNERSHIP-SIDE) but the catalog has no interview op for SH-INT, only interview:SH-REQ; this scope item cannot be executed with the current catalog.",
+      "work_class": "CORE_FEATURE",
+      "est_minutes": 0,
+      "scope_items": [
+       {
+        "action": "consult_stakeholder_on_reject_cause",
+        "target": "SH-INT"
+       }
+      ],
+      "root_problem_aligned": true,
+      "release_blocking": true,
+      "data_ops": [],
+      "output_name": "",
+      "output_key_fields": [],
+      "output_join": false,
+      "output_constant_fields": []
+     }
+    ],
+    "protected_actions": [],
+    "rationale": "Only two release_scope items exist (analyze_reject_reasons:DA-REJ, consult_stakeholder_on_reject_cause:SH-INT). The former has a matching catalog op (reject-log:rejects_by_reason, E-01) and is packaged as a deliverable; the latter has no corresponding catalog ref (catalog only offers interview:SH-REQ, a different stakeholder/target), so it is flagged as a gap rather than fabricated. mutating_tools is empty, so no protected actions can be proposed in this EXECUTE pass."
+   }
+  },
+  "R-11": {
+   "skill": "semantic_judge",
+   "status": "SUCCESS",
+   "output": {
+    "checks": [
+     {
+      "name": "root_problem_addressed",
+      "status": "WARN",
+      "detail": "Release scope (consult SH-INT + analyze DA-REJ) targets diagnosing ownership of the structural LOC_UNKNOWN/EVENT_ORDER causes identified in E-01, consistent with the active root problem, but does not itself remedy the cause and the SH-INT consultation step is flagged elsewhere as unexecutable.",
+      "refs": [
+       "E-01",
+       "PD-1",
+       "SR-DIAGNOSTIC-CONSULTATION",
+       "W-WI-CONSULT-SHINT-GAP"
+      ]
+     },
+     {
+      "name": "scope_executability_consistency",
+      "status": "FAIL",
+      "detail": "solution_design.release_scope lists consult_stakeholder_on_reject_cause:SH-INT as part of the released scope, yet plan item W-WI-CONSULT-SHINT-GAP explicitly states this scope item cannot be executed because the catalog has no interview op for SH-INT (status PENDING).",
+      "refs": [
+       "W-WI-CONSULT-SHINT-GAP",
+       "SD-1"
+      ]
+     },
+     {
+      "name": "hypothesis_evidence_citation",
+      "status": "WARN",
+      "detail": "H-BLIND-RESUBMIT-INEFFECTIVE concludes rejects are structural rather than transient flakiness but lists only E-02 (the non-authoritative flakiness claim) as supporting evidence, not E-01 which actually documents the structural LOC_UNKNOWN/EVENT_ORDER causes; this citation looks mismatched to the claim it backs.",
+      "refs": [
+       "H-BLIND-RESUBMIT-INEFFECTIVE",
+       "E-01",
+       "E-02"
+      ]
+     },
+     {
+      "name": "limitations_honesty",
+      "status": "PASS",
+      "detail": "unfinished_scope and the remedies list explicitly disclose that the n=3 reject sample's representativeness is unconfirmed, that ownership diagnosis alone does not fix the cause, and that ORG-B's cooperation/timeline for a carrier-side fix is unevidenced.",
+      "refs": [
+       "SD-1",
+       "U-MEASUREMENT-VALIDITY-AT-SCAL",
+       "SR-CARRIER-SIDE-RULE-REVIEW"
+      ]
+     },
+     {
+      "name": "stakeholder_claim_handling",
+      "status": "PASS",
+      "detail": "SH-REQ's shifting framings (CL-01 correctable content errors, CL-02 carrier flakiness) are correctly marked CONTRADICTED and UNVERIFIED rather than treated as fact, and the open conflicts against authoritative E-01 are tracked.",
+      "refs": [
+       "CL-01",
+       "CL-02",
+       "E-01",
+       "C-2",
+       "C-4",
+       "C-5"
+      ]
+     }
+    ]
+   }
+  },
+  "R-12": {
+   "skill": "release_summary",
+   "status": "SUCCESS",
+   "output": {
+    "key_points": [
+     "Problem (PD-1): Carrier (ORG-B) rejects Shipper (ORG-A) shipment notices for LOC_UNKNOWN (N-1, N-2) and EVENT_ORDER (N-3) per the authoritative reject-log (E-01), not generic correctable content typos as the requester first claimed (CL-01, hypothesis H-NOTICE-CONTENT-ERRORS rejected).",
+     "The requester's follow-up claim that the carrier system is 'flaky' and everything should just be resubmitted (CL-02/E-02) is also contradicted by E-01, which points to structural data/sequencing causes; H-BLIND-RESUBMIT-INEFFECTIVE is supported, meaning blind resubmission would likely reproduce the same rejects.",
+     "The DEFINE gate returned CONDITIONAL_PASS because a critical unknown, U-FIX-OWNERSHIP-SIDE (does the fix belong to Shipper process P-1 or Carrier validation/ORG-B?), could not be resolved and was deferred to VOB-U-FIX-OWNERSHIP-SIDE.",
+     "Verification found a scope-executability inconsistency: the release scope includes consulting SH-INT (ORG-B interface owner) to resolve ownership, but plan item W-WI-CONSULT-SHINT-GAP is PENDING and cannot be executed because the tool catalog has no interview operation for SH-INT.",
+     "What was actually released: the completed reject-reason analysis (W-WI-ANALYZE-REJECTS, DONE), which compiled the authoritative LOC_UNKNOWN/EVENT_ORDER breakdown from DA-REJ to inform the still-unresolved diagnostic consultation.",
+     "Decision is RELEASE_WITH_KNOWN_LIMITATION with no holds: the analysis deliverable is complete and authoritative, but the ownership-diagnosis step it was meant to feed is blocked, so the release proceeds with that gap documented rather than withheld."
+    ],
+    "limitations_explained": [
+     "DEFINE Gate result was CONDITIONAL_PASS, not a full pass, with the deferred critical unknown tracked as VOB-U-FIX-OWNERSHIP-SIDE rather than resolved.",
+     "A scope-executability conflict exists: solution_design.release_scope lists consulting SH-INT as released scope, yet plan item W-WI-CONSULT-SHINT-GAP states this cannot run because the catalog lacks an interview tool for SH-INT (status PENDING).",
+     "VOB-U-FIX-OWNERSHIP-SIDE remains OPEN and its blocking_scope (investigating P-1 and ORG-B's validation rules) falls outside what was actually released, so who owns the fix is still unknown.",
+     "If the eventual diagnosis points to Carrier-side rules or stale reference data (H-CARRIER-RULE-MISMATCH), the step of asking ORG-B to correct LOC_UNKNOWN/EVENT_ORDER checks or master data has not been started.",
+     "The reject sample behind this analysis is only 3 notices (N-1, N-2, N-3), so the true magnitude or trend of the reject problem is not yet established.",
+     "Diagnosing which side owns the problem would not itself fix anything; a targeted shipper- or carrier-side remedy still needs to be designed and built afterward.",
+     "Expanding sample validation would only confirm scale/representativeness of the 3 rejects, not determine which organization (ORG-A or ORG-B) owns the fix.",
+     "If the cause turns out to be Carrier-side, no evidence exists yet about ORG-B's timeline or willingness to cooperate on a subsequent fix."
+    ],
+    "summary": "The defined problem (PD-1) is that Carrier (ORG-B) rejects Shipper (ORG-A) shipment notices specifically for LOC_UNKNOWN and EVENT_ORDER reasons on the only 3 logged rejects (N-1, N-2, N-3 per authoritative evidence E-01) — not the generic 'correctable content errors' the requester originally described (CL-01) nor the 'flaky carrier system' they later claimed (CL-02/E-02), both of which were contradicted by the reject-log data. Because these causes look structural, an auto-fix-and-resubmit bot (the original request) was rejected as a solution (H-NOTICE-CONTENT-ERRORS REJECTED, H-BLIND-RESUBMIT-INEFFECTIVE SUPPORTED); the real open question (U-FIX-OWNERSHIP-SIDE) is whether the fix belongs on the Shipper or Carrier side, and this was deferred as a verification obligation (VOB-U-FIX-OWNERSHIP-SIDE) at a CONDITIONAL_PASS gate. What was released is the completed reject-reason analysis work item (W-WI-ANALYZE-REJECTS), under decision RELEASE_WITH_KNOWN_LIMITATION with no holds. The release carries documented limitations because the plan to consult ORG-B's interface owner (SH-INT) to resolve ownership cannot currently execute (no catalog interview tool for SH-INT), the ownership VOB is still open, the sample size (3 notices) is too small to confirm overall scale/trend, and any downstream shipper- or carrier-side fix — plus ORG-B's cooperation if the fault is Carrier-side — remains undesigned and unconfirmed."
+   }
+  }
+ }
+}
